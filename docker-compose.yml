@@ -1,0 +1,33 @@
+version: '3.8'
+
+services:
+  ruoyi-backend:
+    image: eclipse-temurin:17-jre-alpine
+    container_name: ruoyi-backend
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./ruoyi-admin.jar:/app/app.jar:ro
+      - ./logs:/app/logs
+      - ./uploadPath:/app/uploadPath
+      - ./.env:/app/.env:ro
+    working_dir: /app
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      TZ: Asia/Shanghai
+      # JVM 参数，可根据需要调整
+      JAVA_OPTS: "-Xms512m -Xmx1024m -XX:+UseG1GC"
+    command: ["sh", "-c", "java $$JAVA_OPTS -jar /app/app.jar"]
+    networks:
+      - ruoyi-network
+    healthcheck:
+      test: ["CMD", "sh", "-c", "wget --no-verbose --tries=1 --spider http://localhost:8080/ || exit 1"]
+      interval: 30s
+      timeout: 10s
+      start_period: 60s
+      retries: 3
+
+networks:
+  ruoyi-network:
+    driver: bridge

@@ -1,0 +1,88 @@
+name: Deploy Frontend
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'ruoyi-ui/**'
+      - '.github/workflows/deploy-frontend.yml'
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 8
+
+      - name: Install dependencies
+        working-directory: ./ruoyi-ui
+        run: pnpm install
+
+      - name: Build frontend
+        working-directory: ./ruoyi-ui
+        run: pnpm run build:prod
+        env:
+          NODE_OPTIONS: --max-old-space-size=4096
+
+      - name: Create deployment package
+        run: |
+          cd ruoyi-ui/dist
+          tar -czf ../frontend-dist.tar.gz .
+
+      - name: Deploy to server via SCP
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          port: ${{ secrets.SERVER_PORT }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          source: "ruoyi-ui/frontend-dist.tar.gz"
+          target: "/tmp/"
+          strip_components: 1
+
+      - name: Extract and clean up
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          port: ${{ secrets.SERVER_PORT }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          script_stop: true
+          script: |
+            # 部署目录
+            DEPLOY_DIR="${{ secrets.FRONTEND_DEPLOY_DIR }}"
+
+            # 备份现有目录（如果存在）
+            if [ -d "$DEPLOY_DIR" ]; then
+              echo "Backing up existing frontend..."
+              BACKUP_DIR="${DEPLOY_DIR}_backup_$(date +%Y%m%d_%H%M%S)"
+              cp -r "$DEPLOY_DIR" "$BACKUP_DIR"
+              echo "Backup created at: $BACKUP_DIR"
+
+              # 只保留最近3个备份
+              ls -dt ${DEPLOY_DIR}_backup_* 2>/dev/null | tail -n +4 | xargs -r rm -rf
+            fi
+
+            # 清空部署目录
+            mkdir -p "$DEPLOY_DIR"
+            rm -rf "${DEPLOY_DIR:?}"/*
+
+            # 解压新版本
+            tar -xzf /tmp/frontend-dist.tar.gz -C "$DEPLOY_DIR"
+
+            # 清理临时文件
+            rm /tmp/frontend-dist.tar.gz
+
+            echo "Frontend deployed successfully to: $DEPLOY_DIR"
