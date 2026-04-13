@@ -4,13 +4,13 @@ on:
   push:
     branches:
       - main
-    paths:
-      - 'ruoyi-*/**'
-      - 'pom.xml'
-      - '.github/workflows/deploy-backend.yml'
-      - 'docker-compose.yml'
     paths-ignore:
       - 'ruoyi-ui/**'
+      - 'docs/**'
+      - '*.md'
+      - '.env.example'
+      - '.gitignore'
+      - 'LICENSE'
 
 jobs:
   deploy:
