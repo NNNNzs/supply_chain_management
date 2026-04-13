@@ -2,7 +2,15 @@
   "permissions": {
     "allow": [
       "Bash(git add:*)",
-      "Bash(git commit -m ':*)"
+      "Bash(git commit -m ':*)",
+      "Bash([ -d \"$src_dir/ruoyi\" ])",
+      "Bash(mv __TRACKED_VAR__/ruoyi __TRACKED_VAR__/scm)",
+      "Bash(find . -name \"*.java\" -type f -exec sed -i 's/package com\\\\.ruoyi/package com.scm/g' {} \\\\;)",
+      "Bash(find . -name \"*.java\" -type f -exec sed -i 's/import com\\\\.ruoyi\\\\./import com.scm./g' {} \\\\;)",
+      "Bash(find . -name \"*.xml\" -type f -exec grep -l \"com.ruoyi\" {} \\\\;)",
+      "Bash(find ./ruoyi-*/src -name \"*.xml\" -type f -exec sed -i 's/com\\\\.ruoyi\\\\./com.scm./g' {} \\\\;)",
+      "Bash(find . -name \"*.java\" -type f ! -path \"*/target/*\" ! -path \"*/.idea/*\" -exec sed -i 's/@author ruoyi/@author scm/g' {} \\\\;)",
+      "Bash(mvn clean:*)"
     ]
   }
 }

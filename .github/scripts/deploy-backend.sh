@@ -4,10 +4,10 @@ set -e
 
 # 配置变量
 DEPLOY_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-APP_NAME="ruoyi-admin"
+APP_NAME="scm-backend"
 JAR_FILE="${DEPLOY_DIR}/${APP_NAME}.jar"
 COMPOSE_FILE="${DEPLOY_DIR}/docker-compose.yml"
-CONTAINER_NAME="ruoyi-backend"
+CONTAINER_NAME="scm-backend"
 
 # 颜色输出
 RED='\033[0;31m'
