@@ -6,10 +6,14 @@ import java.util.Date;
 import java.util.List;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import com.scm.common.exception.ServiceException;
 import com.scm.common.utils.StringUtils;
+import com.scm.logistics.domain.LogisticsBill;
 import com.scm.logistics.domain.LogisticsCustomer;
 import com.scm.logistics.domain.LogisticsOrder;
+import com.scm.logistics.mapper.LogisticsBillMapper;
+import com.scm.logistics.mapper.LogisticsBillOrderDetailMapper;
 import com.scm.logistics.mapper.LogisticsCustomerMapper;
 import com.scm.logistics.mapper.LogisticsOrderMapper;
 import com.scm.logistics.service.ILogisticsOrderService;
@@ -28,6 +32,12 @@ public class LogisticsOrderServiceImpl implements ILogisticsOrderService
 
     @Autowired
     private LogisticsCustomerMapper customerMapper;
+
+    @Autowired
+    private LogisticsBillOrderDetailMapper billOrderDetailMapper;
+
+    @Autowired
+    private LogisticsBillMapper billMapper;
 
     /**
      * 查询运输订单
@@ -103,9 +113,14 @@ public class LogisticsOrderServiceImpl implements ILogisticsOrderService
      * @return 结果
      */
     @Override
+    @Transactional
     public int deleteOrderByIds(Long[] orderIds)
     {
-        return orderMapper.deleteOrderByIds(orderIds);
+        for (Long orderId : orderIds)
+        {
+            deleteOrderById(orderId);
+        }
+        return orderIds.length;
     }
 
     /**
@@ -115,9 +130,78 @@ public class LogisticsOrderServiceImpl implements ILogisticsOrderService
      * @return 结果
      */
     @Override
+    @Transactional
     public int deleteOrderById(Long orderId)
     {
+        // 检查订单状态，已完成的订单不能删除
+        LogisticsOrder order = orderMapper.selectOrderById(orderId);
+        if (order == null)
+        {
+            throw new ServiceException("订单不存在");
+        }
+        if ("completed".equals(order.getOrderStatus()))
+        {
+            throw new ServiceException("已完成的订单不能删除");
+        }
+        if ("settled".equals(order.getSettlementStatus()))
+        {
+            throw new ServiceException("已结算的订单不能删除");
+        }
+
+        // 获取订单关联的提单ID列表
+        List<Long> billIds = billOrderDetailMapper.selectBillIdsByOrderId(orderId);
+
+        // 删除运单的提单关联明细
+        billOrderDetailMapper.deleteDetailsByOrderId(orderId);
+
+        // 更新关联提单的状态和已分配重量
+        for (Long billId : billIds)
+        {
+            updateBillStatusAfterOrderDelete(billId);
+        }
+
+        // 逻辑删除订单
         return orderMapper.deleteOrderById(orderId);
+    }
+
+    /**
+     * 删除订单后更新提单状态和已分配重量
+     *
+     * @param billId 提单ID
+     */
+    private void updateBillStatusAfterOrderDelete(Long billId)
+    {
+        // 重新计算提单的已分配重量
+        Double allocatedWeight = billOrderDetailMapper.sumAllocatedWeightByBillId(billId);
+        LogisticsBill bill = billMapper.selectLogisticsBillByBillId(billId);
+
+        if (bill != null)
+        {
+            // 更新已分配重量
+            bill.setAllocatedWeight(allocatedWeight != null ? BigDecimal.valueOf(allocatedWeight) : BigDecimal.ZERO);
+
+            // 根据已分配重量更新状态
+            if (bill.getTotalWeight() != null)
+            {
+                if (bill.getAllocatedWeight().compareTo(BigDecimal.ZERO) == 0)
+                {
+                    // 没有分配，恢复为待配载
+                    bill.setBillStatus("pending");
+                }
+                else if (bill.getAllocatedWeight().compareTo(bill.getTotalWeight()) < 0)
+                {
+                    // 部分分配
+                    bill.setBillStatus("partial");
+                }
+                else
+                {
+                    // 全部分配
+                    bill.setBillStatus("allocated");
+                }
+            }
+
+            billMapper.updateBillStatusAndWeight(bill);
+        }
     }
 
     /**
@@ -152,8 +236,19 @@ public class LogisticsOrderServiceImpl implements ILogisticsOrderService
                 }
             }
 
-            String serialNo = String.format("%04d", count + 1);
-            logisticsOrder.setOrderNo(prefix + serialNo);
+            // 生成订单号并检查数据库中是否存在（包括已删除的记录）
+            String serialNo;
+            String candidateOrderNo;
+            int attempt = 0;
+            do
+            {
+                serialNo = String.format("%04d", count + 1 + attempt);
+                candidateOrderNo = prefix + serialNo;
+                attempt++;
+            }
+            while (orderMapper.checkOrderNoExistsInDb(candidateOrderNo) != null);
+
+            logisticsOrder.setOrderNo(candidateOrderNo);
         }
     }
 
@@ -188,5 +283,21 @@ public class LogisticsOrderServiceImpl implements ILogisticsOrderService
             return false;
         }
         return true;
+    }
+
+    /**
+     * 更改订单状态
+     *
+     * @param orderId 订单ID
+     * @param orderStatus 订单状态
+     * @return 结果
+     */
+    @Override
+    public int changeOrderStatus(Long orderId, String orderStatus)
+    {
+        LogisticsOrder order = new LogisticsOrder();
+        order.setOrderId(orderId);
+        order.setOrderStatus(orderStatus);
+        return orderMapper.updateOrder(order);
     }
 }

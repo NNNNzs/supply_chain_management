@@ -127,8 +127,15 @@
             </el-form-item>
           </el-col>
           <el-col :span="12">
-            <el-form-item label="默认司机ID" prop="driverId">
-              <el-input v-model="form.driverId" placeholder="请输入默认司机ID" />
+            <el-form-item label="默认司机" prop="driverId">
+              <el-select v-model="form.driverId" placeholder="请选择默认司机" clearable filterable>
+                <el-option
+                  v-for="driver in driverList"
+                  :key="driver.driverId"
+                  :label="driver.driverName"
+                  :value="driver.driverId"
+                />
+              </el-select>
             </el-form-item>
           </el-col>
           <el-col :span="12">
@@ -159,10 +166,12 @@
 
 <script setup name="Vehicle">
 import { listVehicle, getVehicle, delVehicle, addVehicle, updateVehicle } from "@/api/logistics/vehicle"
+import { listDriver } from "@/api/logistics/driver"
 
 const { proxy } = getCurrentInstance()
 
 const vehicleList = ref([])
+const driverList = ref([])
 const open = ref(false)
 const loading = ref(true)
 const showSearch = ref(true)
@@ -198,6 +207,13 @@ function getList() {
     vehicleList.value = response.rows
     total.value = response.total
     loading.value = false
+  })
+}
+
+/** 获取司机列表 */
+function getDriverList() {
+  listDriver({ status: '0' }).then(response => {
+    driverList.value = response.rows
   })
 }
 
@@ -299,4 +315,5 @@ function handleExport() {
 }
 
 getList()
+getDriverList()
 </script>

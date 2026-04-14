@@ -106,4 +106,20 @@ public interface LogisticsBillOrderDetailMapper
      * @return 已分配金额
      */
     public Double sumAllocatedAmountByOrderId(Long orderId);
+
+    /**
+     * 根据运单ID查询关联的提单ID列表
+     *
+     * @param orderId 运单ID
+     * @return 提单ID集合
+     */
+    public List<Long> selectBillIdsByOrderId(Long orderId);
+
+    /**
+     * 统计提单关联的运单数量
+     *
+     * @param billId 提单ID
+     * @return 运单数量
+     */
+    public int countOrdersByBillId(Long billId);
 }

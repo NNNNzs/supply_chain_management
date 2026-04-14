@@ -95,6 +95,11 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         where o.order_no = #{orderNo} and o.del_flag = '0' limit 1
     </select>
 
+    <select id="checkOrderNoExistsInDb" parameterType="String" resultType="LogisticsOrder">
+        select order_id, order_no from logistics_order
+        where order_no = #{orderNo} limit 1
+    </select>
+
     <select id="selectOrdersByCustomerId" parameterType="Long" resultMap="LogisticsOrderResult">
         <include refid="selectLogisticsOrderVo"/>
         where o.customer_id = #{customerId} and o.del_flag = '0'

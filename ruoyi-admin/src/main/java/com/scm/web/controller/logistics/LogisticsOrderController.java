@@ -104,10 +104,8 @@ public class LogisticsOrderController extends BaseController
     @PutMapping("/changeStatus/{orderId}")
     public AjaxResult changeStatus(@PathVariable("orderId") Long orderId, @RequestBody LogisticsOrder order)
     {
-        LogisticsOrder updateOrder = new LogisticsOrder();
-        updateOrder.setOrderId(orderId);
-        updateOrder.setOrderStatus(order.getOrderStatus());
-        return toAjax(orderService.updateOrder(updateOrder));
+        // 使用专门的更改状态方法，避免触发订单号生成等逻辑
+        return toAjax(orderService.changeOrderStatus(orderId, order.getOrderStatus()));
     }
 
     /**

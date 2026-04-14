@@ -74,4 +74,12 @@ public interface LogisticsOrderMapper
      * @return 订单列表
      */
     public List<LogisticsOrder> selectOrdersByCustomerId(Long customerId);
+
+    /**
+     * 检查订单号是否存在于数据库（包括已删除的记录）
+     *
+     * @param orderNo 订单号
+     * @return 结果
+     */
+    public LogisticsOrder checkOrderNoExistsInDb(String orderNo);
 }

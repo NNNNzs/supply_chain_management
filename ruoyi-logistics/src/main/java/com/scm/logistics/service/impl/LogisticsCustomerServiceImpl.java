@@ -5,7 +5,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import com.scm.common.exception.ServiceException;
 import com.scm.common.utils.StringUtils;
+import com.scm.logistics.domain.LogisticsBill;
 import com.scm.logistics.domain.LogisticsCustomer;
+import com.scm.logistics.mapper.LogisticsBillMapper;
 import com.scm.logistics.mapper.LogisticsCustomerMapper;
 import com.scm.logistics.service.ILogisticsCustomerService;
 
@@ -20,6 +22,9 @@ public class LogisticsCustomerServiceImpl implements ILogisticsCustomerService
 {
     @Autowired
     private LogisticsCustomerMapper customerMapper;
+
+    @Autowired
+    private LogisticsBillMapper billMapper;
 
     /**
      * 查询客户信息
@@ -86,7 +91,11 @@ public class LogisticsCustomerServiceImpl implements ILogisticsCustomerService
     @Override
     public int deleteCustomerByIds(Long[] customerIds)
     {
-        return customerMapper.deleteCustomerByIds(customerIds);
+        for (Long customerId : customerIds)
+        {
+            deleteCustomerById(customerId);
+        }
+        return customerIds.length;
     }
 
     /**
@@ -98,6 +107,15 @@ public class LogisticsCustomerServiceImpl implements ILogisticsCustomerService
     @Override
     public int deleteCustomerById(Long customerId)
     {
+        // 检查是否有关联的提单
+        LogisticsBill query = new LogisticsBill();
+        query.setCustomerId(customerId);
+        List<LogisticsBill> bills = billMapper.selectLogisticsBillList(query);
+        if (bills != null && !bills.isEmpty())
+        {
+            throw new ServiceException("该客户已关联 " + bills.size() + " 个提单，不能删除");
+        }
+
         return customerMapper.deleteCustomerById(customerId);
     }
 

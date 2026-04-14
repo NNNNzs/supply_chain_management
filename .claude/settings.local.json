@@ -18,7 +18,8 @@
       "Bash(mv base/driver/* driver/)",
       "Bash(mv base/vehicle/* vehicle/)",
       "Bash(mv business/order/* order/)",
-      "Bash(mvn compile:*)"
+      "Bash(mvn compile:*)",
+      "Bash(cmd /c \"mvn clean compile -DskipTests 2>&1 | head -100\")"
     ]
   }
 }

@@ -85,7 +85,7 @@
           <el-tag v-else-if="scope.row.invoiceStatus === 'invoiced'" type="success">已开票</el-tag>
         </template>
       </el-table-column>
-      <el-table-column label="操作" align="center" width="200" class-name="small-padding fixed-width">
+      <el-table-column label="操作" align="center" width="220" class-name="small-padding fixed-width">
         <template #default="scope">
           <el-button link type="primary" icon="Edit" @click="handleUpdate(scope.row)" v-hasPermi="['logistics:order:edit']">修改</el-button>
           <el-dropdown v-if="scope.row.orderStatus !== 'completed' && scope.row.orderStatus !== 'cancelled'" v-hasPermi="['logistics:order:edit']">
@@ -100,7 +100,7 @@
               </el-dropdown-menu>
             </template>
           </el-dropdown>
-          <el-button link type="primary" icon="Delete" @click="handleDelete(scope.row)" v-hasPermi="['logistics:order:remove']">删除</el-button>
+          <el-button link type="danger" icon="Delete" @click="handleDelete(scope.row)" v-hasPermi="['logistics:order:remove']">删除</el-button>
         </template>
       </el-table-column>
     </el-table>
@@ -116,9 +116,11 @@
 import { listOrder, delOrder, exportOrder, changeOrderStatus } from "@/api/logistics/order"
 import { listCustomer } from "@/api/logistics/customer"
 import ExcelImportDialog from "@/components/ExcelImportDialog"
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
+import { onMounted } from 'vue'
 
 const router = useRouter()
+const route = useRoute()
 const { proxy } = getCurrentInstance()
 
 const orderList = ref([])
@@ -223,6 +225,16 @@ function handleSelectionChange(selection) {
   multiple.value = !selection.length
 }
 
-getList()
-getCustomerList()
+// 从URL参数中读取orderId并自动搜索
+onMounted(() => {
+  getCustomerList()
+  const orderId = route.query.orderId
+  if (orderId) {
+    // 如果URL中有orderId参数，设置到查询参数中并搜索
+    queryParams.value.orderNo = orderId.toString()
+    handleQuery()
+  } else {
+    getList()
+  }
+})
 </script>

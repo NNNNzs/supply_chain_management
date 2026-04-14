@@ -1,5 +1,7 @@
 package com.scm.logistics.service.impl;
 
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.List;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -52,6 +54,12 @@ public class LogisticsGoodsServiceImpl implements ILogisticsGoodsService
     @Override
     public int insertLogisticsGoods(LogisticsGoods logisticsGoods)
     {
+        // 自动生成货物编码：GD + 时间戳
+        if (logisticsGoods.getGoodsCode() == null || logisticsGoods.getGoodsCode().isEmpty())
+        {
+            String timestamp = new SimpleDateFormat("yyyyMMddHHmmss").format(new Date());
+            logisticsGoods.setGoodsCode("GD" + timestamp);
+        }
         return logisticsGoodsMapper.insertLogisticsGoods(logisticsGoods);
     }
 

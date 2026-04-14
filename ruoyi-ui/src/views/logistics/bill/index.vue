@@ -138,7 +138,7 @@
         <el-row>
           <el-col :span="12">
             <el-form-item label="提单号" prop="billNo">
-              <el-input v-model="form.billNo" placeholder="请输入提单号" />
+              <el-input v-model="form.billNo" placeholder="系统自动生成" disabled />
             </el-form-item>
           </el-col>
           <el-col :span="12">
@@ -184,20 +184,36 @@
         <el-row style="margin-bottom: 10px;">
           <el-col :span="24">
             <el-button type="primary" plain icon="Plus" size="small" @click="handleAddItem">添加货物</el-button>
+            <el-button type="success" plain icon="Plus" size="small" @click="handleAddGoods">新增货物</el-button>
           </el-col>
         </el-row>
 
         <el-table :data="form.billItems" border size="small" style="width: 100%">
-          <el-table-column label="货物" min-width="150">
+          <el-table-column label="货物名称" min-width="150">
             <template #default="scope">
-              <el-select v-model="scope.row.goodsId" placeholder="选择货物" filterable style="width: 100%" @change="(val) => handleGoodsChange(val, scope.$index)">
-                <el-option v-for="item in goodsOptions" :key="item.goodsId" :label="item.goodsName" :value="item.goodsId" />
+              <el-select
+                v-model="scope.row.tempGoodsName"
+                placeholder="选择货物名称"
+                filterable
+                style="width: 100%"
+                @change="(val) => handleGoodsNameChange(val, scope.$index)"
+              >
+                <el-option v-for="item in uniqueGoodsNames" :key="item" :label="item" :value="item" />
               </el-select>
             </template>
           </el-table-column>
-          <el-table-column label="型号" width="120">
+          <el-table-column label="型号" width="150">
             <template #default="scope">
-              <el-input v-model="scope.row.goodsModel" placeholder="型号" size="small" />
+              <el-select
+                v-model="scope.row.goodsModel"
+                placeholder="选择型号"
+                filterable
+                style="width: 100%"
+                @change="(val) => handleGoodsModelChange(val, scope.$index)"
+                :disabled="!scope.row.tempGoodsName"
+              >
+                <el-option v-for="item in getGoodsModels(scope.row.tempGoodsName)" :key="item.goodsId" :label="item.goodsModel" :value="item.goodsModel" />
+              </el-select>
             </template>
           </el-table-column>
           <el-table-column label="重量(吨)" width="140">
@@ -242,12 +258,20 @@
       </template>
     </el-dialog>
 
+    <!-- 新增货物对话框 -->
+    <GoodsDialog v-model="goodsDialogVisible" @success="handleGoodsAdded" />
+
     <!-- 提单分配明细对话框 -->
     <el-dialog title="提单分配明细" v-model="allocationDialogVisible" width="900px" append-to-body>
       <el-table :data="allocationList" border>
-        <el-table-column label="运单号" align="center" prop="orderNo" width="160" />
+        <el-table-column label="订单号" align="center" prop="orderNo" width="160">
+          <template #default="scope">
+            <el-link type="primary" @click="goToOrder(scope.row.orderId)">
+              {{ scope.row.orderNo }}
+            </el-link>
+          </template>
+        </el-table-column>
         <el-table-column label="货物名称" align="center" prop="goodsName" width="120" />
-        <el-table-column label="驾驶员单号" align="center" prop="driverOrderNo" width="160" />
         <el-table-column label="分配重量(吨)" align="center" prop="allocatedWeight" width="120">
           <template #default="scope">
             {{ scope.row.allocatedWeight ? scope.row.allocatedWeight.toFixed(3) : '0.000' }}
@@ -269,8 +293,11 @@ import { listBill, getBill, delBill, addBill, updateBill, exportBill, getBillAll
 import { listCustomer } from "@/api/logistics/customer"
 import { listGoods } from "@/api/logistics/goods"
 import ExcelImportDialog from "@/components/ExcelImportDialog"
+import GoodsDialog from "@/components/GoodsDialog.vue"
+import { useRouter } from 'vue-router'
 
 const { proxy } = getCurrentInstance()
+const router = useRouter()
 
 const billList = ref([])
 const allocationList = ref([])
@@ -286,6 +313,7 @@ const goodsOptions = ref([])
 const open = ref(false)
 const title = ref("")
 const allocationDialogVisible = ref(false)
+const goodsDialogVisible = ref(false)
 
 const data = reactive({
   form: {},
@@ -297,9 +325,6 @@ const data = reactive({
     billStatus: null
   },
   rules: {
-    billNo: [
-      { required: true, message: "提单号不能为空", trigger: "blur" }
-    ],
     billDate: [
       { required: true, message: "提单日期不能为空", trigger: "blur" }
     ],
@@ -316,6 +341,23 @@ const data = reactive({
 })
 
 const { queryParams, form, rules } = toRefs(data)
+
+// 去重的货物名称列表
+const uniqueGoodsNames = computed(() => {
+  const names = new Set()
+  goodsOptions.value.forEach(item => {
+    if (item.goodsName) {
+      names.add(item.goodsName)
+    }
+  })
+  return Array.from(names).sort()
+})
+
+// 根据货物名称获取对应的型号列表
+function getGoodsModels(goodsName) {
+  if (!goodsName) return []
+  return goodsOptions.value.filter(item => item.goodsName === goodsName)
+}
 
 // 货物明细合计
 const totalItemWeight = computed(() => {
@@ -373,11 +415,20 @@ function getGoodsList() {
   })
 }
 
-function handleGoodsChange(goodsId, index) {
-  const goods = goodsOptions.value.find(g => g.goodsId === goodsId)
+function handleGoodsNameChange(goodsName, index) {
+  // 清空型号选择
+  form.value.billItems[index].goodsModel = ''
+  form.value.billItems[index].goodsName = goodsName
+  form.value.billItems[index].goodsId = null
+  form.value.billItems[index].unitPrice = 0
+}
+
+function handleGoodsModelChange(goodsModel, index) {
+  const goodsName = form.value.billItems[index].tempGoodsName
+  const goods = goodsOptions.value.find(g => g.goodsName === goodsName && g.goodsModel === goodsModel)
   if (goods) {
-    form.value.billItems[index].goodsName = goods.goodsName
-    form.value.billItems[index].unitPrice = goods.unitPrice
+    form.value.billItems[index].goodsId = goods.goodsId
+    form.value.billItems[index].unitPrice = goods.unitPrice || 0
   }
 }
 
@@ -388,6 +439,7 @@ function handleAddItem() {
   form.value.billItems.push({
     goodsId: null,
     goodsName: '',
+    tempGoodsName: '',
     goodsModel: '',
     weight: null,
     unitPrice: null,
@@ -416,6 +468,7 @@ function handleAdd() {
   form.value.billItems = [{
     goodsId: null,
     goodsName: '',
+    tempGoodsName: '',
     goodsModel: '',
     weight: null,
     unitPrice: null,
@@ -435,11 +488,17 @@ function handleUpdate(row) {
       form.value.billItems = [{
         goodsId: null,
         goodsName: '',
+        tempGoodsName: '',
         goodsModel: '',
         weight: null,
         unitPrice: null,
         amount: null
       }]
+    } else {
+      // 设置tempGoodsName用于显示
+      form.value.billItems.forEach(item => {
+        item.tempGoodsName = item.goodsName || ''
+      })
     }
     open.value = true
     title.value = "修改提单"
@@ -455,7 +514,7 @@ function handleViewAllocations(row) {
 }
 
 function submitForm() {
-  proxy.$refs["billRef"].validate(valid => {
+  proxy.$refs["billRef"].validate((valid) => {
     if (valid) {
       // 验证货物明细
       const items = form.value.billItems
@@ -504,6 +563,27 @@ function handleExport() {
 
 function handleImport() {
   proxy.$refs.importRef.show()
+}
+
+// 新增货物相关方法
+function handleAddGoods() {
+  goodsDialogVisible.value = true
+}
+
+function handleGoodsAdded(data) {
+  proxy.$modal.msgSuccess("新增成功")
+  // 刷新货物列表
+  getGoodsList()
+}
+
+function goToOrder(orderId) {
+  // 跳转到订单管理页面，并设置搜索参数
+  router.push({
+    path: '/logistics/order',
+    query: {
+      orderId: orderId
+    }
+  })
 }
 
 function cancel() {

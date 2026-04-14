@@ -80,4 +80,13 @@ public interface ILogisticsOrderService
      * @return 结果
      */
     public boolean checkOrderNoUnique(LogisticsOrder logisticsOrder);
+
+    /**
+     * 更改订单状态
+     *
+     * @param orderId 订单ID
+     * @param orderStatus 订单状态
+     * @return 结果
+     */
+    public int changeOrderStatus(Long orderId, String orderStatus);
 }

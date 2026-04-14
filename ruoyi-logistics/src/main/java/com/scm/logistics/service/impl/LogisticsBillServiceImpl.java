@@ -1,16 +1,22 @@
 package com.scm.logistics.service.impl;
 
 import java.math.BigDecimal;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.List;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import com.scm.logistics.mapper.LogisticsBillMapper;
-import com.scm.logistics.mapper.LogisticsBillItemMapper;
-import com.scm.logistics.mapper.LogisticsBillOrderDetailMapper;
+import com.scm.common.exception.ServiceException;
+import com.scm.common.utils.StringUtils;
 import com.scm.logistics.domain.LogisticsBill;
 import com.scm.logistics.domain.LogisticsBillItem;
 import com.scm.logistics.domain.LogisticsBillOrderDetail;
+import com.scm.logistics.domain.LogisticsCustomer;
+import com.scm.logistics.mapper.LogisticsBillItemMapper;
+import com.scm.logistics.mapper.LogisticsBillMapper;
+import com.scm.logistics.mapper.LogisticsBillOrderDetailMapper;
+import com.scm.logistics.mapper.LogisticsCustomerMapper;
 import com.scm.logistics.service.ILogisticsBillService;
 
 /**
@@ -30,6 +36,9 @@ public class LogisticsBillServiceImpl implements ILogisticsBillService
 
     @Autowired
     private LogisticsBillOrderDetailMapper logisticsBillOrderDetailMapper;
+
+    @Autowired
+    private LogisticsCustomerMapper customerMapper;
 
     /**
      * 查询提单（含货物明细）
@@ -58,7 +67,17 @@ public class LogisticsBillServiceImpl implements ILogisticsBillService
     @Override
     public List<LogisticsBill> selectLogisticsBillList(LogisticsBill logisticsBill)
     {
-        return logisticsBillMapper.selectLogisticsBillList(logisticsBill);
+        List<LogisticsBill> list = logisticsBillMapper.selectLogisticsBillList(logisticsBill);
+        // 为每个提单加载货物明细
+        for (LogisticsBill bill : list)
+        {
+            if (bill != null)
+            {
+                List<LogisticsBillItem> items = logisticsBillItemMapper.selectItemsByBillId(bill.getBillId());
+                bill.setBillItems(items);
+            }
+        }
+        return list;
     }
 
     /**
@@ -71,6 +90,9 @@ public class LogisticsBillServiceImpl implements ILogisticsBillService
     @Transactional
     public int insertLogisticsBill(LogisticsBill logisticsBill)
     {
+        // 生成提单号
+        generateBillNo(logisticsBill);
+
         // 汇总明细到主表
         computeBillTotalsFromItems(logisticsBill);
 
@@ -139,9 +161,9 @@ public class LogisticsBillServiceImpl implements ILogisticsBillService
     {
         for (Long billId : billIds)
         {
-            logisticsBillItemMapper.softDeleteItemsByBillId(billId);
+            deleteLogisticsBillByBillId(billId);
         }
-        return logisticsBillMapper.deleteLogisticsBillByBillIds(billIds);
+        return billIds.length;
     }
 
     /**
@@ -154,7 +176,28 @@ public class LogisticsBillServiceImpl implements ILogisticsBillService
     @Transactional
     public int deleteLogisticsBillByBillId(Long billId)
     {
+        // 检查提单状态
+        LogisticsBill bill = logisticsBillMapper.selectLogisticsBillByBillId(billId);
+        if (bill == null)
+        {
+            throw new ServiceException("提单不存在");
+        }
+        if ("completed".equals(bill.getBillStatus()) || "transporting".equals(bill.getBillStatus()))
+        {
+            throw new ServiceException("运输中或已完成的提单不能删除");
+        }
+
+        // 检查是否有关联的运单
+        int orderCount = logisticsBillOrderDetailMapper.countOrdersByBillId(billId);
+        if (orderCount > 0)
+        {
+            throw new ServiceException("该提单已关联 " + orderCount + " 个运单，请先删除运单关联");
+        }
+
+        // 软删除货物明细
         logisticsBillItemMapper.softDeleteItemsByBillId(billId);
+
+        // 逻辑删除提单
         return logisticsBillMapper.deleteLogisticsBillByBillId(billId);
     }
 
@@ -213,6 +256,55 @@ public class LogisticsBillServiceImpl implements ILogisticsBillService
             }
             bill.setTotalWeight(totalWeight);
             bill.setTotalAmount(totalAmount);
+        }
+    }
+
+    /**
+     * 生成提单号
+     * 格式：客户编码 + 提单日期(yyyyMMdd) + 流水号(4位)
+     *
+     * @param bill 提单
+     */
+    private void generateBillNo(LogisticsBill bill)
+    {
+        if (StringUtils.isEmpty(bill.getBillNo()))
+        {
+            LogisticsCustomer customer = customerMapper.selectCustomerById(bill.getCustomerId());
+            if (customer == null)
+            {
+                throw new ServiceException("客户信息不存在");
+            }
+
+            // 提单号格式：客户编码 + 提单日期(yyyyMMdd) + 流水号
+            String dateStr = new SimpleDateFormat("yyyyMMdd").format(bill.getBillDate());
+            String prefix = customer.getCustomerCode() + dateStr;
+
+            // 查询当天该客户的提单数量作为流水号
+            LogisticsBill query = new LogisticsBill();
+            query.setCustomerId(bill.getCustomerId());
+            List<LogisticsBill> bills = logisticsBillMapper.selectLogisticsBillList(query);
+            int count = 0;
+            for (LogisticsBill b : bills)
+            {
+                if (b.getBillNo() != null && b.getBillNo().startsWith(prefix))
+                {
+                    count++;
+                }
+            }
+
+            // 生成提单号并检查数据库中是否存在（包括已删除的记录）
+            String serialNo;
+            String candidateBillNo;
+            int attempt = 0;
+            do
+            {
+                serialNo = String.format("%04d", count + 1 + attempt);
+                candidateBillNo = prefix + serialNo;
+                attempt++;
+            }
+            while (logisticsBillMapper.checkBillNoExistsInDb(candidateBillNo) != null);
+
+            bill.setBillNo(candidateBillNo);
         }
     }
 }

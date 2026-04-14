@@ -74,4 +74,20 @@ public interface LogisticsBillMapper
      * @return 提单集合
      */
     public List<LogisticsBill> selectPendingBills(LogisticsBill logisticsBill);
+
+    /**
+     * 检查提单号是否存在于数据库（包括已删除的记录）
+     *
+     * @param billNo 提单号
+     * @return 结果
+     */
+    public LogisticsBill checkBillNoExistsInDb(String billNo);
+
+    /**
+     * 更新提单状态和已分配重量
+     *
+     * @param bill 提单
+     * @return 结果
+     */
+    public int updateBillStatusAndWeight(LogisticsBill bill);
 }

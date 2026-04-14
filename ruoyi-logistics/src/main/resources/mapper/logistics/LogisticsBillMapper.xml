@@ -59,6 +59,11 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         where b.bill_no = #{billNo} and b.del_flag = '0' limit 1
     </select>
 
+    <select id="checkBillNoExistsInDb" parameterType="String" resultType="LogisticsBill">
+        select bill_id, bill_no from logistics_bill
+        where bill_no = #{billNo} limit 1
+    </select>
+
     <select id="selectPendingBills" parameterType="LogisticsBill" resultMap="LogisticsBillResult">
         <include refid="selectLogisticsBillVo"/>
         <where>
@@ -130,13 +135,22 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
     </update>
 
     <delete id="deleteLogisticsBillByBillId" parameterType="Long">
-        delete from logistics_bill where bill_id = #{billId}
+        update logistics_bill set del_flag = '2' where bill_id = #{billId}
     </delete>
 
     <delete id="deleteLogisticsBillByBillIds" parameterType="String">
-        delete from logistics_bill where bill_id in
+        update logistics_bill set del_flag = '2' where bill_id in
         <foreach item="billId" collection="array" open="(" separator="," close=")">
             #{billId}
         </foreach>
     </delete>
+
+    <update id="updateBillStatusAndWeight" parameterType="LogisticsBill">
+        update logistics_bill
+        set bill_status = #{billStatus},
+            allocated_weight = #{allocatedWeight},
+            update_by = #{updateBy},
+            update_time = sysdate()
+        where bill_id = #{billId}
+    </update>
 </mapper>
