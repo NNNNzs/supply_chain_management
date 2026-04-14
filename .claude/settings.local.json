@@ -10,7 +10,15 @@
       "Bash(find . -name \"*.xml\" -type f -exec grep -l \"com.ruoyi\" {} \\\\;)",
       "Bash(find ./ruoyi-*/src -name \"*.xml\" -type f -exec sed -i 's/com\\\\.ruoyi\\\\./com.scm./g' {} \\\\;)",
       "Bash(find . -name \"*.java\" -type f ! -path \"*/target/*\" ! -path \"*/.idea/*\" -exec sed -i 's/@author ruoyi/@author scm/g' {} \\\\;)",
-      "Bash(mvn clean:*)"
+      "Bash(mvn clean:*)",
+      "Bash(find /Users/nnnnzs/project/supply_chain_management/ruoyi-generator/src -name *.vm)",
+      "Bash(cd:*)",
+      "Bash(mv base/customer/* customer/)",
+      "Bash(mv base/goods/* goods/)",
+      "Bash(mv base/driver/* driver/)",
+      "Bash(mv base/vehicle/* vehicle/)",
+      "Bash(mv business/order/* order/)",
+      "Bash(mvn compile:*)"
     ]
   }
 }

@@ -1,0 +1,276 @@
+# 物流管理系统实现进度
+
+> **文档类型**: 进度跟踪文档
+> **项目**: 供应链管理系统 - 物流管理模块
+> **版本**: v1.2
+> **最后更新**: 2026-04-14
+
+## 文档说明
+
+本文档跟踪物流管理系统的开发进度，包括各模块的完成情况、待办事项和开发计划。
+
+---
+
+## 一、总体进度统计
+
+### 1.1 完成度概览
+
+| 模块 | 数据库 | 后端 | 前端 | 总体进度 |
+|------|--------|------|------|----------|
+| 客户管理 | ✅ 100% | ✅ 100% | ✅ 100% | **100%** |
+| 货物管理 | ✅ 100% | ✅ 100% | ✅ 100% | **100%** |
+| 司机管理 | ✅ 100% | ✅ 100% | ✅ 100% | **100%** |
+| 车辆管理 | ✅ 100% | ✅ 100% | ✅ 100% | **100%** |
+| 订单管理 | ✅ 100% | ✅ 100% | ✅ 100% | **100%** |
+| 回单管理 | ✅ 100% | ✅ 100% | ✅ 100% | **100%** |
+| 发票管理 | ✅ 100% | ⚠️ 0% | ✅ 100% | **67%** |
+| 应收结算 | ✅ 100% | ⚠️ 0% | ⚠️ 0% | **33%** |
+| 应付结算 | ✅ 100% | ⚠️ 0% | ⚠️ 0% | **33%** |
+| 财务报表 | ✅ 100% | ⚠️ 0% | ⚠️ 0% | **33%** |
+| **总计** | **100%** | **60%** | **67%** | **76%** |
+
+### 1.2 项目里程碑
+
+| 里程碑 | 目标日期 | 状态 |
+|--------|----------|------|
+| 基础数据管理完成 | 2026-04-10 | ✅ 已完成 |
+| 订单管理完成 | 2026-04-12 | ✅ 已完成 |
+| 回单管理完成 | 2026-04-14 | ✅ 已完成 |
+| 发票管理完成 | 2026-04-16 | ⚠️ 进行中 |
+| 财务结算完成 | 2026-04-20 | ⏳ 待开始 |
+
+---
+
+## 二、模块详细进度
+
+### 2.1 客户管理 ✅ 已完成
+
+| 项目 | 状态 | 说明 |
+|------|------|------|
+| 数据库表 | ✅ | logistics_customer |
+| 后端实体类 | ✅ | LogisticsCustomer.java |
+| 后端 Mapper | ✅ | LogisticsCustomerMapper.java + XML |
+| 后端 Service | ✅ | ILogisticsCustomerService.java + Impl |
+| 后端 Controller | ✅ | LogisticsCustomerController.java |
+| 前端 API | ✅ | api/logistics/customer.js |
+| 前端页面 | ✅ | views/logistics/customer/index.vue |
+| 菜单权限 | ✅ | 客户管理菜单及按钮权限 |
+
+---
+
+### 2.2 货物管理 ✅ 已完成
+
+| 项目 | 状态 | 说明 |
+|------|------|------|
+| 数据库表 | ✅ | logistics_goods |
+| 后端实体类 | ✅ | LogisticsGoods.java |
+| 后端 Mapper | ✅ | LogisticsGoodsMapper.java + XML |
+| 后端 Service | ✅ | ILogisticsGoodsService.java + Impl |
+| 后端 Controller | ✅ | LogisticsGoodsController.java |
+| 前端 API | ✅ | api/logistics/goods.js |
+| 前端页面 | ✅ | views/logistics/goods/index.vue |
+| 菜单权限 | ✅ | 货物管理菜单及按钮权限 |
+
+---
+
+### 2.3 司机管理 ✅ 已完成
+
+| 项目 | 状态 | 说明 |
+|------|------|------|
+| 数据库表 | ✅ | logistics_driver |
+| 后端实体类 | ✅ | LogisticsDriver.java |
+| 后端 Mapper | ✅ | LogisticsDriverMapper.java + XML |
+| 后端 Service | ✅ | ILogisticsDriverService.java + Impl |
+| 后端 Controller | ✅ | LogisticsDriverController.java |
+| 前端 API | ✅ | api/logistics/driver.js |
+| 前端页面 | ✅ | views/logistics/driver/index.vue |
+| 菜单权限 | ✅ | 司机管理菜单及按钮权限 |
+
+---
+
+### 2.4 车辆管理 ✅ 已完成
+
+| 项目 | 状态 | 说明 |
+|------|------|------|
+| 数据库表 | ✅ | logistics_vehicle |
+| 后端实体类 | ✅ | LogisticsVehicle.java |
+| 后端 Mapper | ✅ | LogisticsVehicleMapper.java + XML |
+| 后端 Service | ✅ | ILogisticsVehicleService.java + Impl |
+| 后端 Controller | ✅ | LogisticsVehicleController.java |
+| 前端 API | ✅ | api/logistics/vehicle.js |
+| 前端页面 | ✅ | views/logistics/vehicle/index.vue |
+| 菜单权限 | ✅ | 车辆管理菜单及按钮权限 |
+
+---
+
+### 2.5 订单管理 ✅ 已完成
+
+| 项目 | 状态 | 说明 |
+|------|------|------|
+| 数据库表 | ✅ | logistics_order |
+| 后端实体类 | ✅ | LogisticsOrder.java |
+| 后端 Mapper | ✅ | LogisticsOrderMapper.java + XML |
+| 后端 Service | ✅ | ILogisticsOrderService.java + Impl（含订单号生成、金额计算） |
+| 后端 Controller | ✅ | LogisticsOrderController.java（含导入导出） |
+| 前端 API | ✅ | api/logistics/order.js |
+| 前端页面 | ✅ | views/logistics/order/index.vue（列表页）|
+| 前端页面 | ✅ | views/logistics/order/form.vue（表单页）|
+| 菜单权限 | ✅ | 订单管理菜单及按钮权限 |
+
+**核心逻辑实现：**
+1. 订单号生成：`LogisticsOrderServiceImpl.generateOrderNo()`
+2. 金额计算：`LogisticsOrderServiceImpl.calculateAmount()`
+3. 数据导入：`LogisticsOrderController.importData()`
+4. 独立表单页面：新增/修改订单使用独立页面而非弹窗
+5. 司机联动：选择司机后自动带出车牌号和电话
+
+---
+
+### 2.6 回单管理 ✅ 已完成
+
+| 项目 | 状态 | 说明 |
+|------|------|------|
+| 数据库表 | ✅ | logistics_receipt |
+| 后端实体类 | ✅ | LogisticsReceipt.java（含订单号关联字段） |
+| 后端 Mapper | ✅ | LogisticsReceiptMapper.java + XML（含联表查询） |
+| 后端 Service | ✅ | ILogisticsReceiptService.java + Impl（含回单编号生成、确认功能） |
+| 后端 Controller | ✅ | LogisticsReceiptController.java（含确认接口） |
+| 前端 API | ✅ | api/logistics/receipt.js |
+| 前端页面 | ✅ | views/logistics/receipt/index.vue |
+| 菜单权限 | ✅ | 回单管理菜单及按钮权限 |
+
+**核心逻辑实现：**
+1. 回单编号生成：`LogisticsReceiptServiceImpl.generateReceiptNo()`（格式：HD + 年月日 + 流水号）
+2. 回单确认：`LogisticsReceiptServiceImpl.confirmReceipt()`（更新状态为已收到）
+3. 订单号联表查询：支持按订单号筛选回单
+4. 图片上传：使用若依通用文件上传接口
+
+---
+
+### 2.7 发票管理 ⚠️ 部分完成（前端完成）
+
+| 项目 | 状态 | 说明 |
+|------|------|------|
+| 数据库表 | ✅ | logistics_invoice_batch, logistics_invoice_detail |
+| 后端实体类 | ⚠️ | 需生成 |
+| 后端 Mapper | ⚠️ | 需生成 |
+| 后端 Service | ⚠️ | 需生成（含合并开票逻辑） |
+| 后端 Controller | ⚠️ | 需生成 |
+| 前端 API | ✅ | api/logistics/invoice.js |
+| 前端页面 | ✅ | views/logistics/business/invoice/index.vue |
+| 菜单权限 | ✅ | 发票管理菜单及按钮权限 |
+
+**待实现核心逻辑：**
+```java
+// 1. 选择多个未开票订单
+// 2. 创建发票批次记录
+// 3. 生成发票批次号（FP + 年月日 + 流水号）
+// 4. 计算开票总金额和税额
+// 5. 创建发票明细记录（关联订单ID）
+// 6. 更新订单的开票状态和发票批次号
+// 7. 支持取消合并（将订单状态恢复为未开票）
+```
+
+---
+
+### 2.8 应收结算 ⚠️ 部分完成（数据表完成）
+
+| 项目 | 状态 | 说明 |
+|------|------|------|
+| 数据库表 | ✅ | logistics_settlement, logistics_settlement_detail |
+| 后端实体类 | ⚠️ | 需生成 |
+| 后端 Mapper | ⚠️ | 需生成 |
+| 后端 Service | ⚠️ | 需生成 |
+| 后端 Controller | ⚠️ | 需生成 |
+| 前端 API | ⚠️ | 需创建 |
+| 前端页面 | ⚠️ | 需创建 |
+| 菜单权限 | ✅ | 应收结算菜单及按钮权限 |
+
+---
+
+### 2.9 应付结算 ⚠️ 部分完成（数据表完成）
+
+| 项目 | 状态 | 说明 |
+|------|------|------|
+| 数据库表 | ✅ | logistics_settlement, logistics_settlement_detail |
+| 后端实体类 | ⚠️ | 需生成 |
+| 后端 Mapper | ⚠️ | 需生成 |
+| 后端 Service | ⚠️ | 需生成 |
+| 后端 Controller | ⚠️ | 需生成 |
+| 前端 API | ⚠️ | 需创建 |
+| 前端页面 | ⚠️ | 需创建 |
+| 菜单权限 | ✅ | 应付结算菜单及按钮权限 |
+
+---
+
+### 2.10 财务报表 ⚠️ 未开始
+
+| 项目 | 状态 | 说明 |
+|------|------|------|
+| 数据库表 | ✅ | 使用现有表 |
+| 后端接口 | ⚠️ | 需开发统计接口 |
+| 前端页面 | ⚠️ | 需创建 |
+| 菜单权限 | ✅ | 财务报表菜单 |
+
+---
+
+## 三、待完成工作清单
+
+### 3.1 后端开发（使用代码生成器）
+
+**步骤：**
+1. 访问系统 → 系统工具 → 代码生成
+2. 导入表：logistics_invoice_batch, logistics_invoice_detail, logistics_settlement, logistics_settlement_detail
+3. 配置生成信息
+4. 生成并下载代码
+5. 复制到对应目录
+
+**需要手动实现的业务逻辑：**
+- [ ] 发票合并开票功能
+- [ ] 发票取消合并功能
+- [ ] 结算单生成逻辑
+- [ ] 财务报表统计逻辑
+
+### 3.2 前端开发
+
+**需要创建的页面：**
+- [ ] `settlement/receivable/index.vue` - 应收结算
+- [ ] `settlement/payable/index.vue` - 应付结算
+- [ ] `settlement/report/index.vue` - 财务报表
+
+### 3.3 特殊功能实现
+
+- [ ] 回单图片上传组件集成
+- [ ] 发票打印功能（PDF 导出）
+- [ ] 订单导入模板文件
+- [ ] 财务报表图表展示
+
+---
+
+## 四、开发优先级
+
+### 第一优先级（核心业务）✅
+1. ✅ 客户管理 - 已完成
+2. ✅ 订单管理 - 已完成
+3. ✅ 货物管理 - 已完成
+4. ✅ 司机管理 - 已完成
+5. ✅ 车辆管理 - 已完成
+
+### 第二优先级（业务扩展）⚠️
+6. ⚠️ 发票管理 - 前端完成，后端待实现
+7. ✅ 回单管理 - 已完成
+
+### 第三优先级（结算报表）⏳
+8. ⏳ 应收结算 - 全部待实现
+9. ⏳ 应付结算 - 全部待实现
+10. ⏳ 财务报表 - 全部待实现
+
+---
+
+## 五、进度更新记录
+
+| 日期 | 版本 | 更新内容 | 总体进度 |
+|------|------|----------|----------|
+| 2026-04-14 | v1.0 | 初始版本，完成客户管理和订单管理 | 57% |
+| 2026-04-14 | v1.1 | 完成货物、司机、车辆管理；优化订单管理为独立表单页面 | 70% |
+| 2026-04-14 | v1.2 | 完成回单管理的前后端实现 | 76% |

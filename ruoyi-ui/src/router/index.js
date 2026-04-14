@@ -89,6 +89,12 @@ export const constantRoutes = [
         meta: { title: '个人中心', icon: 'user' }
       }
     ]
+  },
+  {
+    path: '/logistics/order/form',
+    component: () => import('@/views/logistics/order/form'),
+    hidden: true,
+    meta: { title: '订单表单' }
   }
 ]
 

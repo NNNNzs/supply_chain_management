@@ -1,0 +1,179 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.scm.logistics.mapper.LogisticsDriverOrderMapper">
+
+    <resultMap type="LogisticsDriverOrder" id="LogisticsDriverOrderResult">
+        <result property="driverOrderId"    column="driver_order_id"    />
+        <result property="driverOrderNo"    column="driver_order_no"    />
+        <result property="orderId"    column="order_id"    />
+        <result property="orderNo"    column="order_no"    />
+        <result property="driverId"    column="driver_id"    />
+        <result property="driverName"    column="driver_name"    />
+        <result property="driverPhone"    column="driver_phone"    />
+        <result property="vehicleId"    column="vehicle_id"    />
+        <result property="vehiclePlate"    column="vehicle_plate"    />
+        <result property="loadCapacity"    column="load_capacity"    />
+        <result property="actualWeight"    column="actual_weight"    />
+        <result property="loadingUnitPrice"    column="loading_unit_price"    />
+        <result property="freightCost"    column="freight_cost"    />
+        <result property="advancePayment"    column="advance_payment"    />
+        <result property="paymentMethod"    column="payment_method"    />
+        <result property="payee"    column="payee"    />
+        <result property="dispatchDate"    column="dispatch_date"    />
+        <result property="dispatchStatus"    column="dispatch_status"    />
+        <result property="settlementStatus"    column="settlement_status"    />
+        <result property="receiptStatus"    column="receipt_status"    />
+        <result property="delFlag"    column="del_flag"    />
+        <result property="createBy"    column="create_by"    />
+        <result property="createTime"    column="create_time"    />
+        <result property="updateBy"    column="update_by"    />
+        <result property="updateTime"    column="update_time"    />
+        <result property="remark"    column="remark"    />
+    </resultMap>
+
+    <sql id="selectLogisticsDriverOrderVo">
+        select driver_order_id, driver_order_no, order_id, order_no, driver_id, driver_name, driver_phone,
+               vehicle_id, vehicle_plate, load_capacity, actual_weight, loading_unit_price, freight_cost,
+               advance_payment, payment_method, payee, dispatch_date, dispatch_status,
+               settlement_status, receipt_status, del_flag, create_by, create_time, update_by, update_time, remark
+        from logistics_driver_order
+    </sql>
+
+    <select id="selectLogisticsDriverOrderList" parameterType="LogisticsDriverOrder" resultMap="LogisticsDriverOrderResult">
+        <include refid="selectLogisticsDriverOrderVo"/>
+        <where>
+            del_flag = '0'
+            <if test="driverOrderNo != null and driverOrderNo != ''"> and driver_order_no like concat('%', #{driverOrderNo}, '%')</if>
+            <if test="orderNo != null and orderNo != ''"> and order_no like concat('%', #{orderNo}, '%')</if>
+            <if test="driverId != null"> and driver_id = #{driverId}</if>
+            <if test="vehiclePlate != null and vehiclePlate != ''"> and vehicle_plate = #{vehiclePlate}</if>
+            <if test="dispatchStatus != null and dispatchStatus != ''"> and dispatch_status = #{dispatchStatus}</if>
+            <if test="settlementStatus != null and settlementStatus != ''"> and settlement_status = #{settlementStatus}</if>
+        </where>
+        order by driver_order_id desc
+    </select>
+
+    <select id="selectLogisticsDriverOrderByDriverOrderId" parameterType="Long" resultMap="LogisticsDriverOrderResult">
+        <include refid="selectLogisticsDriverOrderVo"/>
+        where driver_order_id = #{driverOrderId} and del_flag = '0'
+    </select>
+
+    <select id="checkDriverOrderNoUnique" parameterType="String" resultMap="LogisticsDriverOrderResult">
+        <include refid="selectLogisticsDriverOrderVo"/>
+        where driver_order_no = #{driverOrderNo} and del_flag = '0' limit 1
+    </select>
+
+    <select id="selectDriverOrdersByOrderId" parameterType="Long" resultMap="LogisticsDriverOrderResult">
+        <include refid="selectLogisticsDriverOrderVo"/>
+        where order_id = #{orderId} and del_flag = '0'
+    </select>
+
+    <select id="selectDriverOrdersForSettlement" resultMap="LogisticsDriverOrderResult">
+        <include refid="selectLogisticsDriverOrderVo"/>
+        <where>
+            del_flag = '0' and driver_id = #{driverId}
+            and dispatch_status in ('completed', 'cancelled')
+            and settlement_status in ('unsettled', 'partial')
+            <if test="startDate != null and startDate != ''"> and dispatch_date &gt;= #{startDate}</if>
+            <if test="endDate != null and endDate != ''"> and dispatch_date &lt;= #{endDate}</if>
+        </where>
+        order by dispatch_date asc
+    </select>
+
+    <insert id="insertLogisticsDriverOrder" parameterType="LogisticsDriverOrder" useGeneratedKeys="true" keyProperty="driverOrderId">
+        insert into logistics_driver_order
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="driverOrderNo != null and driverOrderNo != ''">driver_order_no,</if>
+            <if test="orderId != null">order_id,</if>
+            <if test="orderNo != null">order_no,</if>
+            <if test="driverId != null">driver_id,</if>
+            <if test="driverName != null">driver_name,</if>
+            <if test="driverPhone != null">driver_phone,</if>
+            <if test="vehicleId != null">vehicle_id,</if>
+            <if test="vehiclePlate != null">vehicle_plate,</if>
+            <if test="loadCapacity != null">load_capacity,</if>
+            <if test="actualWeight != null">actual_weight,</if>
+            <if test="loadingUnitPrice != null">loading_unit_price,</if>
+            <if test="freightCost != null">freight_cost,</if>
+            <if test="advancePayment != null">advance_payment,</if>
+            <if test="paymentMethod != null">payment_method,</if>
+            <if test="payee != null">payee,</if>
+            <if test="dispatchDate != null">dispatch_date,</if>
+            <if test="dispatchStatus != null">dispatch_status,</if>
+            <if test="settlementStatus != null">settlement_status,</if>
+            <if test="receiptStatus != null">receipt_status,</if>
+            <if test="delFlag != null">del_flag,</if>
+            <if test="createBy != null">create_by,</if>
+            <if test="remark != null">remark,</if>
+            create_time
+         </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="driverOrderNo != null and driverOrderNo != ''">#{driverOrderNo},</if>
+            <if test="orderId != null">#{orderId},</if>
+            <if test="orderNo != null">#{orderNo},</if>
+            <if test="driverId != null">#{driverId},</if>
+            <if test="driverName != null">#{driverName},</if>
+            <if test="driverPhone != null">#{driverPhone},</if>
+            <if test="vehicleId != null">#{vehicleId},</if>
+            <if test="vehiclePlate != null">#{vehiclePlate},</if>
+            <if test="loadCapacity != null">#{loadCapacity},</if>
+            <if test="actualWeight != null">#{actualWeight},</if>
+            <if test="loadingUnitPrice != null">#{loadingUnitPrice},</if>
+            <if test="freightCost != null">#{freightCost},</if>
+            <if test="advancePayment != null">#{advancePayment},</if>
+            <if test="paymentMethod != null">#{paymentMethod},</if>
+            <if test="payee != null">#{payee},</if>
+            <if test="dispatchDate != null">#{dispatchDate},</if>
+            <if test="dispatchStatus != null">#{dispatchStatus},</if>
+            <if test="settlementStatus != null">#{settlementStatus},</if>
+            <if test="receiptStatus != null">#{receiptStatus},</if>
+            <if test="delFlag != null">#{delFlag},</if>
+            <if test="createBy != null">#{createBy},</if>
+            <if test="remark != null">#{remark},</if>
+            sysdate()
+         </trim>
+    </insert>
+
+    <update id="updateLogisticsDriverOrder" parameterType="LogisticsDriverOrder">
+        update logistics_driver_order
+        <trim prefix="SET" suffixOverrides=",">
+            <if test="driverOrderNo != null and driverOrderNo != ''">driver_order_no = #{driverOrderNo},</if>
+            <if test="orderId != null">order_id = #{orderId},</if>
+            <if test="orderNo != null">order_no = #{orderNo},</if>
+            <if test="driverId != null">driver_id = #{driverId},</if>
+            <if test="driverName != null">driver_name = #{driverName},</if>
+            <if test="driverPhone != null">driver_phone = #{driverPhone},</if>
+            <if test="vehicleId != null">vehicle_id = #{vehicleId},</if>
+            <if test="vehiclePlate != null">vehicle_plate = #{vehiclePlate},</if>
+            <if test="loadCapacity != null">load_capacity = #{loadCapacity},</if>
+            <if test="actualWeight != null">actual_weight = #{actualWeight},</if>
+            <if test="loadingUnitPrice != null">loading_unit_price = #{loadingUnitPrice},</if>
+            <if test="freightCost != null">freight_cost = #{freightCost},</if>
+            <if test="advancePayment != null">advance_payment = #{advancePayment},</if>
+            <if test="paymentMethod != null">payment_method = #{paymentMethod},</if>
+            <if test="payee != null">payee = #{payee},</if>
+            <if test="dispatchDate != null">dispatch_date = #{dispatchDate},</if>
+            <if test="dispatchStatus != null">dispatch_status = #{dispatchStatus},</if>
+            <if test="settlementStatus != null">settlement_status = #{settlementStatus},</if>
+            <if test="receiptStatus != null">receipt_status = #{receiptStatus},</if>
+            <if test="delFlag != null">del_flag = #{delFlag},</if>
+            <if test="updateBy != null">update_by = #{updateBy},</if>
+            <if test="remark != null">remark = #{remark},</if>
+            update_time = sysdate()
+        </trim>
+        where driver_order_id = #{driverOrderId}
+    </update>
+
+    <delete id="deleteLogisticsDriverOrderByDriverOrderId" parameterType="Long">
+        delete from logistics_driver_order where driver_order_id = #{driverOrderId}
+    </delete>
+
+    <delete id="deleteLogisticsDriverOrderByDriverOrderIds" parameterType="String">
+        delete from logistics_driver_order where driver_order_id in
+        <foreach item="driverOrderId" collection="array" open="(" separator="," close=")">
+            #{driverOrderId}
+        </foreach>
+    </delete>
+</mapper>

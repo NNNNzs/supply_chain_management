@@ -1,0 +1,2 @@
+# scp -r /Users/nnnnzs/project/supply_chain_management/ruoyi-ui/dist/ nnnnzs@vpc.nnnnzs.cn:/www/wwwroot/zzj.nnnnzs.cn/dist/
+scp -r /Users/nnnnzs/project/supply_chain_management/ruoyi-admin/target/scm-backend.jar nnnnzs@vpc.nnnnzs.cn:/www/wwwroot/zzj.nnnnzs.cn/backend/

@@ -1,0 +1,126 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.scm.logistics.mapper.LogisticsSettlementMapper">
+
+    <resultMap type="LogisticsSettlement" id="LogisticsSettlementResult">
+        <result property="settlementId"    column="settlement_id"    />
+        <result property="settlementNo"    column="settlement_no"    />
+        <result property="customerId"    column="customer_id"    />
+        <result property="settlementType"    column="settlement_type"    />
+        <result property="settlementDate"    column="settlement_date"    />
+        <result property="startDate"    column="start_date"    />
+        <result property="endDate"    column="end_date"    />
+        <result property="totalAmount"    column="total_amount"    />
+        <result property="paidAmount"    column="paid_amount"    />
+        <result property="unpaidAmount"    column="unpaid_amount"    />
+        <result property="paymentMethod"    column="payment_method"    />
+        <result property="settlementStatus"    column="settlement_status"    />
+        <result property="bankAccount"    column="bank_account"    />
+        <result property="accountName"    column="account_name"    />
+        <result property="delFlag"    column="del_flag"    />
+        <result property="createBy"    column="create_by"    />
+        <result property="createTime"    column="create_time"    />
+        <result property="updateBy"    column="update_by"    />
+        <result property="updateTime"    column="update_time"    />
+        <result property="remark"    column="remark"    />
+    </resultMap>
+
+    <sql id="selectLogisticsSettlementVo">
+        select settlement_id, settlement_no, customer_id, settlement_type, settlement_date, start_date, end_date, total_amount, paid_amount, unpaid_amount, payment_method, settlement_status, bank_account, account_name, del_flag, create_by, create_time, update_by, update_time, remark from logistics_settlement
+    </sql>
+
+    <select id="selectLogisticsSettlementList" parameterType="LogisticsSettlement" resultMap="LogisticsSettlementResult">
+        <include refid="selectLogisticsSettlementVo"/>
+        <where>
+            <if test="settlementNo != null  and settlementNo != ''"> and settlement_no like concat('%', #{settlementNo}, '%')</if>
+            <if test="customerId != null "> and customer_id = #{customerId}</if>
+            <if test="settlementType != null  and settlementType != ''"> and settlement_type = #{settlementType}</if>
+            <if test="settlementStatus != null  and settlementStatus != ''"> and settlement_status = #{settlementStatus}</if>
+        </where>
+        order by settlement_id desc
+    </select>
+
+    <select id="selectLogisticsSettlementBySettlementId" parameterType="Long" resultMap="LogisticsSettlementResult">
+        <include refid="selectLogisticsSettlementVo"/>
+        where settlement_id = #{settlementId}
+    </select>
+
+    <insert id="insertLogisticsSettlement" parameterType="LogisticsSettlement" useGeneratedKeys="true" keyProperty="settlementId">
+        insert into logistics_settlement
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="settlementNo != null and settlementNo != ''">settlement_no,</if>
+            <if test="customerId != null">customer_id,</if>
+            <if test="settlementType != null">settlement_type,</if>
+            <if test="settlementDate != null">settlement_date,</if>
+            <if test="startDate != null">start_date,</if>
+            <if test="endDate != null">end_date,</if>
+            <if test="totalAmount != null">total_amount,</if>
+            <if test="paidAmount != null">paid_amount,</if>
+            <if test="unpaidAmount != null">unpaid_amount,</if>
+            <if test="paymentMethod != null">payment_method,</if>
+            <if test="settlementStatus != null">settlement_status,</if>
+            <if test="bankAccount != null">bank_account,</if>
+            <if test="accountName != null">account_name,</if>
+            <if test="delFlag != null">del_flag,</if>
+            <if test="createBy != null">create_by,</if>
+            <if test="remark != null">remark,</if>
+            create_time
+         </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="settlementNo != null and settlementNo != ''">#{settlementNo},</if>
+            <if test="customerId != null">#{customerId},</if>
+            <if test="settlementType != null">#{settlementType},</if>
+            <if test="settlementDate != null">#{settlementDate},</if>
+            <if test="startDate != null">#{startDate},</if>
+            <if test="endDate != null">#{endDate},</if>
+            <if test="totalAmount != null">#{totalAmount},</if>
+            <if test="paidAmount != null">#{paidAmount},</if>
+            <if test="unpaidAmount != null">#{unpaidAmount},</if>
+            <if test="paymentMethod != null">#{paymentMethod},</if>
+            <if test="settlementStatus != null">#{settlementStatus},</if>
+            <if test="bankAccount != null">#{bankAccount},</if>
+            <if test="accountName != null">#{accountName},</if>
+            <if test="delFlag != null">#{delFlag},</if>
+            <if test="createBy != null">#{createBy},</if>
+            <if test="remark != null">#{remark},</if>
+            sysdate()
+         </trim>
+    </insert>
+
+    <update id="updateLogisticsSettlement" parameterType="LogisticsSettlement">
+        update logistics_settlement
+        <trim prefix="SET" suffixOverrides=",">
+            <if test="settlementNo != null and settlementNo != ''">settlement_no = #{settlementNo},</if>
+            <if test="customerId != null">customer_id = #{customerId},</if>
+            <if test="settlementType != null">settlement_type = #{settlementType},</if>
+            <if test="settlementDate != null">settlement_date = #{settlementDate},</if>
+            <if test="startDate != null">start_date = #{startDate},</if>
+            <if test="endDate != null">end_date = #{endDate},</if>
+            <if test="totalAmount != null">total_amount = #{totalAmount},</if>
+            <if test="paidAmount != null">paid_amount = #{paidAmount},</if>
+            <if test="unpaidAmount != null">unpaid_amount = #{unpaidAmount},</if>
+            <if test="paymentMethod != null">payment_method = #{paymentMethod},</if>
+            <if test="settlementStatus != null">settlement_status = #{settlementStatus},</if>
+            <if test="bankAccount != null">bank_account = #{bankAccount},</if>
+            <if test="accountName != null">account_name = #{accountName},</if>
+            <if test="delFlag != null">del_flag = #{delFlag},</if>
+            <if test="updateBy != null">update_by = #{updateBy},</if>
+            <if test="remark != null">remark = #{remark},</if>
+            update_time = sysdate()
+        </trim>
+        where settlement_id = #{settlementId}
+    </update>
+
+    <delete id="deleteLogisticsSettlementBySettlementId" parameterType="Long">
+        delete from logistics_settlement where settlement_id = #{settlementId}
+    </delete>
+
+    <delete id="deleteLogisticsSettlementBySettlementIds" parameterType="String">
+        delete from logistics_settlement where settlement_id in
+        <foreach item="settlementId" collection="array" open="(" separator="," close=")">
+            #{settlementId}
+        </foreach>
+    </delete>
+</mapper>

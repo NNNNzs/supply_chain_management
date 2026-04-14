@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.scm.logistics.mapper.LogisticsGoodsMapper">
+
+    <resultMap type="LogisticsGoods" id="LogisticsGoodsResult">
+        <result property="goodsId"    column="goods_id"    />
+        <result property="goodsCode"    column="goods_code"    />
+        <result property="goodsName"    column="goods_name"    />
+        <result property="goodsModel"    column="goods_model"    />
+        <result property="goodsUnit"    column="goods_unit"    />
+        <result property="goodsCategory"    column="goods_category"    />
+        <result property="unitPrice"    column="unit_price"    />
+        <result property="status"    column="status"    />
+        <result property="delFlag"    column="del_flag"    />
+        <result property="createBy"    column="create_by"    />
+        <result property="createTime"    column="create_time"    />
+        <result property="updateBy"    column="update_by"    />
+        <result property="updateTime"    column="update_time"    />
+        <result property="remark"    column="remark"    />
+    </resultMap>
+
+    <sql id="selectLogisticsGoodsVo">
+        select goods_id, goods_code, goods_name, goods_model, goods_unit, goods_category, unit_price, status, del_flag, create_by, create_time, update_by, update_time, remark from logistics_goods
+    </sql>
+
+    <select id="selectLogisticsGoodsList" parameterType="LogisticsGoods" resultMap="LogisticsGoodsResult">
+        <include refid="selectLogisticsGoodsVo"/>
+        <where>
+            <if test="goodsCode != null  and goodsCode != ''"> and goods_code like concat('%', #{goodsCode}, '%')</if>
+            <if test="goodsName != null  and goodsName != ''"> and goods_name like concat('%', #{goodsName}, '%')</if>
+            <if test="goodsCategory != null  and goodsCategory != ''"> and goods_category = #{goodsCategory}</if>
+            <if test="status != null  and status != ''"> and status = #{status}</if>
+        </where>
+        order by goods_id desc
+    </select>
+
+    <select id="selectLogisticsGoodsByGoodsId" parameterType="Long" resultMap="LogisticsGoodsResult">
+        <include refid="selectLogisticsGoodsVo"/>
+        where goods_id = #{goodsId}
+    </select>
+
+    <insert id="insertLogisticsGoods" parameterType="LogisticsGoods" useGeneratedKeys="true" keyProperty="goodsId">
+        insert into logistics_goods
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="goodsCode != null and goodsCode != ''">goods_code,</if>
+            <if test="goodsName != null and goodsName != ''">goods_name,</if>
+            <if test="goodsModel != null">goods_model,</if>
+            <if test="goodsUnit != null">goods_unit,</if>
+            <if test="goodsCategory != null">goods_category,</if>
+            <if test="unitPrice != null">unit_price,</if>
+            <if test="status != null">status,</if>
+            <if test="delFlag != null">del_flag,</if>
+            <if test="createBy != null">create_by,</if>
+            <if test="remark != null">remark,</if>
+            create_time
+         </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="goodsCode != null and goodsCode != ''">#{goodsCode},</if>
+            <if test="goodsName != null and goodsName != ''">#{goodsName},</if>
+            <if test="goodsModel != null">#{goodsModel},</if>
+            <if test="goodsUnit != null">#{goodsUnit},</if>
+            <if test="goodsCategory != null">#{goodsCategory},</if>
+            <if test="unitPrice != null">#{unitPrice},</if>
+            <if test="status != null">#{status},</if>
+            <if test="delFlag != null">#{delFlag},</if>
+            <if test="createBy != null">#{createBy},</if>
+            <if test="remark != null">#{remark},</if>
+            sysdate()
+         </trim>
+    </insert>
+
+    <update id="updateLogisticsGoods" parameterType="LogisticsGoods">
+        update logistics_goods
+        <trim prefix="SET" suffixOverrides=",">
+            <if test="goodsCode != null and goodsCode != ''">goods_code = #{goodsCode},</if>
+            <if test="goodsName != null and goodsName != ''">goods_name = #{goodsName},</if>
+            <if test="goodsModel != null">goods_model = #{goodsModel},</if>
+            <if test="goodsUnit != null">goods_unit = #{goodsUnit},</if>
+            <if test="goodsCategory != null">goods_category = #{goodsCategory},</if>
+            <if test="unitPrice != null">unit_price = #{unitPrice},</if>
+            <if test="status != null">status = #{status},</if>
+            <if test="delFlag != null">del_flag = #{delFlag},</if>
+            <if test="updateBy != null">update_by = #{updateBy},</if>
+            <if test="remark != null">remark = #{remark},</if>
+            update_time = sysdate()
+        </trim>
+        where goods_id = #{goodsId}
+    </update>
+
+    <delete id="deleteLogisticsGoodsByGoodsId" parameterType="Long">
+        delete from logistics_goods where goods_id = #{goodsId}
+    </delete>
+
+    <delete id="deleteLogisticsGoodsByGoodsIds" parameterType="String">
+        delete from logistics_goods where goods_id in
+        <foreach item="goodsId" collection="array" open="(" separator="," close=")">
+            #{goodsId}
+        </foreach>
+    </delete>
+</mapper>

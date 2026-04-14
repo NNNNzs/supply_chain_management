@@ -1,0 +1,111 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.scm.logistics.mapper.LogisticsReceiptMapper">
+
+    <resultMap type="LogisticsReceipt" id="LogisticsReceiptResult">
+        <result property="receiptId"    column="receipt_id"    />
+        <result property="receiptNo"    column="receipt_no"    />
+        <result property="orderId"    column="order_id"    />
+        <result property="orderNo"    column="order_no"    />
+        <result property="receiptDate"    column="receipt_date"    />
+        <result property="receiptImage"    column="receipt_image"    />
+        <result property="receiptStatus"    column="receipt_status"    />
+        <result property="receiver"    column="receiver"    />
+        <result property="receiveTime"    column="receive_time"    />
+        <result property="delFlag"    column="del_flag"    />
+        <result property="createBy"    column="create_by"    />
+        <result property="createTime"    column="create_time"    />
+        <result property="updateBy"    column="update_by"    />
+        <result property="updateTime"    column="update_time"    />
+        <result property="remark"    column="remark"    />
+    </resultMap>
+
+    <sql id="selectLogisticsReceiptVo">
+        select r.receipt_id, r.receipt_no, r.order_id, r.receipt_date, r.receipt_image, r.receipt_status,
+               r.receiver, r.receive_time, r.del_flag, r.create_by, r.create_time, r.update_by, r.update_time, r.remark,
+               o.order_no
+        from logistics_receipt r
+        left join logistics_order o on r.order_id = o.order_id
+    </sql>
+
+    <select id="selectLogisticsReceiptList" parameterType="LogisticsReceipt" resultMap="LogisticsReceiptResult">
+        <include refid="selectLogisticsReceiptVo"/>
+        <where>
+            r.del_flag = '0'
+            <if test="receiptNo != null  and receiptNo != ''"> and r.receipt_no like concat('%', #{receiptNo}, '%')</if>
+            <if test="orderNo != null  and orderNo != ''"> and o.order_no like concat('%', #{orderNo}, '%')</if>
+            <if test="orderId != null "> and r.order_id = #{orderId}</if>
+            <if test="receiptStatus != null  and receiptStatus != ''"> and r.receipt_status = #{receiptStatus}</if>
+        </where>
+        order by r.receipt_id desc
+    </select>
+
+    <select id="selectLogisticsReceiptByReceiptId" parameterType="Long" resultMap="LogisticsReceiptResult">
+        <include refid="selectLogisticsReceiptVo"/>
+        where r.receipt_id = #{receiptId}
+    </select>
+
+    <insert id="insertLogisticsReceipt" parameterType="LogisticsReceipt" useGeneratedKeys="true" keyProperty="receiptId">
+        insert into logistics_receipt
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="receiptNo != null and receiptNo != ''">receipt_no,</if>
+            <if test="orderId != null">order_id,</if>
+            <if test="receiptDate != null">receipt_date,</if>
+            <if test="receiptImage != null">receipt_image,</if>
+            <if test="receiptStatus != null">receipt_status,</if>
+            <if test="receiver != null">receiver,</if>
+            <if test="delFlag != null">del_flag,</if>
+            <if test="createBy != null">create_by,</if>
+            <if test="remark != null">remark,</if>
+            create_time
+         </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="receiptNo != null and receiptNo != ''">#{receiptNo},</if>
+            <if test="orderId != null">#{orderId},</if>
+            <if test="receiptDate != null">#{receiptDate},</if>
+            <if test="receiptImage != null">#{receiptImage},</if>
+            <if test="receiptStatus != null">#{receiptStatus},</if>
+            <if test="receiver != null">#{receiver},</if>
+            <if test="delFlag != null">#{delFlag},</if>
+            <if test="createBy != null">#{createBy},</if>
+            <if test="remark != null">#{remark},</if>
+            sysdate()
+         </trim>
+    </insert>
+
+    <update id="updateLogisticsReceipt" parameterType="LogisticsReceipt">
+        update logistics_receipt
+        <trim prefix="SET" suffixOverrides=",">
+            <if test="receiptNo != null and receiptNo != ''">receipt_no = #{receiptNo},</if>
+            <if test="orderId != null">order_id = #{orderId},</if>
+            <if test="receiptDate != null">receipt_date = #{receiptDate},</if>
+            <if test="receiptImage != null">receipt_image = #{receiptImage},</if>
+            <if test="receiptStatus != null">receipt_status = #{receiptStatus},</if>
+            <if test="receiver != null">receiver = #{receiver},</if>
+            <if test="receiveTime != null">receive_time = sysdate(),</if>
+            <if test="delFlag != null">del_flag = #{delFlag},</if>
+            <if test="updateBy != null">update_by = #{updateBy},</if>
+            <if test="remark != null">remark = #{remark},</if>
+            update_time = sysdate()
+        </trim>
+        where receipt_id = #{receiptId}
+    </update>
+
+    <delete id="deleteLogisticsReceiptByReceiptId" parameterType="Long">
+        delete from logistics_receipt where receipt_id = #{receiptId}
+    </delete>
+
+    <delete id="deleteLogisticsReceiptByReceiptIds" parameterType="String">
+        delete from logistics_receipt where receipt_id in
+        <foreach item="receiptId" collection="array" open="(" separator="," close=")">
+            #{receiptId}
+        </foreach>
+    </delete>
+
+    <select id="selectLogisticsReceiptByOrderId" parameterType="Long" resultMap="LogisticsReceiptResult">
+        <include refid="selectLogisticsReceiptVo"/>
+        where r.order_id = #{orderId} and r.del_flag = '0'
+    </select>
+</mapper>

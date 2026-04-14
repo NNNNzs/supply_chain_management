@@ -54,6 +54,12 @@
             <artifactId>ruoyi-generator</artifactId>
         </dependency>
 
+        <!-- 物流管理模块-->
+        <dependency>
+            <groupId>com.scm</groupId>
+            <artifactId>ruoyi-logistics</artifactId>
+        </dependency>
+
         <!-- dotenv支持 -->
         <dependency>
             <groupId>io.github.cdimascio</groupId>

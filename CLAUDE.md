@@ -17,6 +17,7 @@ supply_chain_management/
 ├── ruoyi-admin/          # 后端主模块
 ├── ruoyi-framework/      # 框架核心
 ├── ruoyi-system/         # 系统模块
+├── ruoyi-logistics/      # 物流管理模块
 ├── ruoyi-generator/      # 代码生成
 ├── ruoyi-ui/            # 前端项目
 ├── docs/                # 项目文档
@@ -26,12 +27,31 @@ supply_chain_management/
 
 ## 相关文档
 
+### 项目文档
 | 文档 | 说明 |
 |------|------|
+| [开发规范](docs/development-specs.md) | **开发规范文档（含文档管理、代码规范、Git 工作流）** |
 | [部署文档](docs/deployment.md) | GitHub Actions 自动化部署、Docker 配置、Nginx 配置 |
 | [README.md](README.md) | 项目介绍和本地开发指南 |
 
+### 物流管理模块文档
+| 文档 | 说明 |
+|------|------|
+| [需求文档](docs/logistics/01-requirements.md) | **物流管理系统需求规格说明书** |
+| [设计文档](docs/logistics/02-design.md) | 物流管理系统技术设计与实现方案 |
+| [进度文档](docs/logistics/03-progress.md) | 物流管理系统实现进度跟踪 |
+| [物流实现总结](docs/logistics-implementation-summary.md) | 物流管理模块完整实现说明 |
+| [数据库脚本指南](docs/logistics-database-guide.md) | 物流数据库表和菜单 SQL 执行指南 |
+| [后端代码清单](docs/logistics-backend-checklist.md) | 使用代码生成器生成后端代码的详细步骤 |
+| [工作台账](docs/工作台账.md) | 物流运输工作台账原始数据 |
+
 ## 开发规范
+
+### 文档管理规范 ⚠️ 重要
+- **每次业务发生变化，必须同步更新需求文档**（`docs/logistics/01-requirements.md`）
+- 需求文档是业务逻辑的唯一真实来源，必须保持与实际业务一致
+- 业务变更包括：新增功能、修改现有功能、删除功能、业务规则调整等
+- 更新需求文档时，记录变更日期、版本号、变更内容和变更人
 
 ### 后端开发
 - 基于 Spring Boot 3.x
@@ -60,3 +80,101 @@ supply_chain_management/
 - Nginx: 反向代理后端 API 到 `/api/` 路径
 
 详细配置请参考 [部署文档](docs/deployment.md)。
+
+## 物流管理模块
+
+物流管理模块是基于若依框架开发的完整物流运输管理系统，实现了从工作台账到线上系统的全功能。
+
+### 模块结构
+
+```
+ruoyi-logistics/
+└── src/main/
+    ├── java/com/scm/logistics/
+    │   ├── domain/        # 实体类（客户、货物、司机、车辆、订单等）
+    │   ├── mapper/        # MyBatis Mapper 接口
+    │   └── service/       # 服务层
+    └── resources/mapper/logistics/  # MyBatis XML 映射文件
+```
+
+### 前端结构
+
+```
+ruoyi-ui/src/
+├── api/logistics/        # 物流模块 API
+│   ├── customer.js
+│   ├── goods.js
+│   ├── driver.js
+│   ├── vehicle.js
+│   ├── order.js
+│   ├── receipt.js
+│   └── invoice.js
+└── views/logistics/
+    ├── customer/index.vue    # 客户管理
+    ├── goods/index.vue       # 货物管理
+    ├── driver/index.vue      # 司机管理
+    ├── vehicle/index.vue     # 车辆管理
+    ├── order/index.vue       # 订单管理（列表页）
+    ├── order/form.vue        # 订单管理（独立表单页）
+    ├── receipt/index.vue     # 回单管理
+    ├── invoice/index.vue     # 发票管理
+    └── settlement/           # 财务结算管理
+        ├── receivable/       # 应收结算
+        ├── payable/          # 应付结算
+        └── report/           # 财务报表
+```
+
+### 核心功能
+
+- **客户管理**：客户信息维护、信用额度、结算方式
+- **货物管理**：货物信息、分类、参考价格
+- **司机管理**：司机信息、银行卡信息、常用车辆关联
+- **车辆管理**：车辆信息、载重、默认司机关联
+- **订单管理**：订单创建（独立表单页）、订单号自动生成、司机联动、Excel 导入导出
+- **回单管理**：回单上传、确认、图片预览、回单编号自动生成
+- **发票管理**：合并开票、发票开具/作废、取消合并
+- **财务结算**：应收/应付结算、结算单生成
+
+### 实现进度
+
+| 模块 | 状态 | 完成度 |
+|------|------|--------|
+| 客户管理 | ✅ 已完成 | 100% |
+| 货物管理 | ✅ 已完成 | 100% |
+| 司机管理 | ✅ 已完成 | 100% |
+| 车辆管理 | ✅ 已完成 | 100% |
+| 订单管理 | ✅ 已完成 | 100% |
+| 回单管理 | ✅ 已完成 | 100% |
+| 发票管理 | ⚠️ 部分完成 | 67% |
+| 应收结算 | ⚠️ 待实现 | 33% |
+| 应付结算 | ⚠️ 待实现 | 33% |
+| 财务报表 | ⚠️ 待实现 | 33% |
+| **总体进度** | | **76%** |
+
+### 订单号生成规则
+
+**格式**：类型(2位) + 客户编码 + 年月日 + 流水号(4位)
+
+- 类型编码：`YS`（运输）、`DB`（短驳）
+- 示例：`YSCZGS202604140001`
+
+### 回单号生成规则
+
+**格式**：HD + 年月日 + 流水号(4位)
+
+- 示例：`HD202604140001`
+
+### 数据库表
+
+- logistics_customer - 客户信息表
+- logistics_goods - 货物信息表
+- logistics_driver - 司机信息表
+- logistics_vehicle - 车辆信息表
+- logistics_order - 运输订单表
+- logistics_receipt - 回单信息表
+- logistics_invoice_batch - 发票批次表
+- logistics_invoice_detail - 发票批次明细表
+- logistics_settlement - 财务结算表
+- logistics_settlement_detail - 结算明细表
+
+SQL 脚本位置：`sql/logistics.sql`

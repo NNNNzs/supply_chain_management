@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.scm.logistics.mapper.LogisticsBillOrderDetailMapper">
+
+    <resultMap type="LogisticsBillOrderDetail" id="LogisticsBillOrderDetailResult">
+        <result property="detailId"    column="detail_id"    />
+        <result property="billId"    column="bill_id"    />
+        <result property="billNo"    column="bill_no"    />
+        <result property="orderId"    column="order_id"    />
+        <result property="orderNo"    column="order_no"    />
+        <result property="allocatedWeight"    column="allocated_weight"    />
+        <result property="unitPrice"    column="unit_price"    />
+        <result property="allocatedAmount"    column="allocated_amount"    />
+        <result property="createBy"    column="create_by"    />
+        <result property="createTime"    column="create_time"    />
+        <result property="remark"    column="remark"    />
+    </resultMap>
+
+    <sql id="selectLogisticsBillOrderDetailVo">
+        select d.detail_id, d.bill_id, d.order_id, d.allocated_weight, d.unit_price, d.allocated_amount,
+               d.create_by, d.create_time, d.remark,
+               b.bill_no, o.order_no
+        from logistics_bill_order_detail d
+        left join logistics_bill b on d.bill_id = b.bill_id
+        left join logistics_order o on d.order_id = o.order_id
+    </sql>
+
+    <select id="selectLogisticsBillOrderDetailList" parameterType="LogisticsBillOrderDetail" resultMap="LogisticsBillOrderDetailResult">
+        <include refid="selectLogisticsBillOrderDetailVo"/>
+        <where>
+            1=1
+            <if test="billId != null"> and d.bill_id = #{billId}</if>
+            <if test="orderId != null"> and d.order_id = #{orderId}</if>
+        </where>
+        order by d.detail_id desc
+    </select>
+
+    <select id="selectLogisticsBillOrderDetailByDetailId" parameterType="Long" resultMap="LogisticsBillOrderDetailResult">
+        <include refid="selectLogisticsBillOrderDetailVo"/>
+        where d.detail_id = #{detailId}
+    </select>
+
+    <select id="selectDetailsByBillId" parameterType="Long" resultMap="LogisticsBillOrderDetailResult">
+        <include refid="selectLogisticsBillOrderDetailVo"/>
+        where d.bill_id = #{billId}
+        order by d.detail_id asc
+    </select>
+
+    <select id="selectDetailsByOrderId" parameterType="Long" resultMap="LogisticsBillOrderDetailResult">
+        <include refid="selectLogisticsBillOrderDetailVo"/>
+        where d.order_id = #{orderId}
+        order by d.detail_id asc
+    </select>
+
+    <select id="sumAllocatedWeightByBillId" parameterType="Long" resultType="java.lang.Double">
+        select ifnull(sum(allocated_weight), 0) from logistics_bill_order_detail where bill_id = #{billId}
+    </select>
+
+    <select id="sumAllocatedAmountByOrderId" parameterType="Long" resultType="java.lang.Double">
+        select ifnull(sum(allocated_amount), 0) from logistics_bill_order_detail where order_id = #{orderId}
+    </select>
+
+    <insert id="insertLogisticsBillOrderDetail" parameterType="LogisticsBillOrderDetail" useGeneratedKeys="true" keyProperty="detailId">
+        insert into logistics_bill_order_detail
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="billId != null">bill_id,</if>
+            <if test="orderId != null">order_id,</if>
+            <if test="allocatedWeight != null">allocated_weight,</if>
+            <if test="unitPrice != null">unit_price,</if>
+            <if test="allocatedAmount != null">allocated_amount,</if>
+            <if test="createBy != null">create_by,</if>
+            <if test="remark != null">remark,</if>
+            create_time
+         </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="billId != null">#{billId},</if>
+            <if test="orderId != null">#{orderId},</if>
+            <if test="allocatedWeight != null">#{allocatedWeight},</if>
+            <if test="unitPrice != null">#{unitPrice},</if>
+            <if test="allocatedAmount != null">#{allocatedAmount},</if>
+            <if test="createBy != null">#{createBy},</if>
+            <if test="remark != null">#{remark},</if>
+            sysdate()
+         </trim>
+    </insert>
+
+    <insert id="batchInsertLogisticsBillOrderDetail">
+        insert into logistics_bill_order_detail (bill_id, order_id, allocated_weight, unit_price, allocated_amount, create_by, create_time)
+        values
+        <foreach collection="list" item="item" separator=",">
+            (#{item.billId}, #{item.orderId}, #{item.allocatedWeight}, #{item.unitPrice}, #{item.allocatedAmount}, #{item.createBy}, sysdate())
+        </foreach>
+    </insert>
+
+    <update id="updateLogisticsBillOrderDetail" parameterType="LogisticsBillOrderDetail">
+        update logistics_bill_order_detail
+        <trim prefix="SET" suffixOverrides=",">
+            <if test="billId != null">bill_id = #{billId},</if>
+            <if test="orderId != null">order_id = #{orderId},</if>
+            <if test="allocatedWeight != null">allocated_weight = #{allocatedWeight},</if>
+            <if test="unitPrice != null">unit_price = #{unitPrice},</if>
+            <if test="allocatedAmount != null">allocated_amount = #{allocatedAmount},</if>
+            <if test="remark != null">remark = #{remark},</if>
+        </trim>
+        where detail_id = #{detailId}
+    </update>
+
+    <delete id="deleteLogisticsBillOrderDetailByDetailId" parameterType="Long">
+        delete from logistics_bill_order_detail where detail_id = #{detailId}
+    </delete>
+
+    <delete id="deleteLogisticsBillOrderDetailByDetailIds" parameterType="String">
+        delete from logistics_bill_order_detail where detail_id in
+        <foreach item="detailId" collection="array" open="(" separator="," close=")">
+            #{detailId}
+        </foreach>
+    </delete>
+
+    <delete id="deleteDetailsByOrderId" parameterType="Long">
+        delete from logistics_bill_order_detail where order_id = #{orderId}
+    </delete>
+</mapper>
