@@ -2,7 +2,7 @@
 
 > **文档类型**: 设计文档
 > **项目**: 供应链管理系统 - 物流管理模块
-> **版本**: v2.0
+> **版本**: v2.1
 > **最后更新**: 2026-04-14
 
 ## 文档说明
@@ -159,21 +159,40 @@
 
 ```java
 /**
- * 提单号生成规则：类型(2位) + 客户编码 + 年月日 + 流水号(4位)
- * 示例：YSCZGS202604140001
+ * 提单号生成规则：客户编码 + 年月日 + 流水号(4位)
+ * 示例：CZGS202604140001
+ * 特点：系统自动生成，不允许手动输入；防重检查包括已删除记录
  */
-public String generateBillNo(String billType, String customerCode) {
-    // 1. 获取当前日期
-    String dateStr = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyyMMdd"));
+private void generateBillNo(LogisticsBill bill) {
+    if (StringUtils.isEmpty(bill.getBillNo())) {
+        // 1. 获取客户信息
+        LogisticsCustomer customer = customerMapper.selectCustomerById(bill.getCustomerId());
 
-    // 2. 查询当天该客户提单数量
-    int count = billMapper.countTodayBills(customerCode, dateStr);
+        // 2. 拼接前缀
+        String dateStr = new SimpleDateFormat("yyyyMMdd").format(bill.getBillDate());
+        String prefix = customer.getCustomerCode() + dateStr;
 
-    // 3. 生成流水号
-    String serial = String.format("%04d", count + 1);
+        // 3. 查询当天该客户的提单数量
+        List<LogisticsBill> bills = billMapper.selectBillsByCustomerId(bill.getCustomerId());
+        int count = 0;
+        for (LogisticsBill b : bills) {
+            if (b.getBillNo() != null && b.getBillNo().startsWith(prefix)) {
+                count++;
+            }
+        }
 
-    // 4. 拼接提单号
-    return billType + customerCode + dateStr + serial;
+        // 4. 循环生成提单号，检查数据库中是否存在（包括已删除记录）
+        String serialNo;
+        String candidateBillNo;
+        int attempt = 0;
+        do {
+            serialNo = String.format("%04d", count + 1 + attempt);
+            candidateBillNo = prefix + serialNo;
+            attempt++;
+        } while (billMapper.checkBillNoExistsInDb(candidateBillNo) != null);
+
+        bill.setBillNo(candidateBillNo);
+    }
 }
 ```
 
@@ -317,6 +336,44 @@ public AllocationResultVO createOrderWithBills(
 
 ### 3.3 运单管理模块
 
+#### 3.3.1 运单号生成器
+
+```java
+/**
+ * 运单号生成规则：类型(2位) + 客户编码 + 年月日 + 流水号(4位)
+ * 示例：YSCZGS202604140001
+ * 特点：防重检查包括已删除记录，循环递增流水号直到找到未使用的号码
+ */
+@Override
+public void generateOrderNo(LogisticsOrder logisticsOrder) {
+    if (StringUtils.isEmpty(logisticsOrder.getOrderNo())) {
+        LogisticsCustomer customer = customerMapper.selectCustomerById(logisticsOrder.getCustomerId());
+        String dateStr = new SimpleDateFormat("yyyyMMdd").format(logisticsOrder.getOrderDate());
+        String prefix = "YS" + customer.getCustomerCode() + dateStr;
+
+        List<LogisticsOrder> orders = orderMapper.selectOrdersByCustomerId(logisticsOrder.getCustomerId());
+        int count = 0;
+        for (LogisticsOrder order : orders) {
+            if (order.getOrderNo() != null && order.getOrderNo().startsWith(prefix)) {
+                count++;
+            }
+        }
+
+        // 循环检查数据库中是否存在（包括已删除记录）
+        String serialNo;
+        String candidateOrderNo;
+        int attempt = 0;
+        do {
+            serialNo = String.format("%04d", count + 1 + attempt);
+            candidateOrderNo = prefix + serialNo;
+            attempt++;
+        } while (orderMapper.checkOrderNoExistsInDb(candidateOrderNo) != null);
+
+        logisticsOrder.setOrderNo(candidateOrderNo);
+    }
+}
+```
+
 #### 3.3.2 金额计算器
 
 ```java
@@ -358,6 +415,33 @@ public void linkVehicleInfo(LogisticsOrder order) {
     }
 }
 ```
+
+#### 3.3.4 订单状态更改（专用接口）
+
+```java
+/**
+ * 更改订单状态 - 专用接口
+ * 特点：只更新状态字段，不影响其他数据，不触发订单号生成
+ *
+ * Controller:
+ *   @PutMapping("/changeStatus/{orderId}")
+ *   public AjaxResult changeStatus(@PathVariable Long orderId, @RequestBody LogisticsOrder order) {
+ *       return toAjax(orderService.changeOrderStatus(orderId, order.getOrderStatus()));
+ *   }
+ */
+@Override
+public int changeOrderStatus(Long orderId, String orderStatus) {
+    LogisticsOrder order = new LogisticsOrder();
+    order.setOrderId(orderId);
+    order.setOrderStatus(orderStatus);
+    return orderMapper.updateOrder(order);
+}
+```
+
+**设计要点**：
+- 使用独立方法而非 `updateOrder`，避免触发订单号生成和金额计算
+- Controller 路由必须放在 `@DeleteMapping` 之前，避免路径冲突
+- 前端使用专门的 `changeStatus` API 而非通用的 `update` API
 
 ---
 
@@ -401,9 +485,79 @@ public void confirmReceipt(Long receiptId, String receiver) {
 }
 ```
 
-### 3.5 发票管理模块
+### 3.5 删除保护设计
 
-#### 3.3.1 合并开票流程
+所有模块的删除操作统一采用以下保护策略：
+
+#### 3.5.1 保护规则
+
+| 模块 | 状态保护 | 关联保护 | 删除方式 |
+|------|----------|----------|----------|
+| 客户管理 | - | 有关联提单不能删除 | 逻辑删除 |
+| 货物管理 | - | - | 逻辑删除 |
+| 提单管理 | 运输中/已完成不能删除 | 有关联运单不能删除 | 逻辑删除(del_flag='2') |
+| 运单管理 | 已完成不能删除 | 已结算不能删除 | 逻辑删除 |
+
+#### 3.5.2 级联更新
+
+```java
+/**
+ * 删除运单时的级联处理
+ */
+@Override
+@Transactional
+public int deleteOrderById(Long orderId) {
+    LogisticsOrder order = orderMapper.selectOrderById(orderId);
+    if (order == null) throw new ServiceException("订单不存在");
+    if ("completed".equals(order.getOrderStatus())) throw new ServiceException("已完成的订单不能删除");
+    if ("settled".equals(order.getSettlementStatus())) throw new ServiceException("已结算的订单不能删除");
+
+    // 1. 获取关联的提单ID列表
+    List<Long> billIds = billOrderDetailMapper.selectBillIdsByOrderId(orderId);
+
+    // 2. 删除运单的提单关联明细
+    billOrderDetailMapper.deleteDetailsByOrderId(orderId);
+
+    // 3. 更新关联提单的状态和已分配重量
+    for (Long billId : billIds) {
+        updateBillStatusAfterOrderDelete(billId);
+    }
+
+    // 4. 逻辑删除订单
+    return orderMapper.deleteOrderById(orderId);
+}
+
+/**
+ * 删除运单后更新提单状态
+ */
+private void updateBillStatusAfterOrderDelete(Long billId) {
+    Double allocatedWeight = billOrderDetailMapper.sumAllocatedWeightByBillId(billId);
+    LogisticsBill bill = billMapper.selectLogisticsBillByBillId(billId);
+    if (bill != null) {
+        bill.setAllocatedWeight(allocatedWeight != null
+            ? BigDecimal.valueOf(allocatedWeight) : BigDecimal.ZERO);
+        if (bill.getAllocatedWeight().compareTo(BigDecimal.ZERO) == 0)
+            bill.setBillStatus("pending");
+        else if (bill.getAllocatedWeight().compareTo(bill.getTotalWeight()) < 0)
+            bill.setBillStatus("partial");
+        else
+            bill.setBillStatus("allocated");
+        billMapper.updateBillStatusAndWeight(bill);
+    }
+}
+```
+
+#### 3.5.3 逻辑删除与唯一约束冲突
+
+**问题**：MySQL 的唯一约束检查所有行（包括 del_flag='2' 的已删除记录），导致逻辑删除后无法创建相同号码的新记录。
+
+**解决方案**：生成号码时使用 `checkXxxExistsInDb()` 方法检查数据库中所有记录（不限 del_flag），循环递增流水号直到找到未使用的号码。
+
+---
+
+### 3.6 发票管理模块
+
+#### 3.6.1 合并开票流程
 
 ```java
 /**
@@ -458,7 +612,7 @@ public void createInvoiceBatch(InvoiceBatchVO batchVO) {
 }
 ```
 
-#### 3.3.2 取消合并流程
+#### 3.6.2 取消合并流程
 
 ```java
 /**
@@ -483,9 +637,9 @@ public void cancelInvoiceBatch(Long batchId) {
 }
 ```
 
-### 3.6 财务结算模块
+### 3.7 财务结算模块
 
-#### 3.4.1 应收结算单生成
+#### 3.7.1 应收结算单生成
 
 ```java
 /**
@@ -544,8 +698,9 @@ public void createReceivableSettlement(SettlementVO settlementVO) {
 | GET | /api/logistics/order/{id} | 获取订单详情 |
 | POST | /api/logistics/order | 创建订单 |
 | PUT | /api/logistics/order | 更新订单 |
+| PUT | /api/logistics/order/changeStatus/{orderId} | 更改订单状态（专用接口） |
 | DELETE | /api/logistics/order/{ids} | 删除订单 |
-| POST | /api/logistics/order/import | 导入订单 |
+| POST | /api/logistics/order/importData | 导入订单 |
 | GET | /api/logistics/receipt/list | 查询回单列表 |
 | POST | /api/logistics/receipt/confirm | 确认回单 |
 
@@ -570,31 +725,35 @@ public void createReceivableSettlement(SettlementVO settlementVO) {
 
 ```
 views/logistics/
-├── base/                          # 基础数据管理
-│   ├── customer/index.vue         # 客户管理
-│   ├── goods/index.vue            # 货物管理
-│   ├── driver/index.vue           # 司机管理
-│   └── vehicle/index.vue          # 车辆管理
-├── business/                      # 运输业务管理
-│   ├── order/
-│   │   ├── index.vue             # 订单列表
-│   │   └── form.vue              # 订单表单（独立页面）
-│   ├── receipt/index.vue         # 回单管理
-│   └── invoice/index.vue         # 发票管理
-└── settlement/                    # 财务结算管理
-    ├── receivable/index.vue      # 应收结算
-    ├── payable/index.vue         # 应付结算
-    └── report/index.vue          # 财务报表
+├── customer/index.vue             # 客户管理
+├── goods/index.vue                # 货物管理
+├── driver/index.vue               # 司机管理
+├── vehicle/index.vue              # 车辆管理（默认司机下拉选择）
+├── bill/index.vue                 # 提单管理（多货物明细、展开式表格）
+├── allocation/index.vue           # 配载管理（三栏布局）
+├── order/
+│   ├── index.vue                  # 运单列表（URL参数自动搜索）
+│   └── form.vue                   # 运单表单（独立页面）
+├── receipt/index.vue              # 回单管理
+├── business/invoice/index.vue     # 发票管理
+└── settlement/                    # 财务结算管理（待实现）
+    ├── receivable/index.vue       # 应收结算
+    ├── payable/index.vue          # 应付结算
+    └── report/index.vue           # 财务报表
 ```
 
 ### 5.2 组件复用
 
 ```
-components/logistics/
-├── ImageUpload.vue               # 图片上传组件
-├── OrderSelector.vue             # 订单选择器
-└── CustomerSelector.vue          # 客户选择器
+components/
+├── GoodsDialog.vue                # 货物新增弹窗（可复用，提单页和货物管理共用）
 ```
+
+**GoodsDialog 组件设计**：
+- Props: `modelValue`（v-model 控制显隐）, `title`
+- Emits: `update:modelValue`, `success`（新增成功后回调）
+- 表单字段: goodsName, goodsModel, goodsCategory, goodsUnit, unitPrice
+- 货物编码自动生成（GD + 时间戳）
 
 ---
 
@@ -604,3 +763,4 @@ components/logistics/
 |------|------|----------|--------|
 | 2026-04-14 | v1.0 | 初始版本，定义完整技术设计 | - |
 | 2026-04-14 | v2.0 | 新增提单和配载模块设计；合并驾驶员单到运单；更新ER图和表结构 | - |
+| 2026-04-14 | v2.1 | 新增删除保护设计、运单号防重逻辑、状态更改专用接口、GoodsDialog组件设计；更新提单号生成器实现；更新API和页面结构 | - |
