@@ -1,13 +1,13 @@
 <template>
   <div class="app-container">
     <el-row :gutter="20">
-      <!-- 左侧：待配载提单列表 -->
+      <!-- 左侧：待配载货物明细列表 -->
       <el-col :span="10">
         <el-card shadow="never">
           <template #header>
             <div class="card-header">
-              <span>待配载提单</span>
-              <el-button type="primary" size="small" icon="Refresh" @click="getPendingBills">刷新</el-button>
+              <span>待配载货物明细</span>
+              <el-button type="primary" size="small" icon="Refresh" @click="getPendingBillsData">刷新</el-button>
             </div>
           </template>
 
@@ -25,24 +25,31 @@
             :data="pendingBills"
             @selection-change="handlePendingSelectionChange"
             max-height="500"
+            size="small"
+            :row-key="(row) => row.billItemId"
           >
-            <el-table-column type="selection" width="55" align="center" />
-            <el-table-column label="提单号" align="center" prop="billNo" width="150" :show-overflow-tooltip="true" />
-            <el-table-column label="客户" align="center" prop="customerName" width="100" :show-overflow-tooltip="true" />
-            <el-table-column label="货物" align="center" prop="goodsName" width="80" />
-            <el-table-column label="总重量" align="center" prop="totalWeight" width="80">
+            <el-table-column type="selection" width="45" align="center" :reserve-selection="true" />
+            <el-table-column label="提单号" align="center" prop="billNo" width="130" :show-overflow-tooltip="true" />
+            <el-table-column label="客户" align="center" prop="customerName" width="80" :show-overflow-tooltip="true" />
+            <el-table-column label="货物" align="center" prop="goodsName" width="80" :show-overflow-tooltip="true" />
+            <el-table-column label="总重量" align="center" width="70">
               <template #default="scope">
                 {{ scope.row.totalWeight ? scope.row.totalWeight.toFixed(3) : '0' }}
               </template>
             </el-table-column>
-            <el-table-column label="已分配" align="center" prop="allocatedWeight" width="80">
+            <el-table-column label="已分配" align="center" width="70">
               <template #default="scope">
                 {{ scope.row.allocatedWeight ? scope.row.allocatedWeight.toFixed(3) : '0' }}
               </template>
             </el-table-column>
-            <el-table-column label="剩余" align="center" width="70">
+            <el-table-column label="剩余" align="center" width="65">
               <template #default="scope">
                 {{ getRemainWeight(scope.row) }}
+              </template>
+            </el-table-column>
+            <el-table-column label="运价" align="center" width="65">
+              <template #default="scope">
+                {{ scope.row.unitPrice ? scope.row.unitPrice.toFixed(0) : '-' }}
               </template>
             </el-table-column>
           </el-table>
@@ -91,14 +98,19 @@
 
             <el-divider>重量分配明细</el-divider>
 
-            <el-table :data="selectedBills" max-height="300">
-              <el-table-column label="提单号" align="center" prop="billNo" width="120" :show-overflow-tooltip="true" />
-              <el-table-column label="剩余重量" align="center" width="90">
+            <el-table :data="selectedBills" max-height="300" size="small" border>
+              <el-table-column label="提单/货物" min-width="140" :show-overflow-tooltip="true">
+                <template #default="scope">
+                  <div>{{ scope.row.billNo }}</div>
+                  <div style="font-size: 11px; color: #909399;">{{ scope.row.goodsName }}</div>
+                </template>
+              </el-table-column>
+              <el-table-column label="剩余" align="center" width="70">
                 <template #default="scope">
                   {{ getRemainWeight(scope.row) }}
                 </template>
               </el-table-column>
-              <el-table-column label="本次分配" align="center" width="110">
+              <el-table-column label="本次分配" align="center" width="100">
                 <template #default="scope">
                   <el-input-number
                     v-model="scope.row.allocWeight"
@@ -106,13 +118,10 @@
                     :max="getRemainWeightNum(scope.row)"
                     :precision="3"
                     size="small"
+                    controls-position="right"
+                    style="width: 90px"
                     @change="handleAllocWeightChange"
                   />
-                </template>
-              </el-table-column>
-              <el-table-column label="运价" align="center" width="80">
-                <template #default="scope">
-                  {{ scope.row.unitPrice ? scope.row.unitPrice.toFixed(2) : '0' }}
                 </template>
               </el-table-column>
             </el-table>
@@ -133,27 +142,36 @@
         </el-card>
       </el-col>
 
-      <!-- 右侧：已选提单汇总 -->
+      <!-- 右侧：已选汇总 -->
       <el-col :span="6">
         <el-card shadow="never">
           <template #header>
-            <span>已选提单汇总</span>
+            <span>已选货物汇总</span>
           </template>
 
-          <el-empty v-if="selectedBills.length === 0" description="请从左侧选择提单" :image-size="80" />
+          <el-empty v-if="selectedBills.length === 0" description="请从左侧选择货物" :image-size="80" />
 
           <div v-else>
-            <el-tag v-for="bill in selectedBills" :key="bill.billId" class="bill-tag" closable @close="handleRemoveBill(bill)">
-              <div>{{ bill.billNo }}</div>
-              <div class="bill-info">{{ bill.goodsName }} | 分配: {{ bill.allocWeight ? bill.allocWeight.toFixed(3) : '0.000' }}吨</div>
-            </el-tag>
+            <div v-for="group in groupedByBill" :key="group.billId" class="bill-group">
+              <div class="bill-group-title">{{ group.billNo }}</div>
+              <el-tag
+                v-for="item in group.items"
+                :key="item.billItemId"
+                class="bill-tag"
+                closable
+                @close="handleRemoveItem(item)"
+              >
+                <div>{{ item.goodsName }}</div>
+                <div class="bill-info">分配: {{ (item.allocWeight || 0).toFixed(3) }}吨</div>
+              </el-tag>
+            </div>
           </div>
 
           <el-divider />
 
           <div class="summary-section">
             <h4>配载汇总</h4>
-            <el-statistic title="提单数量" :value="selectedBills.length" />
+            <el-statistic title="货物明细数" :value="selectedBills.length" />
             <el-statistic title="总分配重量" :value="totalAllocWeight" suffix="吨" :precision="3" />
             <el-statistic title="分配总金额" :value="totalAllocAmount" suffix="元" :precision="2" />
           </div>
@@ -166,10 +184,9 @@
           </template>
           <el-descriptions :column="1" border size="small">
             <el-descriptions-item label="运单号">{{ allocationResult.orderNo }}</el-descriptions-item>
-            <el-descriptions-item label="驾驶员单号">{{ allocationResult.driverOrderNo }}</el-descriptions-item>
             <el-descriptions-item label="装车重量">{{ allocationResult.totalWeight }} 吨</el-descriptions-item>
             <el-descriptions-item label="分配金额">{{ allocationResult.totalAmount }} 元</el-descriptions-item>
-            <el-descriptions-item label="提单明细数">{{ allocationResult.detailCount }} 条</el-descriptions-item>
+            <el-descriptions-item label="货物明细数">{{ allocationResult.detailCount }} 条</el-descriptions-item>
           </el-descriptions>
           <el-button type="success" icon="View" @click="viewOrder" style="width: 100%; margin-top: 15px">查看运单详情</el-button>
         </el-card>
@@ -209,20 +226,20 @@ const allocationRules = {
     { required: true, message: "请选择车辆", trigger: "change" }
   ],
   loadingDate: [
-    { required: true, message: "请选择装车日期", trigger: "change" }
+    { required: true, message: "请选择装车日期", trigger: "blur" }
   ]
 }
 
 const totalAllocWeight = computed(() => {
-  return selectedBills.value.reduce((sum, bill) => {
-    return sum + (bill.allocWeight || 0)
+  return selectedBills.value.reduce((sum, item) => {
+    return sum + (item.allocWeight || 0)
   }, 0).toFixed(3)
 })
 
 const totalAllocAmount = computed(() => {
-  return selectedBills.value.reduce((sum, bill) => {
-    const weight = bill.allocWeight || 0
-    const price = bill.unitPrice || 0
+  return selectedBills.value.reduce((sum, item) => {
+    const weight = item.allocWeight || 0
+    const price = item.unitPrice || 0
     return sum + (weight * price)
   }, 0).toFixed(2)
 })
@@ -231,6 +248,22 @@ const loadUtilization = computed(() => {
   if (vehicleCapacity.value <= 0) return '0.00'
   const utilization = (parseFloat(totalAllocWeight.value) / vehicleCapacity.value * 100).toFixed(2)
   return utilization
+})
+
+// 按提单号分组
+const groupedByBill = computed(() => {
+  const groups = {}
+  selectedBills.value.forEach(item => {
+    if (!groups[item.billId]) {
+      groups[item.billId] = {
+        billId: item.billId,
+        billNo: item.billNo,
+        items: []
+      }
+    }
+    groups[item.billId].items.push(item)
+  })
+  return Object.values(groups)
 })
 
 function getRemainWeight(row) {
@@ -250,9 +283,8 @@ function getRemainWeightNum(row) {
 function getPendingBillsData() {
   getPendingBills().then(response => {
     pendingBills.value = response.data
-    // 初始化 allocWeight
-    pendingBills.value.forEach(bill => {
-      bill.allocWeight = getRemainWeightNum(bill)
+    pendingBills.value.forEach(item => {
+      item.allocWeight = getRemainWeightNum(item)
     })
   })
 }
@@ -260,39 +292,40 @@ function getPendingBillsData() {
 function handleRecommendBills() {
   recommendBills(loadCapacity.value).then(response => {
     pendingBills.value = response.data
-    // 初始化 allocWeight
-    pendingBills.value.forEach(bill => {
-      bill.allocWeight = getRemainWeightNum(bill)
+    pendingBills.value.forEach(item => {
+      item.allocWeight = getRemainWeightNum(item)
     })
-    proxy.$modal.msgSuccess("已根据载重 " + loadCapacity.value + " 吨推荐合适的提单")
+    proxy.$modal.msgSuccess("已根据载重 " + loadCapacity.value + " 吨推荐合适的货物")
   })
 }
 
 function handlePendingSelectionChange(selection) {
-  // 添加新选中的提单
-  selection.forEach(bill => {
-    const existing = selectedBills.value.find(b => b.billId === bill.billId)
+  // 添加新选中的
+  selection.forEach(item => {
+    const existing = selectedBills.value.find(b => b.billItemId === item.billItemId)
     if (!existing) {
       selectedBills.value.push({
-        ...bill,
-        allocWeight: getRemainWeightNum(bill)
+        ...item,
+        allocWeight: getRemainWeightNum(item)
       })
     }
   })
 
-  // 移除取消选中的提单
-  const selectedIds = selection.map(b => b.billId)
-  selectedBills.value = selectedBills.value.filter(b => selectedIds.includes(b.billId))
+  // 移除取消选中的
+  const selectedIds = selection.map(b => b.billItemId)
+  selectedBills.value = selectedBills.value.filter(b => selectedIds.includes(b.billItemId))
 }
 
-function handleRemoveBill(bill) {
-  selectedBills.value = selectedBills.value.filter(b => b.billId !== bill.billId)
-  // 取消表格中的选中状态
-  proxy.$refs.pendingBillTable.toggleRowSelection(bill, false)
+function handleRemoveItem(item) {
+  selectedBills.value = selectedBills.value.filter(b => b.billItemId !== item.billItemId)
+  proxy.$refs.pendingBillTable.toggleRowSelection(
+    pendingBills.value.find(b => b.billItemId === item.billItemId),
+    false
+  )
 }
 
 function handleAllocWeightChange() {
-  // 重量变化时，自动更新统计
+  // 重量变化时自动更新统计
 }
 
 function handleVehicleChange(vehicleId) {
@@ -306,9 +339,9 @@ function handleCreateOrder() {
   proxy.$refs["allocationRef"].validate(valid => {
     if (valid) {
       // 验证分配重量
-      const invalidBills = selectedBills.value.filter(b => !b.allocWeight || b.allocWeight <= 0)
-      if (invalidBills.length > 0) {
-        proxy.$modal.msgWarning("请为所有提单设置分配重量")
+      const invalidItems = selectedBills.value.filter(b => !b.allocWeight || b.allocWeight <= 0)
+      if (invalidItems.length > 0) {
+        proxy.$modal.msgWarning("请为所有货物设置分配重量")
         return
       }
 
@@ -318,17 +351,19 @@ function handleCreateOrder() {
         return
       }
 
-      const allocationItems = selectedBills.value.map(bill => ({
-        billId: bill.billId,
-        billNo: bill.billNo,
-        customerName: bill.customerName,
-        goodsName: bill.goodsName,
-        loadingAddress: bill.loadingAddress,
-        unloadingAddress: bill.unloadingAddress,
-        totalWeight: bill.totalWeight,
-        allocatedWeight: bill.allocatedWeight,
-        unitPrice: bill.unitPrice,
-        allocWeight: bill.allocWeight
+      const allocationItems = selectedBills.value.map(item => ({
+        billId: item.billId,
+        billNo: item.billNo,
+        billItemId: item.billItemId,
+        customerName: item.customerName,
+        goodsName: item.goodsName,
+        goodsModel: item.goodsModel,
+        loadingAddress: item.loadingAddress,
+        unloadingAddress: item.unloadingAddress,
+        totalWeight: item.totalWeight,
+        allocatedWeight: item.allocatedWeight,
+        unitPrice: item.unitPrice,
+        allocWeight: item.allocWeight
       }))
 
       const requestData = {
@@ -341,9 +376,7 @@ function handleCreateOrder() {
       createOrderWithBills(requestData).then(response => {
         allocationResult.value = response.data
         proxy.$modal.msgSuccess("配载成功！")
-        // 清空已选提单
         selectedBills.value = []
-        // 刷新待配载提单列表
         getPendingBillsData()
       })
     }
@@ -387,19 +420,32 @@ getVehicleList()
   margin-bottom: 15px;
 }
 
+.bill-group {
+  margin-bottom: 15px;
+}
+
+.bill-group-title {
+  font-size: 13px;
+  font-weight: bold;
+  color: #303133;
+  margin-bottom: 8px;
+  padding-left: 4px;
+  border-left: 3px solid #409eff;
+}
+
 .bill-tag {
   display: block;
   width: 100%;
-  margin-bottom: 10px;
-  padding: 10px;
+  margin-bottom: 6px;
+  padding: 8px;
   height: auto;
   white-space: normal;
 }
 
 .bill-info {
-  font-size: 12px;
+  font-size: 11px;
   color: #909399;
-  margin-top: 5px;
+  margin-top: 4px;
 }
 
 .summary-section h4 {

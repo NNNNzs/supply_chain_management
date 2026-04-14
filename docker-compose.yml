@@ -6,7 +6,7 @@ services:
     container_name: scm-backend
     restart: unless-stopped
     ports:
-      - "8080:8080"
+      - "8897:8897"
     volumes:
       - ./scm-backend.jar:/app/app.jar:ro
       - ./logs:/app/logs
@@ -22,7 +22,7 @@ services:
     networks:
       - scm-network
     healthcheck:
-      test: ["CMD", "sh", "-c", "wget --no-verbose --tries=1 --spider http://localhost:8080/ || exit 1"]
+      test: ["CMD", "sh", "-c", "wget --no-verbose --tries=1 --spider http://localhost:8897/ || exit 1"]
       interval: 30s
       timeout: 10s
       start_period: 60s

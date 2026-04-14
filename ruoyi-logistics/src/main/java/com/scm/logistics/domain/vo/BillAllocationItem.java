@@ -4,7 +4,7 @@ import java.math.BigDecimal;
 
 /**
  * 提单分配项
- * 用于配载管理时记录每个提单分配的重量
+ * 用于配载管理时记录每个提单货物明细分配的重量
  *
  * @author scm
  * @date 2026-04-14
@@ -17,11 +17,17 @@ public class BillAllocationItem
     /** 提单号 */
     private String billNo;
 
-    /** 客户名称 */
-    private String customerName;
+    /** 提单货物明细ID */
+    private Long billItemId;
 
     /** 货物名称 */
     private String goodsName;
+
+    /** 货物型号 */
+    private String goodsModel;
+
+    /** 客户名称 */
+    private String customerName;
 
     /** 装货地址 */
     private String loadingAddress;
@@ -29,7 +35,7 @@ public class BillAllocationItem
     /** 卸货地址 */
     private String unloadingAddress;
 
-    /** 提单总重量 */
+    /** 货物总重量 */
     private BigDecimal totalWeight;
 
     /** 已分配重量 */
@@ -64,14 +70,14 @@ public class BillAllocationItem
         this.billNo = billNo;
     }
 
-    public String getCustomerName()
+    public Long getBillItemId()
     {
-        return customerName;
+        return billItemId;
     }
 
-    public void setCustomerName(String customerName)
+    public void setBillItemId(Long billItemId)
     {
-        this.customerName = customerName;
+        this.billItemId = billItemId;
     }
 
     public String getGoodsName()
@@ -82,6 +88,26 @@ public class BillAllocationItem
     public void setGoodsName(String goodsName)
     {
         this.goodsName = goodsName;
+    }
+
+    public String getGoodsModel()
+    {
+        return goodsModel;
+    }
+
+    public void setGoodsModel(String goodsModel)
+    {
+        this.goodsModel = goodsModel;
+    }
+
+    public String getCustomerName()
+    {
+        return customerName;
+    }
+
+    public void setCustomerName(String customerName)
+    {
+        this.customerName = customerName;
     }
 
     public String getLoadingAddress()

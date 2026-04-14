@@ -106,6 +106,8 @@ ruoyi-ui/src/
 │   ├── goods.js
 │   ├── driver.js
 │   ├── vehicle.js
+│   ├── bill.js            # 提单管理
+│   ├── allocation.js      # 配载管理
 │   ├── order.js
 │   ├── receipt.js
 │   └── invoice.js
@@ -114,8 +116,10 @@ ruoyi-ui/src/
     ├── goods/index.vue       # 货物管理
     ├── driver/index.vue      # 司机管理
     ├── vehicle/index.vue     # 车辆管理
-    ├── order/index.vue       # 订单管理（列表页）
-    ├── order/form.vue        # 订单管理（独立表单页）
+    ├── bill/index.vue        # 提单管理（多货物明细）
+    ├── allocation/index.vue  # 配载管理（三栏布局）
+    ├── order/index.vue       # 运单管理（列表页）
+    ├── order/form.vue        # 运单管理（独立表单页）
     ├── receipt/index.vue     # 回单管理
     ├── invoice/index.vue     # 发票管理
     └── settlement/           # 财务结算管理
@@ -130,7 +134,9 @@ ruoyi-ui/src/
 - **货物管理**：货物信息、分类、参考价格
 - **司机管理**：司机信息、银行卡信息、常用车辆关联
 - **车辆管理**：车辆信息、载重、默认司机关联
-- **订单管理**：订单创建（独立表单页）、订单号自动生成、司机联动、Excel 导入导出
+- **提单管理**：多货物明细支持、提单号自动生成、货物明细级联操作、状态自动更新
+- **配载管理**：智能推荐货物、货物明细级别分配、一键创建运单并派车、载重利用率计算
+- **运单管理**：运单创建（独立表单页或配载生成）、运单号自动生成、司机车辆联动、Excel 导入导出
 - **回单管理**：回单上传、确认、图片预览、回单编号自动生成
 - **发票管理**：合并开票、发票开具/作废、取消合并
 - **财务结算**：应收/应付结算、结算单生成
@@ -143,13 +149,15 @@ ruoyi-ui/src/
 | 货物管理 | ✅ 已完成 | 100% |
 | 司机管理 | ✅ 已完成 | 100% |
 | 车辆管理 | ✅ 已完成 | 100% |
-| 订单管理 | ✅ 已完成 | 100% |
+| 提单管理 | ✅ 已完成 | 100% |
+| 配载管理 | ✅ 已完成 | 100% |
+| 运单管理 | ✅ 已完成 | 100% |
 | 回单管理 | ✅ 已完成 | 100% |
 | 发票管理 | ⚠️ 部分完成 | 67% |
 | 应收结算 | ⚠️ 待实现 | 33% |
 | 应付结算 | ⚠️ 待实现 | 33% |
 | 财务报表 | ⚠️ 待实现 | 33% |
-| **总体进度** | | **76%** |
+| **总体进度** | | **78%** |
 
 ### 订单号生成规则
 
@@ -170,11 +178,14 @@ ruoyi-ui/src/
 - logistics_goods - 货物信息表
 - logistics_driver - 司机信息表
 - logistics_vehicle - 车辆信息表
-- logistics_order - 运输订单表
+- logistics_bill - 提单表（委托单）
+- logistics_bill_item - 提单货物明细表
+- logistics_bill_order_detail - 提单运单明细表
+- logistics_order - 运单表（货运单/派车单）
 - logistics_receipt - 回单信息表
 - logistics_invoice_batch - 发票批次表
 - logistics_invoice_detail - 发票批次明细表
 - logistics_settlement - 财务结算表
 - logistics_settlement_detail - 结算明细表
 
-SQL 脚本位置：`sql/logistics.sql`
+SQL 脚本位置：`sql/logistics.sql`, `sql/logistics_allocation_full.sql`

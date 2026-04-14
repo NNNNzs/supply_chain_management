@@ -61,6 +61,19 @@ public class LogisticsOrder extends BaseEntity
     /** 重量（吨） */
     private BigDecimal weight;
 
+    /** 实际装车重量(吨) */
+    private BigDecimal actualWeight;
+
+    /** 车辆ID */
+    private Long vehicleId;
+
+    /** 车辆载重(吨) */
+    private BigDecimal loadCapacity;
+
+    /** 派车日期 */
+    @JsonFormat(pattern = "yyyy-MM-dd")
+    private Date dispatchDate;
+
     /** 运价（元/吨） */
     private BigDecimal unitPrice;
 
@@ -260,6 +273,47 @@ public class LogisticsOrder extends BaseEntity
     public void setWeight(BigDecimal weight)
     {
         this.weight = weight;
+    }
+
+    public BigDecimal getActualWeight()
+    {
+        return actualWeight;
+    }
+
+    public void setActualWeight(BigDecimal actualWeight)
+    {
+        this.actualWeight = actualWeight;
+    }
+
+    public Long getVehicleId()
+    {
+        return vehicleId;
+    }
+
+    public void setVehicleId(Long vehicleId)
+    {
+        this.vehicleId = vehicleId;
+    }
+
+    public BigDecimal getLoadCapacity()
+    {
+        return loadCapacity;
+    }
+
+    public void setLoadCapacity(BigDecimal loadCapacity)
+    {
+        this.loadCapacity = loadCapacity;
+    }
+
+    @JsonFormat(pattern = "yyyy-MM-dd")
+    public Date getDispatchDate()
+    {
+        return dispatchDate;
+    }
+
+    public void setDispatchDate(Date dispatchDate)
+    {
+        this.dispatchDate = dispatchDate;
     }
 
     @NotNull(message = "运价不能为空")

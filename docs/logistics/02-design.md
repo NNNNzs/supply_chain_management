@@ -2,7 +2,7 @@
 
 > **文档类型**: 设计文档
 > **项目**: 供应链管理系统 - 物流管理模块
-> **版本**: v1.0
+> **版本**: v2.0
 > **最后更新**: 2026-04-14
 
 ## 文档说明
@@ -82,32 +82,52 @@
 
 ```
 ┌─────────────┐         ┌─────────────┐
-│ logistics_  │         │ logistics_  │
-│  customer   │1       n│   order     │
-└─────────────┘─────────└─────────────┘
-       │                      │
-       │                      │
-       │ n              1     │ n
-┌─────────────┐         ┌─────────────┐
-│ logistics_  │         │ logistics_  │
-│ settlement  │─────────│   receipt   │
+│ logistics_  │1       n│ logistics_  │
+│  customer   │─────────│    bill     │
 └─────────────┘         └─────────────┘
-                              │
-                              │
                               │ 1
+                              │
+                              │ n
                        ┌─────────────┐
                        │ logistics_  │
-                       │  invoice_*  │
+                       │  bill_item  │
                        └─────────────┘
+                              │ n
+                              │
+                              │
+                       ┌─────────────┐
+                       │ logistics_  │
+                       │ bill_order  │
+                       │  _detail    │
+                       └─────────────┘
+                              │ n
+                              │
+                              │ 1
+┌─────────────┐         ┌─────────────┐
+│ logistics_  │1       n│ logistics_  │
+│   order     │─────────│   receipt   │
+└─────────────┘         └─────────────┘
+       │
+       │ 1
+       │
+┌─────────────┐
+│ logistics_  │
+│  invoice_*  │
+└─────────────┘
 
 ┌─────────────┐         ┌─────────────┐
 │ logistics_  │1       n│ logistics_  │
-│  driver     │─────────│   order     │
+│  driver     │─────────│    order     │
 └─────────────┘         └─────────────┘
 
 ┌─────────────┐         ┌─────────────┐
 │ logistics_  │1       n│ logistics_  │
-│  vehicle    │─────────│   order     │
+│  vehicle    │─────────│    order     │
+└─────────────┘         └─────────────┘
+
+┌─────────────┐         ┌─────────────┐
+│ logistics_  │1       n│ logistics_  │
+│ settlement  │─────────│    order     │
 └─────────────┘         └─────────────┘
 ```
 
@@ -119,7 +139,10 @@
 | logistics_goods | 货物信息表 | goods_id, goods_code, goods_name, reference_price |
 | logistics_driver | 司机信息表 | driver_id, driver_code, driver_name, bank_account |
 | logistics_vehicle | 车辆信息表 | vehicle_id, plate_number, load_capacity, default_driver_id |
-| logistics_order | 运输订单表 | order_id, order_no, customer_id, driver_id, total_amount |
+| logistics_bill | 提单表（委托单） | bill_id, bill_no, customer_id, total_weight, allocated_weight, bill_status |
+| logistics_bill_item | 提单货物明细表 | item_id, bill_id, goods_name, weight, allocated_weight, unit_price |
+| logistics_bill_order_detail | 提单运单明细表 | detail_id, bill_id, bill_item_id, order_id, allocated_weight |
+| logistics_order | 运单表（货运单/派车单） | order_id, order_no, customer_id, driver_id, vehicle_id, total_amount |
 | logistics_receipt | 回单信息表 | receipt_id, receipt_no, order_id, receipt_image |
 | logistics_invoice_batch | 发票批次表 | batch_id, batch_no, customer_id, total_amount |
 | logistics_invoice_detail | 发票批次明细表 | detail_id, batch_id, order_id, amount |
@@ -130,35 +153,175 @@
 
 ## 三、核心模块设计
 
-### 3.1 订单管理模块
+### 3.1 提单管理模块
 
-#### 3.1.1 订单号生成器
+#### 3.1.1 提单号生成器
 
 ```java
 /**
- * 订单号生成规则：类型(2位) + 客户编码 + 年月日 + 流水号(4位)
+ * 提单号生成规则：类型(2位) + 客户编码 + 年月日 + 流水号(4位)
  * 示例：YSCZGS202604140001
  */
-public String generateOrderNo(String orderType, String customerCode) {
+public String generateBillNo(String billType, String customerCode) {
     // 1. 获取当前日期
     String dateStr = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyyMMdd"));
 
-    // 2. 查询当天该客户订单数量
-    int count = orderMapper.countTodayOrders(customerCode, dateStr);
+    // 2. 查询当天该客户提单数量
+    int count = billMapper.countTodayBills(customerCode, dateStr);
 
     // 3. 生成流水号
     String serial = String.format("%04d", count + 1);
 
-    // 4. 拼接订单号
-    return orderType + customerCode + dateStr + serial;
+    // 4. 拼接提单号
+    return billType + customerCode + dateStr + serial;
 }
 ```
 
-#### 3.1.2 金额计算器
+#### 3.1.2 提单汇总计算
 
 ```java
 /**
- * 订单金额自动计算
+ * 从货物明细汇总提单数据
+ */
+public void computeBillTotalsFromItems(LogisticsBill bill) {
+    List<LogisticsBillItem> items = bill.getBillItems();
+
+    // 汇总总重量和总金额
+    BigDecimal totalWeight = items.stream()
+        .map(LogisticsBillItem::getWeight)
+        .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+    BigDecimal totalAmount = items.stream()
+        .map(item -> item.getWeight().multiply(item.getUnitPrice()))
+        .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+    bill.setTotalWeight(totalWeight);
+    bill.setTotalAmount(totalAmount);
+}
+```
+
+#### 3.1.3 提单状态更新
+
+```java
+/**
+ * 根据货物明细分配情况更新提单状态
+ */
+public void updateBillStatus(Long billId) {
+    // 查询提单的所有货物明细
+    List<LogisticsBillItem> items = billItemMapper.selectItemsByBillId(billId);
+
+    // 检查是否所有明细都已完全分配
+    boolean fullyAllocated = items.stream()
+        .allMatch(item -> {
+            BigDecimal remain = item.getWeight()
+                .subtract(item.getAllocatedWeight() != null ? item.getAllocatedWeight() : BigDecimal.ZERO);
+            return remain.compareTo(BigDecimal.ZERO) <= 0;
+        });
+
+    LogisticsBill bill = billMapper.selectById(billId);
+    if (fullyAllocated) {
+        bill.setBillStatus("allocated");
+    } else if (hasAllocation(billId)) {
+        bill.setBillStatus("partial");
+    } else {
+        bill.setBillStatus("pending");
+    }
+    billMapper.updateById(bill);
+}
+```
+
+---
+
+### 3.2 配载管理模块
+
+#### 3.2.1 智能推荐货物
+
+```java
+/**
+ * 根据车辆载重推荐可配载的货物明细
+ */
+public List<BillAllocationItem> recommendBills(Double loadCapacity) {
+    // 查询待配载的货物明细
+    List<LogisticsBillItem> pendingItems = billItemMapper.selectPendingBillItems();
+
+    // 转换为分配项并按剩余重量排序（优先推荐接近载重的货物）
+    return pendingItems.stream()
+        .map(this::convertToAllocationItem)
+        .sorted(Comparator.comparing(BillAllocationItem::getRemainWeight).reversed())
+        .collect(Collectors.toList());
+}
+```
+
+#### 3.2.2 创建运单并分配提单
+
+```java
+/**
+ * 配载核心逻辑：创建运单并分配提单货物明细
+ */
+@Transactional
+public AllocationResultVO createOrderWithBills(
+    List<BillAllocationItem> allocationItems,
+    Long driverId,
+    Long vehicleId,
+    String loadingDate
+) {
+    // 1. 创建运单（含司机、车辆信息）
+    LogisticsOrder order = buildOrderFromBills(allocationItems);
+    order.setSourceType("bill");
+    order.setDriverId(driverId);
+    order.setVehicleId(vehicleId);
+    order.setDispatchDate(DateUtils.parseDate(loadingDate));
+    orderMapper.insertOrder(order);
+
+    // 2. 创建提单运单明细关联
+    List<LogisticsBillOrderDetail> details = new ArrayList<>();
+    BigDecimal totalAmount = BigDecimal.ZERO;
+
+    for (BillAllocationItem item : allocationItems) {
+        LogisticsBillOrderDetail detail = new LogisticsBillOrderDetail();
+        detail.setBillId(item.getBillId());
+        detail.setBillItemId(item.getBillItemId());
+        detail.setOrderId(order.getOrderId());
+        detail.setAllocatedWeight(item.getAllocWeight());
+        detail.setUnitPrice(item.getUnitPrice());
+        detail.setAllocatedAmount(item.getAllocWeight().multiply(item.getUnitPrice()));
+        details.add(detail);
+
+        totalAmount = totalAmount.add(detail.getAllocatedAmount());
+
+        // 更新提单货物明细的已分配重量
+        LogisticsBillItem billItem = billItemMapper.selectById(item.getBillItemId());
+        billItem.setAllocatedWeight(billItem.getAllocatedWeight().add(item.getAllocWeight()));
+        billItemMapper.updateById(billItem);
+    }
+
+    // 批量插入明细
+    billOrderDetailMapper.batchInsert(details);
+
+    // 3. 更新运单汇总数据
+    order.setTotalAmount(totalAmount);
+    order.setFreightCost(totalAmount);
+    orderMapper.updateOrder(order);
+
+    // 4. 更新提单状态
+    for (BillAllocationItem item : allocationItems) {
+        updateBillStatus(item.getBillId());
+    }
+
+    // 5. 返回配载结果
+    return buildAllocationResult(order, allocationItems.size());
+}
+```
+
+---
+
+### 3.3 运单管理模块
+
+#### 3.3.2 金额计算器
+
+```java
+/**
+ * 运单金额自动计算
  */
 public void calculateAmount(LogisticsOrder order) {
     // 总金额 = 重量 × 运价
@@ -167,20 +330,38 @@ public void calculateAmount(LogisticsOrder order) {
 }
 ```
 
-#### 3.1.3 司机联动逻辑
+#### 3.3.3 司机车辆联动逻辑
 
 ```java
 /**
- * 选择司机后自动带出车牌号和电话
+ * 选择司机后自动带出司机信息
  */
 public void linkDriverInfo(LogisticsOrder order) {
     LogisticsDriver driver = driverService.selectById(order.getDriverId());
-    order.setDriverPhone(driver.getDriverPhone());
-    order.setPlateNumber(driver.getCommonPlateNumber());
+    if (driver != null) {
+        order.setDriverPhone(driver.getDriverPhone());
+    }
+}
+
+/**
+ * 选择车辆后自动带出车辆信息和默认司机
+ */
+public void linkVehicleInfo(LogisticsOrder order) {
+    LogisticsVehicle vehicle = vehicleService.selectById(order.getVehicleId());
+    if (vehicle != null) {
+        order.setVehiclePlate(vehicle.getVehiclePlate());
+        order.setLoadCapacity(vehicle.getLoadCapacity());
+        if (order.getDriverId() == null && vehicle.getDefaultDriverId() != null) {
+            order.setDriverId(vehicle.getDefaultDriverId());
+            linkDriverInfo(order);
+        }
+    }
 }
 ```
 
-### 3.2 回单管理模块
+---
+
+### 3.4 回单管理模块
 
 #### 3.2.1 回单编号生成
 
@@ -220,7 +401,7 @@ public void confirmReceipt(Long receiptId, String receiver) {
 }
 ```
 
-### 3.3 发票管理模块
+### 3.5 发票管理模块
 
 #### 3.3.1 合并开票流程
 
@@ -302,7 +483,7 @@ public void cancelInvoiceBatch(Long batchId) {
 }
 ```
 
-### 3.4 财务结算模块
+### 3.6 财务结算模块
 
 #### 3.4.1 应收结算单生成
 
@@ -422,3 +603,4 @@ components/logistics/
 | 日期 | 版本 | 变更内容 | 变更人 |
 |------|------|----------|--------|
 | 2026-04-14 | v1.0 | 初始版本，定义完整技术设计 | - |
+| 2026-04-14 | v2.0 | 新增提单和配载模块设计；合并驾驶员单到运单；更新ER图和表结构 | - |

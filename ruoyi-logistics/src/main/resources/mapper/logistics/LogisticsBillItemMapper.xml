@@ -1,0 +1,132 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.scm.logistics.mapper.LogisticsBillItemMapper">
+
+    <resultMap type="LogisticsBillItem" id="LogisticsBillItemResult">
+        <result property="itemId"    column="item_id"    />
+        <result property="billId"    column="bill_id"    />
+        <result property="goodsId"    column="goods_id"    />
+        <result property="goodsName"    column="goods_name"    />
+        <result property="goodsModel"    column="goods_model"    />
+        <result property="weight"    column="weight"    />
+        <result property="allocatedWeight"    column="allocated_weight"    />
+        <result property="unitPrice"    column="unit_price"    />
+        <result property="amount"    column="amount"    />
+        <result property="sortOrder"    column="sort_order"    />
+        <result property="delFlag"    column="del_flag"    />
+        <result property="createBy"    column="create_by"    />
+        <result property="createTime"    column="create_time"    />
+        <result property="updateBy"    column="update_by"    />
+        <result property="updateTime"    column="update_time"    />
+        <result property="remark"    column="remark"    />
+    </resultMap>
+
+    <resultMap type="LogisticsBillItem" id="LogisticsBillItemWithBillResult" extends="LogisticsBillItemResult">
+        <result property="billId"    column="bill_id"    />
+        <result property="createTime"    column="create_time"    />
+    </resultMap>
+
+    <sql id="selectLogisticsBillItemVo">
+        select item_id, bill_id, goods_id, goods_name, goods_model, weight, allocated_weight,
+               unit_price, amount, sort_order, del_flag,
+               create_by, create_time, update_by, update_time, remark
+        from logistics_bill_item
+    </sql>
+
+    <select id="selectLogisticsBillItemByItemId" parameterType="Long" resultMap="LogisticsBillItemResult">
+        <include refid="selectLogisticsBillItemVo"/>
+        where item_id = #{itemId} and del_flag = '0'
+    </select>
+
+    <select id="selectItemsByBillId" parameterType="Long" resultMap="LogisticsBillItemResult">
+        <include refid="selectLogisticsBillItemVo"/>
+        where bill_id = #{billId} and del_flag = '0'
+        order by sort_order asc, item_id asc
+    </select>
+
+    <select id="selectPendingBillItems" resultMap="LogisticsBillItemResult">
+        select i.item_id, i.bill_id, i.goods_id, i.goods_name, i.goods_model,
+               i.weight, i.allocated_weight, i.unit_price, i.amount, i.sort_order,
+               i.del_flag, i.create_by, i.create_time, i.update_by, i.update_time, i.remark
+        from logistics_bill_item i
+        inner join logistics_bill b on i.bill_id = b.bill_id
+        where i.del_flag = '0' and b.del_flag = '0'
+          and i.allocated_weight &lt; i.weight
+          and b.bill_status in ('pending', 'partial')
+        order by b.priority desc, b.bill_date asc, i.bill_id asc, i.sort_order asc
+    </select>
+
+    <insert id="insertLogisticsBillItem" parameterType="LogisticsBillItem" useGeneratedKeys="true" keyProperty="itemId">
+        insert into logistics_bill_item
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="billId != null">bill_id,</if>
+            <if test="goodsId != null">goods_id,</if>
+            <if test="goodsName != null and goodsName != ''">goods_name,</if>
+            <if test="goodsModel != null">goods_model,</if>
+            <if test="weight != null">weight,</if>
+            <if test="allocatedWeight != null">allocated_weight,</if>
+            <if test="unitPrice != null">unit_price,</if>
+            <if test="amount != null">amount,</if>
+            <if test="sortOrder != null">sort_order,</if>
+            <if test="delFlag != null">del_flag,</if>
+            <if test="createBy != null">create_by,</if>
+            <if test="remark != null">remark,</if>
+            create_time
+         </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="billId != null">#{billId},</if>
+            <if test="goodsId != null">#{goodsId},</if>
+            <if test="goodsName != null and goodsName != ''">#{goodsName},</if>
+            <if test="goodsModel != null">#{goodsModel},</if>
+            <if test="weight != null">#{weight},</if>
+            <if test="allocatedWeight != null">#{allocatedWeight},</if>
+            <if test="unitPrice != null">#{unitPrice},</if>
+            <if test="amount != null">#{amount},</if>
+            <if test="sortOrder != null">#{sortOrder},</if>
+            <if test="delFlag != null">#{delFlag},</if>
+            <if test="createBy != null">#{createBy},</if>
+            <if test="remark != null">#{remark},</if>
+            sysdate()
+         </trim>
+    </insert>
+
+    <insert id="batchInsertLogisticsBillItem">
+        insert into logistics_bill_item (bill_id, goods_id, goods_name, goods_model, weight, allocated_weight, unit_price, amount, sort_order, create_by, create_time)
+        values
+        <foreach collection="list" item="item" separator=",">
+            (#{item.billId}, #{item.goodsId}, #{item.goodsName}, #{item.goodsModel}, #{item.weight}, #{item.allocatedWeight}, #{item.unitPrice}, #{item.amount}, #{item.sortOrder}, #{item.createBy}, sysdate())
+        </foreach>
+    </insert>
+
+    <update id="updateLogisticsBillItem" parameterType="LogisticsBillItem">
+        update logistics_bill_item
+        <trim prefix="SET" suffixOverrides=",">
+            <if test="goodsId != null">goods_id = #{goodsId},</if>
+            <if test="goodsName != null and goodsName != ''">goods_name = #{goodsName},</if>
+            <if test="goodsModel != null">goods_model = #{goodsModel},</if>
+            <if test="weight != null">weight = #{weight},</if>
+            <if test="allocatedWeight != null">allocated_weight = #{allocatedWeight},</if>
+            <if test="unitPrice != null">unit_price = #{unitPrice},</if>
+            <if test="amount != null">amount = #{amount},</if>
+            <if test="sortOrder != null">sort_order = #{sortOrder},</if>
+            <if test="remark != null">remark = #{remark},</if>
+            update_by = #{updateBy},
+            update_time = sysdate()
+        </trim>
+        where item_id = #{itemId}
+    </update>
+
+    <update id="softDeleteItemsByBillId" parameterType="Long">
+        update logistics_bill_item set del_flag = '2' where bill_id = #{billId} and del_flag = '0'
+    </update>
+
+    <delete id="deleteItemsByBillId" parameterType="Long">
+        delete from logistics_bill_item where bill_id = #{billId}
+    </delete>
+
+    <select id="sumAllocatedWeightByBillId" parameterType="Long" resultType="java.math.BigDecimal">
+        select ifnull(sum(allocated_weight), 0) from logistics_bill_item where bill_id = #{billId} and del_flag = '0'
+    </select>
+</mapper>

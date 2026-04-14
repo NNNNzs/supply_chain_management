@@ -12,17 +12,17 @@ import org.springframework.transaction.annotation.Transactional;
 import com.scm.common.utils.DateUtils;
 import com.scm.common.utils.StringUtils;
 import com.scm.logistics.domain.LogisticsBill;
+import com.scm.logistics.domain.LogisticsBillItem;
 import com.scm.logistics.domain.LogisticsBillOrderDetail;
 import com.scm.logistics.domain.LogisticsDriver;
-import com.scm.logistics.domain.LogisticsDriverOrder;
 import com.scm.logistics.domain.LogisticsOrder;
 import com.scm.logistics.domain.LogisticsVehicle;
 import com.scm.logistics.domain.vo.AllocationResultVO;
 import com.scm.logistics.domain.vo.BillAllocationItem;
+import com.scm.logistics.mapper.LogisticsBillItemMapper;
 import com.scm.logistics.mapper.LogisticsBillMapper;
 import com.scm.logistics.mapper.LogisticsBillOrderDetailMapper;
 import com.scm.logistics.mapper.LogisticsDriverMapper;
-import com.scm.logistics.mapper.LogisticsDriverOrderMapper;
 import com.scm.logistics.mapper.LogisticsOrderMapper;
 import com.scm.logistics.mapper.LogisticsVehicleMapper;
 import com.scm.logistics.service.ILogisticsAllocationService;
@@ -43,10 +43,10 @@ public class LogisticsAllocationServiceImpl implements ILogisticsAllocationServi
     private LogisticsBillMapper billMapper;
 
     @Autowired
-    private LogisticsBillOrderDetailMapper billOrderDetailMapper;
+    private LogisticsBillItemMapper billItemMapper;
 
     @Autowired
-    private LogisticsDriverOrderMapper driverOrderMapper;
+    private LogisticsBillOrderDetailMapper billOrderDetailMapper;
 
     @Autowired
     private LogisticsDriverMapper driverMapper;
@@ -56,9 +56,9 @@ public class LogisticsAllocationServiceImpl implements ILogisticsAllocationServi
 
     /**
      * 创建运单并分配提单（核心功能）
-     * 支持提单拆分和配载
+     * 按货物明细级别分配，支持提单拆分和配载
      *
-     * @param allocationItems 提单分配项列表
+     * @param allocationItems 提单分配项列表（每项对应一个 bill_item）
      * @param driverId 司机ID
      * @param vehicleId 车辆ID
      * @param loadingDate 装车日期
@@ -70,7 +70,7 @@ public class LogisticsAllocationServiceImpl implements ILogisticsAllocationServi
     {
         if (allocationItems == null || allocationItems.isEmpty())
         {
-            throw new RuntimeException("请选择要配载的提单");
+            throw new RuntimeException("请选择要配载的货物明细");
         }
 
         // 1. 获取司机和车辆信息
@@ -86,24 +86,31 @@ public class LogisticsAllocationServiceImpl implements ILogisticsAllocationServi
             throw new RuntimeException("车辆信息不存在");
         }
 
-        // 2. 创建运单
+        // 2. 创建运单（含司机、车辆信息）
         LogisticsOrder order = buildOrderFromBills(allocationItems);
         order.setSourceType("bill");
         order.setOrderStatus("pending");
-        order.setDispatchStatus("dispatched");
-        order.setCreateBy(driver.getDriverName()); // 临时设置，后续从登录用户获取
+        order.setDriverId(driverId);
+        order.setDriverPhone(driver.getDriverPhone());
+        order.setVehicleId(vehicleId);
+        order.setVehiclePlate(vehicle.getVehiclePlate());
+        order.setLoadCapacity(vehicle.getLoadCapacity() != null ? new BigDecimal(vehicle.getLoadCapacity().toString()) : null);
+        order.setDispatchDate(DateUtils.parseDate(loadingDate));
+        order.setCreateBy(driver.getDriverName());
         orderMapper.insertOrder(order);
 
-        // 3. 生成提单运单明细并更新提单状态
+        // 3. 生成提单运单明细并更新提单货物明细和提单状态
         List<LogisticsBillOrderDetail> details = new ArrayList<>();
-        BigDecimal totalWeight = BigDecimal.ZERO;
         BigDecimal totalAmount = BigDecimal.ZERO;
+
+        // 按提单ID分组，用于更新提单状态
+        java.util.Map<Long, BigDecimal> billAllocatedMap = new java.util.HashMap<>();
 
         for (BillAllocationItem item : allocationItems)
         {
-            // 创建明细记录
             LogisticsBillOrderDetail detail = new LogisticsBillOrderDetail();
             detail.setBillId(item.getBillId());
+            detail.setBillItemId(item.getBillItemId());
             detail.setOrderId(order.getOrderId());
             detail.setAllocatedWeight(item.getAllocWeight());
             detail.setUnitPrice(item.getUnitPrice());
@@ -111,60 +118,59 @@ public class LogisticsAllocationServiceImpl implements ILogisticsAllocationServi
             detail.setCreateBy(driver.getDriverName());
             details.add(detail);
 
-            totalWeight = totalWeight.add(item.getAllocWeight());
             totalAmount = totalAmount.add(detail.getAllocatedAmount());
 
-            // 更新提单的已分配重量和状态
-            LogisticsBill bill = billMapper.selectLogisticsBillByBillId(item.getBillId());
-            BigDecimal newAllocatedWeight = bill.getAllocatedWeight().add(item.getAllocWeight());
-            bill.setAllocatedWeight(newAllocatedWeight);
+            // 更新提单货物明细的已分配重量
+            if (item.getBillItemId() != null)
+            {
+                LogisticsBillItem billItem = billItemMapper.selectLogisticsBillItemByItemId(item.getBillItemId());
+                if (billItem != null)
+                {
+                    BigDecimal newAllocated = billItem.getAllocatedWeight() != null
+                        ? billItem.getAllocatedWeight().add(item.getAllocWeight())
+                        : item.getAllocWeight();
+                    billItem.setAllocatedWeight(newAllocated);
+                    billItemMapper.updateLogisticsBillItem(billItem);
+                }
+            }
 
-            // 更新提单状态
-            if (newAllocatedWeight.compareTo(bill.getTotalWeight()) >= 0)
-            {
-                bill.setBillStatus("allocated");
-            }
-            else
-            {
-                bill.setBillStatus("partial");
-            }
-            billMapper.updateLogisticsBill(bill);
+            billAllocatedMap.merge(item.getBillId(), item.getAllocWeight(), BigDecimal::add);
         }
 
         // 批量插入明细
         billOrderDetailMapper.batchInsertLogisticsBillOrderDetail(details);
 
-        // 更新运单的汇总数据
-        order.setTotalWeight(totalWeight);
-        order.setAllocatedAmount(totalAmount);
+        // 更新运单汇总数据
+        order.setTotalAmount(totalAmount);
+        order.setFreightCost(totalAmount); // 运费支出 = 分配总金额
         orderMapper.updateOrder(order);
 
-        // 4. 创建驾驶员单
-        LogisticsDriverOrder driverOrder = new LogisticsDriverOrder();
-        driverOrder.setDriverOrderNo(generateDriverOrderNo());
-        driverOrder.setOrderId(order.getOrderId());
-        driverOrder.setOrderNo(order.getOrderNo());
-        driverOrder.setDriverId(driverId);
-        driverOrder.setDriverName(driver.getDriverName());
-        driverOrder.setDriverPhone(driver.getDriverPhone());
-        driverOrder.setVehicleId(vehicleId);
-        driverOrder.setVehiclePlate(vehicle.getVehiclePlate());
-        driverOrder.setLoadCapacity(vehicle.getLoadCapacity() != null ? new BigDecimal(vehicle.getLoadCapacity().toString()) : null);
-        driverOrder.setActualWeight(totalWeight);
-        driverOrder.setDispatchDate(DateUtils.parseDate(loadingDate));
-        driverOrder.setDispatchStatus("pending");
-        driverOrder.setSettlementStatus("unsettled");
-        driverOrder.setReceiptStatus("not_received");
-        driverOrder.setCreateBy(driver.getDriverName());
-        driverOrderMapper.insertLogisticsDriverOrder(driverOrder);
+        // 更新每个提单的状态
+        for (java.util.Map.Entry<Long, BigDecimal> entry : billAllocatedMap.entrySet())
+        {
+            Long billId = entry.getKey();
+            BigDecimal allocatedSum = billItemMapper.sumAllocatedWeightByBillId(billId);
+            LogisticsBill bill = billMapper.selectLogisticsBillByBillId(billId);
+            if (bill != null)
+            {
+                bill.setAllocatedWeight(allocatedSum);
+                if (isBillFullyAllocated(billId))
+                {
+                    bill.setBillStatus("allocated");
+                }
+                else
+                {
+                    bill.setBillStatus("partial");
+                }
+                billMapper.updateLogisticsBill(bill);
+            }
+        }
 
-        // 5. 返回配载结果
+        // 4. 返回配载结果
         AllocationResultVO result = new AllocationResultVO();
         result.setOrderId(order.getOrderId());
         result.setOrderNo(order.getOrderNo());
-        result.setDriverOrderId(driverOrder.getDriverOrderId());
-        result.setDriverOrderNo(driverOrder.getDriverOrderNo());
-        result.setTotalWeight(totalWeight);
+        result.setTotalWeight(order.getWeight());
         result.setTotalAmount(totalAmount);
         result.setDetailCount(allocationItems.size());
 
@@ -172,61 +178,102 @@ public class LogisticsAllocationServiceImpl implements ILogisticsAllocationServi
     }
 
     /**
-     * 推荐可配载的提单
-     * 根据车辆载重推荐合适的提单组合
+     * 推荐可配载的提单（按货物明细级别）
      *
      * @param loadCapacity 车辆载重
-     * @return 提单列表
+     * @return 提单货物明细列表
      */
     @Override
     public List<BillAllocationItem> recommendBills(Double loadCapacity)
     {
-        // 查询待配载和部分配载的提单
-        LogisticsBill query = new LogisticsBill();
-        query.setBillStatus("pending");
-        List<LogisticsBill> pendingBills = billMapper.selectPendingBills(query);
-
-        query.setBillStatus("partial");
-        List<LogisticsBill> partialBills = billMapper.selectPendingBills(query);
+        // 查询待配载的提单货物明细
+        List<LogisticsBillItem> pendingItems = billItemMapper.selectPendingBillItems();
 
         List<BillAllocationItem> result = new ArrayList<>();
 
         // 转换为 BillAllocationItem
-        for (LogisticsBill bill : pendingBills)
+        for (LogisticsBillItem item : pendingItems)
         {
-            BillAllocationItem item = convertToAllocationItem(bill);
-            result.add(item);
-        }
+            LogisticsBill bill = billMapper.selectLogisticsBillByBillId(item.getBillId());
+            if (bill == null)
+            {
+                continue;
+            }
 
-        for (LogisticsBill bill : partialBills)
-        {
-            BillAllocationItem item = convertToAllocationItem(bill);
-            result.add(item);
+            BillAllocationItem allocationItem = convertItemToAllocationItem(item, bill);
+            result.add(allocationItem);
         }
 
         return result;
     }
 
     /**
-     * 根据提单列表构建运单
+     * 检查提单的所有货物明细是否都已完全分配
+     */
+    private boolean isBillFullyAllocated(Long billId)
+    {
+        List<LogisticsBillItem> items = billItemMapper.selectItemsByBillId(billId);
+        if (items == null || items.isEmpty())
+        {
+            return false;
+        }
+        for (LogisticsBillItem item : items)
+        {
+            if (item.getWeight() == null)
+            {
+                return false;
+            }
+            BigDecimal remain = item.getWeight().subtract(
+                item.getAllocatedWeight() != null ? item.getAllocatedWeight() : BigDecimal.ZERO
+            );
+            if (remain.compareTo(BigDecimal.ZERO) > 0)
+            {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /**
+     * 根据提单分配项构建运单
      */
     private LogisticsOrder buildOrderFromBills(List<BillAllocationItem> allocationItems)
     {
         if (allocationItems.isEmpty())
         {
-            throw new RuntimeException("提单列表不能为空");
+            throw new RuntimeException("货物明细列表不能为空");
         }
 
         LogisticsOrder order = new LogisticsOrder();
 
-        // 使用第一个提单的信息作为基础
+        // 使用第一个分配项的信息作为基础
         BillAllocationItem firstItem = allocationItems.get(0);
         order.setOrderDate(new Date());
         order.setCustomerId(getCustomerIdByBillId(firstItem.getBillId()));
         order.setLoadingAddress(firstItem.getLoadingAddress());
         order.setUnloadingAddress(firstItem.getUnloadingAddress());
-        order.setGoodsId(getGoodsIdByBillId(firstItem.getBillId()));
-        order.setGoodsName(firstItem.getGoodsName());
+
+        // 汇总重量和金额
+        BigDecimal totalWeight = BigDecimal.ZERO;
+        BigDecimal totalAmount = BigDecimal.ZERO;
+        for (BillAllocationItem item : allocationItems)
+        {
+            totalWeight = totalWeight.add(item.getAllocWeight() != null ? item.getAllocWeight() : BigDecimal.ZERO);
+            if (item.getAllocWeight() != null && item.getUnitPrice() != null)
+            {
+                totalAmount = totalAmount.add(item.getAllocWeight().multiply(item.getUnitPrice()).setScale(2, RoundingMode.HALF_UP));
+            }
+        }
+        order.setWeight(totalWeight);
+        order.setUnitPrice(BigDecimal.ZERO); // 多货物运单单价无意义，设为0
+        order.setTotalAmount(totalAmount);
+
+        // 拼接货物名称（多种货物用逗号分隔）
+        String goodsNames = allocationItems.stream()
+            .map(BillAllocationItem::getGoodsName)
+            .distinct()
+            .collect(java.util.stream.Collectors.joining(", "));
+        order.setGoodsName(goodsNames);
 
         // 生成订单号
         order.setOrderNo(generateOrderNo());
@@ -245,43 +292,29 @@ public class LogisticsAllocationServiceImpl implements ILogisticsAllocationServi
     }
 
     /**
-     * 生成驾驶员单号
+     * 转换提单货物明细为分配项
      */
-    private String generateDriverOrderNo()
+    private BillAllocationItem convertItemToAllocationItem(LogisticsBillItem item, LogisticsBill bill)
     {
-        SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMdd");
-        String dateStr = sdf.format(new Date());
-        return "SJ" + dateStr + String.format("%04d", 1); // 简化实现
+        BillAllocationItem allocationItem = new BillAllocationItem();
+        allocationItem.setBillId(bill.getBillId());
+        allocationItem.setBillNo(bill.getBillNo());
+        allocationItem.setBillItemId(item.getItemId());
+        allocationItem.setCustomerName(bill.getCustomerName());
+        allocationItem.setGoodsName(item.getGoodsName());
+        allocationItem.setGoodsModel(item.getGoodsModel());
+        allocationItem.setLoadingAddress(bill.getLoadingAddress());
+        allocationItem.setUnloadingAddress(bill.getUnloadingAddress());
+        allocationItem.setTotalWeight(item.getWeight());
+        allocationItem.setAllocatedWeight(item.getAllocatedWeight());
+        allocationItem.setUnitPrice(item.getUnitPrice());
+        return allocationItem;
     }
 
-    /**
-     * 转换提单为分配项
-     */
-    private BillAllocationItem convertToAllocationItem(LogisticsBill bill)
-    {
-        BillAllocationItem item = new BillAllocationItem();
-        item.setBillId(bill.getBillId());
-        item.setBillNo(bill.getBillNo());
-        item.setCustomerName(bill.getCustomerName());
-        item.setGoodsName(bill.getGoodsName());
-        item.setLoadingAddress(bill.getLoadingAddress());
-        item.setUnloadingAddress(bill.getUnloadingAddress());
-        item.setTotalWeight(bill.getTotalWeight());
-        item.setAllocatedWeight(bill.getAllocatedWeight());
-        item.setUnitPrice(bill.getUnitPrice());
-        return item;
-    }
-
-    // 辅助方法（需要根据实际情况完善）
+    // 辅助方法
     private Long getCustomerIdByBillId(Long billId)
     {
         LogisticsBill bill = billMapper.selectLogisticsBillByBillId(billId);
         return bill != null ? bill.getCustomerId() : null;
-    }
-
-    private Long getGoodsIdByBillId(Long billId)
-    {
-        LogisticsBill bill = billMapper.selectLogisticsBillByBillId(billId);
-        return bill != null ? bill.getGoodsId() : null;
     }
 }

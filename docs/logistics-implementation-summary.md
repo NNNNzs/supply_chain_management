@@ -28,7 +28,7 @@ ruoyi-logistics/
 
 ### 二、数据库设计
 
-#### 数据表（10张）
+#### 数据表（13张）
 
 | 表名 | 说明 | 关键字段 |
 |------|------|----------|
@@ -36,12 +36,15 @@ ruoyi-logistics/
 | logistics_goods | 货物信息表 | 货物编码、名称、型号、分类、参考单价 |
 | logistics_driver | 司机信息表 | 司机编码、姓名、电话、银行卡信息 |
 | logistics_vehicle | 车辆信息表 | 车牌号、车型、载重、默认司机 |
-| logistics_order | 运输订单表 | 订单号、客户、货物、重量、运价、金额、结算状态、开票状态 |
-| logistics_receipt | 回单信息表 | 回单编号、订单ID、回单图片、接收状态 |
-| logistics_invoice_batch | 发票批次表 | 批次号、客户ID、开票日期、总金额、订单数量 |
-| logistics_invoice_detail | 发票批次明细表 | 批次ID、订单ID、金额 |
+| logistics_bill | 提单表（委托单） | 提单号、客户、总重量、已分配重量、提单状态 |
+| logistics_bill_item | 提单货物明细表 | 提单ID、货物名称、重量、已分配重量、运价 |
+| logistics_bill_order_detail | 提单运单明细表 | 提单ID、货物明细ID、运单ID、分配重量 |
+| logistics_order | 运单表（货运单/派车单） | 运单号、客户、司机ID、车辆ID、重量、金额、结算状态、开票状态 |
+| logistics_receipt | 回单信息表 | 回单编号、运单ID、回单图片、接收状态 |
+| logistics_invoice_batch | 发票批次表 | 批次号、客户ID、开票日期、总金额、运单数量 |
+| logistics_invoice_detail | 发票批次明细表 | 批次ID、运单ID、金额 |
 | logistics_settlement | 财务结算表 | 结算单号、客户、结算类型、总金额、结算状态 |
-| logistics_settlement_detail | 结算明细表 | 结算ID、订单ID、金额 |
+| logistics_settlement_detail | 结算明细表 | 结算ID、运单ID、金额 |
 
 **SQL 脚本位置：** `sql/logistics.sql`
 
@@ -57,7 +60,9 @@ ruoyi-logistics/
 │   ├── 司机管理 (2103)
 │   └── 车辆管理 (2104)
 ├── 运输业务管理 (2200)
-│   ├── 订单管理 (2201)
+│   ├── 提单管理 (2204)
+│   ├── 配载管理 (2205)
+│   ├── 运单管理 (2201)
 │   ├── 回单管理 (2202)
 │   └── 发票管理 (2203)
 └── 财务结算管理 (2300)

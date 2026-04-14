@@ -24,18 +24,21 @@ mysql -u your_username -p your_database < /Users/nnnnzs/project/supply_chain_man
 
 ## 脚本包含内容
 
-### 数据表（10张）
+### 数据表（13张）
 
 1. **logistics_customer** - 客户信息表
 2. **logistics_goods** - 货物信息表
 3. **logistics_driver** - 司机信息表
 4. **logistics_vehicle** - 车辆信息表
-5. **logistics_order** - 运输订单表
-6. **logistics_receipt** - 回单信息表
-7. **logistics_invoice_batch** - 发票批次表
-8. **logistics_invoice_detail** - 发票批次明细表
-9. **logistics_settlement** - 财务结算表
-10. **logistics_settlement_detail** - 结算明细表
+5. **logistics_bill** - 提单表（委托单）
+6. **logistics_bill_item** - 提单货物明细表
+7. **logistics_bill_order_detail** - 提单运单明细表
+8. **logistics_order** - 运单表（货运单/派车单）
+9. **logistics_receipt** - 回单信息表
+10. **logistics_invoice_batch** - 发票批次表
+11. **logistics_invoice_detail** - 发票批次明细表
+12. **logistics_settlement** - 财务结算表
+13. **logistics_settlement_detail** - 结算明细表
 
 ### 菜单权限
 
@@ -48,7 +51,9 @@ mysql -u your_username -p your_database < /Users/nnnnzs/project/supply_chain_man
   - 2103 - 司机管理
   - 2104 - 车辆管理
 - 2200 - 运输业务管理（二级目录）
-  - 2201 - 订单管理
+  - 2204 - 提单管理
+  - 2205 - 配载管理
+  - 2201 - 运单管理
   - 2202 - 回单管理
   - 2203 - 发票管理
 - 2300 - 财务结算管理（二级目录）

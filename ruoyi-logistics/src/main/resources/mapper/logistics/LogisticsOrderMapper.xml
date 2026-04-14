@@ -16,10 +16,13 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         <result property="goodsName"          column="goods_name"         />
         <result property="goodsModel"         column="goods_model"        />
         <result property="weight"             column="weight"             />
+        <result property="actualWeight"       column="actual_weight"      />
         <result property="unitPrice"          column="unit_price"         />
         <result property="totalAmount"        column="total_amount"       />
         <result property="advancePayment"     column="advance_payment"    />
+        <result property="vehicleId"          column="vehicle_id"         />
         <result property="vehiclePlate"       column="vehicle_plate"      />
+        <result property="loadCapacity"       column="load_capacity"      />
         <result property="driverId"           column="driver_id"          />
         <result property="driverPhone"        column="driver_phone"       />
         <result property="loadingUnitPrice"   column="loading_unit_price" />
@@ -32,6 +35,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         <result property="invoiceDate"        column="invoice_date"       />
         <result property="invoiceBatchNo"     column="invoice_batch_no"   />
         <result property="orderStatus"        column="order_status"       />
+        <result property="dispatchDate"       column="dispatch_date"      />
         <result property="delFlag"            column="del_flag"           />
         <result property="createBy"           column="create_by"          />
         <result property="createTime"         column="create_time"        />
@@ -42,10 +46,11 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
 
     <sql id="selectLogisticsOrderVo">
         select o.order_id, o.order_no, o.order_date, o.customer_id, o.loading_address, o.unloading_address,
-               o.goods_id, o.goods_name, o.goods_model, o.weight, o.unit_price, o.total_amount, o.advance_payment,
-               o.vehicle_plate, o.driver_id, o.driver_phone, o.loading_unit_price, o.freight_cost,
+               o.goods_id, o.goods_name, o.goods_model, o.weight, o.actual_weight, o.unit_price, o.total_amount, o.advance_payment,
+               o.vehicle_id, o.vehicle_plate, o.load_capacity, o.driver_id, o.driver_phone,
+               o.loading_unit_price, o.freight_cost,
                o.settlement_status, o.payment_method, o.payee, o.receipt_status, o.invoice_status,
-               o.invoice_date, o.invoice_batch_no, o.order_status, o.remark,
+               o.invoice_date, o.invoice_batch_no, o.order_status, o.dispatch_date, o.remark,
                c.customer_name
         from logistics_order o
         left join logistics_customer c on o.customer_id = c.customer_id
@@ -108,10 +113,13 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             <if test="goodsName != null and goodsName != ''">goods_name,</if>
             <if test="goodsModel != null and goodsModel != ''">goods_model,</if>
             <if test="weight != null">weight,</if>
+            <if test="actualWeight != null">actual_weight,</if>
             <if test="unitPrice != null">unit_price,</if>
             <if test="totalAmount != null">total_amount,</if>
             <if test="advancePayment != null">advance_payment,</if>
+            <if test="vehicleId != null">vehicle_id,</if>
             <if test="vehiclePlate != null and vehiclePlate != ''">vehicle_plate,</if>
+            <if test="loadCapacity != null">load_capacity,</if>
             <if test="driverId != null">driver_id,</if>
             <if test="driverPhone != null and driverPhone != ''">driver_phone,</if>
             <if test="loadingUnitPrice != null">loading_unit_price,</if>
@@ -124,6 +132,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             <if test="invoiceDate != null">invoice_date,</if>
             <if test="invoiceBatchNo != null and invoiceBatchNo != ''">invoice_batch_no,</if>
             <if test="orderStatus != null">order_status,</if>
+            <if test="dispatchDate != null">dispatch_date,</if>
             <if test="remark != null">remark,</if>
             <if test="createBy != null">create_by,</if>
             create_time
@@ -138,10 +147,13 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             <if test="goodsName != null and goodsName != ''">#{goodsName},</if>
             <if test="goodsModel != null and goodsModel != ''">#{goodsModel},</if>
             <if test="weight != null">#{weight},</if>
+            <if test="actualWeight != null">#{actualWeight},</if>
             <if test="unitPrice != null">#{unitPrice},</if>
             <if test="totalAmount != null">#{totalAmount},</if>
             <if test="advancePayment != null">#{advancePayment},</if>
+            <if test="vehicleId != null">#{vehicleId},</if>
             <if test="vehiclePlate != null and vehiclePlate != ''">#{vehiclePlate},</if>
+            <if test="loadCapacity != null">#{loadCapacity},</if>
             <if test="driverId != null">#{driverId},</if>
             <if test="driverPhone != null and driverPhone != ''">#{driverPhone},</if>
             <if test="loadingUnitPrice != null">#{loadingUnitPrice},</if>
@@ -154,6 +166,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             <if test="invoiceDate != null">#{invoiceDate},</if>
             <if test="invoiceBatchNo != null and invoiceBatchNo != ''">#{invoiceBatchNo},</if>
             <if test="orderStatus != null">#{orderStatus},</if>
+            <if test="dispatchDate != null">#{dispatchDate},</if>
             <if test="remark != null">#{remark},</if>
             <if test="createBy != null">#{createBy},</if>
             sysdate()
@@ -172,10 +185,13 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             <if test="goodsName != null">goods_name = #{goodsName},</if>
             <if test="goodsModel != null">goods_model = #{goodsModel},</if>
             <if test="weight != null">weight = #{weight},</if>
+            <if test="actualWeight != null">actual_weight = #{actualWeight},</if>
             <if test="unitPrice != null">unit_price = #{unitPrice},</if>
             <if test="totalAmount != null">total_amount = #{totalAmount},</if>
             <if test="advancePayment != null">advance_payment = #{advancePayment},</if>
+            <if test="vehicleId != null">vehicle_id = #{vehicleId},</if>
             <if test="vehiclePlate != null">vehicle_plate = #{vehiclePlate},</if>
+            <if test="loadCapacity != null">load_capacity = #{loadCapacity},</if>
             <if test="driverId != null">driver_id = #{driverId},</if>
             <if test="driverPhone != null">driver_phone = #{driverPhone},</if>
             <if test="loadingUnitPrice != null">loading_unit_price = #{loadingUnitPrice},</if>
@@ -188,6 +204,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             <if test="invoiceDate != null">invoice_date = #{invoiceDate},</if>
             <if test="invoiceBatchNo != null">invoice_batch_no = #{invoiceBatchNo},</if>
             <if test="orderStatus != null">order_status = #{orderStatus},</if>
+            <if test="dispatchDate != null">dispatch_date = #{dispatchDate},</if>
             <if test="remark != null">remark = #{remark},</if>
             <if test="updateBy != null">update_by = #{updateBy},</if>
             update_time = sysdate()

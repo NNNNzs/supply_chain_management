@@ -7,7 +7,9 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
     <resultMap type="LogisticsBillOrderDetail" id="LogisticsBillOrderDetailResult">
         <result property="detailId"    column="detail_id"    />
         <result property="billId"    column="bill_id"    />
+        <result property="billItemId"    column="bill_item_id"    />
         <result property="billNo"    column="bill_no"    />
+        <result property="goodsName"    column="goods_name"    />
         <result property="orderId"    column="order_id"    />
         <result property="orderNo"    column="order_no"    />
         <result property="allocatedWeight"    column="allocated_weight"    />
@@ -19,11 +21,12 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
     </resultMap>
 
     <sql id="selectLogisticsBillOrderDetailVo">
-        select d.detail_id, d.bill_id, d.order_id, d.allocated_weight, d.unit_price, d.allocated_amount,
+        select d.detail_id, d.bill_id, d.bill_item_id, d.order_id, d.allocated_weight, d.unit_price, d.allocated_amount,
                d.create_by, d.create_time, d.remark,
-               b.bill_no, o.order_no
+               b.bill_no, bi.goods_name, o.order_no
         from logistics_bill_order_detail d
         left join logistics_bill b on d.bill_id = b.bill_id
+        left join logistics_bill_item bi on d.bill_item_id = bi.item_id
         left join logistics_order o on d.order_id = o.order_id
     </sql>
 
@@ -66,6 +69,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         insert into logistics_bill_order_detail
         <trim prefix="(" suffix=")" suffixOverrides=",">
             <if test="billId != null">bill_id,</if>
+            <if test="billItemId != null">bill_item_id,</if>
             <if test="orderId != null">order_id,</if>
             <if test="allocatedWeight != null">allocated_weight,</if>
             <if test="unitPrice != null">unit_price,</if>
@@ -76,6 +80,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
          </trim>
         <trim prefix="values (" suffix=")" suffixOverrides=",">
             <if test="billId != null">#{billId},</if>
+            <if test="billItemId != null">#{billItemId},</if>
             <if test="orderId != null">#{orderId},</if>
             <if test="allocatedWeight != null">#{allocatedWeight},</if>
             <if test="unitPrice != null">#{unitPrice},</if>
@@ -87,10 +92,10 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
     </insert>
 
     <insert id="batchInsertLogisticsBillOrderDetail">
-        insert into logistics_bill_order_detail (bill_id, order_id, allocated_weight, unit_price, allocated_amount, create_by, create_time)
+        insert into logistics_bill_order_detail (bill_id, bill_item_id, order_id, allocated_weight, unit_price, allocated_amount, create_by, create_time)
         values
         <foreach collection="list" item="item" separator=",">
-            (#{item.billId}, #{item.orderId}, #{item.allocatedWeight}, #{item.unitPrice}, #{item.allocatedAmount}, #{item.createBy}, sysdate())
+            (#{item.billId}, #{item.billItemId}, #{item.orderId}, #{item.allocatedWeight}, #{item.unitPrice}, #{item.allocatedAmount}, #{item.createBy}, sysdate())
         </foreach>
     </insert>
 

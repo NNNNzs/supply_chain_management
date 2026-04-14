@@ -2,6 +2,7 @@ package com.scm.logistics.domain;
 
 import java.math.BigDecimal;
 import java.util.Date;
+import java.util.List;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import org.apache.commons.lang3.builder.ToStringBuilder;
 import org.apache.commons.lang3.builder.ToStringStyle;
@@ -26,8 +27,8 @@ public class LogisticsBill extends BaseEntity
     private String billNo;
 
     /** 提单日期 */
-    @JsonFormat(pattern = "yyyy-MM-dd")
-    @Excel(name = "提单日期", width = 30, dateFormat = "yyyy-MM-dd")
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+    @Excel(name = "提单日期", width = 30, dateFormat = "yyyy-MM-dd HH:mm:ss")
     private Date billDate;
 
     /** 客户ID */
@@ -45,17 +46,6 @@ public class LogisticsBill extends BaseEntity
     @Excel(name = "卸货地址")
     private String unloadingAddress;
 
-    /** 货物ID */
-    private Long goodsId;
-
-    /** 货物名称 */
-    @Excel(name = "货物名称")
-    private String goodsName;
-
-    /** 货物型号 */
-    @Excel(name = "货物型号")
-    private String goodsModel;
-
     /** 总重量(吨) */
     @Excel(name = "总重量(吨)")
     private BigDecimal totalWeight;
@@ -67,10 +57,6 @@ public class LogisticsBill extends BaseEntity
     /** 剩余重量(吨)（非数据库字段，计算得出） */
     @Excel(name = "剩余重量(吨)")
     private BigDecimal remainWeight;
-
-    /** 运价(元/吨) */
-    @Excel(name = "运价(元/吨)")
-    private BigDecimal unitPrice;
 
     /** 总金额 */
     @Excel(name = "总金额")
@@ -85,12 +71,15 @@ public class LogisticsBill extends BaseEntity
     private String priority;
 
     /** 要求完成日期 */
-    @JsonFormat(pattern = "yyyy-MM-dd")
-    @Excel(name = "要求完成日期", width = 30, dateFormat = "yyyy-MM-dd")
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+    @Excel(name = "要求完成日期", width = 30, dateFormat = "yyyy-MM-dd HH:mm:ss")
     private Date requireDate;
 
     /** 删除标志 */
     private String delFlag;
+
+    /** 提单货物明细列表（非数据库字段） */
+    private List<LogisticsBillItem> billItems;
 
     public void setBillId(Long billId)
     {
@@ -162,36 +151,6 @@ public class LogisticsBill extends BaseEntity
         return unloadingAddress;
     }
 
-    public void setGoodsId(Long goodsId)
-    {
-        this.goodsId = goodsId;
-    }
-
-    public Long getGoodsId()
-    {
-        return goodsId;
-    }
-
-    public String getGoodsName()
-    {
-        return goodsName;
-    }
-
-    public void setGoodsName(String goodsName)
-    {
-        this.goodsName = goodsName;
-    }
-
-    public String getGoodsModel()
-    {
-        return goodsModel;
-    }
-
-    public void setGoodsModel(String goodsModel)
-    {
-        this.goodsModel = goodsModel;
-    }
-
     public void setTotalWeight(BigDecimal totalWeight)
     {
         this.totalWeight = totalWeight;
@@ -219,16 +178,6 @@ public class LogisticsBill extends BaseEntity
             return totalWeight.subtract(allocatedWeight);
         }
         return totalWeight;
-    }
-
-    public void setUnitPrice(BigDecimal unitPrice)
-    {
-        this.unitPrice = unitPrice;
-    }
-
-    public BigDecimal getUnitPrice()
-    {
-        return unitPrice;
     }
 
     public void setTotalAmount(BigDecimal totalAmount)
@@ -281,6 +230,16 @@ public class LogisticsBill extends BaseEntity
         return delFlag;
     }
 
+    public List<LogisticsBillItem> getBillItems()
+    {
+        return billItems;
+    }
+
+    public void setBillItems(List<LogisticsBillItem> billItems)
+    {
+        this.billItems = billItems;
+    }
+
     @Override
     public String toString() {
         return new ToStringBuilder(this,ToStringStyle.MULTI_LINE_STYLE)
@@ -290,10 +249,8 @@ public class LogisticsBill extends BaseEntity
             .append("customerId", getCustomerId())
             .append("loadingAddress", getLoadingAddress())
             .append("unloadingAddress", getUnloadingAddress())
-            .append("goodsId", getGoodsId())
             .append("totalWeight", getTotalWeight())
             .append("allocatedWeight", getAllocatedWeight())
-            .append("unitPrice", getUnitPrice())
             .append("totalAmount", getTotalAmount())
             .append("billStatus", getBillStatus())
             .append("priority", getPriority())

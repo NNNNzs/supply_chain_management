@@ -12,12 +12,8 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         <result property="customerName"    column="customer_name"    />
         <result property="loadingAddress"    column="loading_address"    />
         <result property="unloadingAddress"    column="unloading_address"    />
-        <result property="goodsId"    column="goods_id"    />
-        <result property="goodsName"    column="goods_name"    />
-        <result property="goodsModel"    column="goods_model"    />
         <result property="totalWeight"    column="total_weight"    />
         <result property="allocatedWeight"    column="allocated_weight"    />
-        <result property="unitPrice"    column="unit_price"    />
         <result property="totalAmount"    column="total_amount"    />
         <result property="billStatus"    column="bill_status"    />
         <result property="priority"    column="priority"    />
@@ -32,8 +28,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
 
     <sql id="selectLogisticsBillVo">
         select b.bill_id, b.bill_no, b.bill_date, b.customer_id, b.loading_address, b.unloading_address,
-               b.goods_id, b.goods_name, b.goods_model, b.total_weight, b.allocated_weight,
-               b.unit_price, b.total_amount, b.bill_status, b.priority, b.require_date,
+               b.total_weight, b.allocated_weight, b.total_amount, b.bill_status, b.priority, b.require_date,
                b.del_flag, b.create_by, b.create_time, b.update_by, b.update_time, b.remark,
                c.customer_name
         from logistics_bill b
@@ -82,12 +77,8 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             <if test="customerId != null">customer_id,</if>
             <if test="loadingAddress != null">loading_address,</if>
             <if test="unloadingAddress != null">unloading_address,</if>
-            <if test="goodsId != null">goods_id,</if>
-            <if test="goodsName != null">goods_name,</if>
-            <if test="goodsModel != null">goods_model,</if>
             <if test="totalWeight != null">total_weight,</if>
             <if test="allocatedWeight != null">allocated_weight,</if>
-            <if test="unitPrice != null">unit_price,</if>
             <if test="totalAmount != null">total_amount,</if>
             <if test="billStatus != null">bill_status,</if>
             <if test="priority != null">priority,</if>
@@ -103,12 +94,8 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             <if test="customerId != null">#{customerId},</if>
             <if test="loadingAddress != null">#{loadingAddress},</if>
             <if test="unloadingAddress != null">#{unloadingAddress},</if>
-            <if test="goodsId != null">#{goodsId},</if>
-            <if test="goodsName != null">#{goodsName},</if>
-            <if test="goodsModel != null">#{goodsModel},</if>
             <if test="totalWeight != null">#{totalWeight},</if>
             <if test="allocatedWeight != null">#{allocatedWeight},</if>
-            <if test="unitPrice != null">#{unitPrice},</if>
             <if test="totalAmount != null">#{totalAmount},</if>
             <if test="billStatus != null">#{billStatus},</if>
             <if test="priority != null">#{priority},</if>
@@ -128,12 +115,8 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             <if test="customerId != null">customer_id = #{customerId},</if>
             <if test="loadingAddress != null">loading_address = #{loadingAddress},</if>
             <if test="unloadingAddress != null">unloading_address = #{unloadingAddress},</if>
-            <if test="goodsId != null">goods_id = #{goodsId},</if>
-            <if test="goodsName != null">goods_name = #{goodsName},</if>
-            <if test="goodsModel != null">goods_model = #{goodsModel},</if>
             <if test="totalWeight != null">total_weight = #{totalWeight},</if>
             <if test="allocatedWeight != null">allocated_weight = #{allocatedWeight},</if>
-            <if test="unitPrice != null">unit_price = #{unitPrice},</if>
             <if test="totalAmount != null">total_amount = #{totalAmount},</if>
             <if test="billStatus != null">bill_status = #{billStatus},</if>
             <if test="priority != null">priority = #{priority},</if>

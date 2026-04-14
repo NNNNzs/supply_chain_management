@@ -46,14 +46,49 @@
       <right-toolbar v-model:showSearch="showSearch" @queryTable="getList"></right-toolbar>
     </el-row>
 
-    <el-table v-loading="loading" :data="billList" @selection-change="handleSelectionChange">
+    <el-table v-loading="loading" :data="billList" @selection-change="handleSelectionChange" row-key="billId">
       <el-table-column type="selection" width="55" align="center" />
+      <el-table-column type="expand">
+        <template #default="{ row }">
+          <div style="padding: 10px 20px;">
+            <h4 style="margin: 0 0 10px 0; color: #606266;">货物明细</h4>
+            <el-table :data="row.billItems || []" size="small" border>
+              <el-table-column label="货物名称" prop="goodsName" />
+              <el-table-column label="型号" prop="goodsModel" width="120" />
+              <el-table-column label="重量(吨)" prop="weight" width="120" align="center">
+                <template #default="scope">
+                  {{ scope.row.weight ? scope.row.weight.toFixed(3) : '0.000' }}
+                </template>
+              </el-table-column>
+              <el-table-column label="已分配(吨)" prop="allocatedWeight" width="120" align="center">
+                <template #default="scope">
+                  {{ scope.row.allocatedWeight ? scope.row.allocatedWeight.toFixed(3) : '0.000' }}
+                </template>
+              </el-table-column>
+              <el-table-column label="剩余(吨)" width="110" align="center">
+                <template #default="scope">
+                  {{ getRemainWeight(scope.row) }}
+                </template>
+              </el-table-column>
+              <el-table-column label="运价(元/吨)" prop="unitPrice" width="120" align="center">
+                <template #default="scope">
+                  {{ scope.row.unitPrice ? scope.row.unitPrice.toFixed(2) : '0.00' }}
+                </template>
+              </el-table-column>
+              <el-table-column label="金额(元)" prop="amount" width="120" align="center">
+                <template #default="scope">
+                  {{ scope.row.amount ? scope.row.amount.toFixed(2) : '0.00' }}
+                </template>
+              </el-table-column>
+            </el-table>
+          </div>
+        </template>
+      </el-table-column>
       <el-table-column label="提单号" align="center" prop="billNo" width="180" :show-overflow-tooltip="true" />
       <el-table-column label="提单日期" align="center" prop="billDate" width="110" />
       <el-table-column label="客户" align="center" prop="customerName" width="120" :show-overflow-tooltip="true" />
       <el-table-column label="装货地址" align="center" prop="loadingAddress" :show-overflow-tooltip="true" />
       <el-table-column label="卸货地址" align="center" prop="unloadingAddress" :show-overflow-tooltip="true" />
-      <el-table-column label="货物" align="center" prop="goodsName" width="100" />
       <el-table-column label="总重量(吨)" align="center" prop="totalWeight" width="100">
         <template #default="scope">
           {{ scope.row.totalWeight ? scope.row.totalWeight.toFixed(3) : '0.000' }}
@@ -66,12 +101,7 @@
       </el-table-column>
       <el-table-column label="剩余(吨)" align="center" width="90">
         <template #default="scope">
-          {{ getRemainWeight(scope.row) }}
-        </template>
-      </el-table-column>
-      <el-table-column label="运价(元/吨)" align="center" prop="unitPrice" width="100">
-        <template #default="scope">
-          {{ scope.row.unitPrice ? scope.row.unitPrice.toFixed(2) : '0.00' }}
+          {{ getBillRemainWeight(scope.row) }}
         </template>
       </el-table-column>
       <el-table-column label="总金额(元)" align="center" prop="totalAmount" width="110">
@@ -103,7 +133,7 @@
     <excel-import-dialog ref="importRef" title="提单导入" action="/logistics/bill/importData" template-action="/logistics/bill/importTemplate" template-file-name="bill_template" update-support-label="是否更新已经存在的提单数据" @success="getList" />
 
     <!-- 添加或修改提单对话框 -->
-    <el-dialog :title="title" v-model="open" width="900px" append-to-body>
+    <el-dialog :title="title" v-model="open" width="1000px" append-to-body>
       <el-form ref="billRef" :model="form" :rules="rules" label-width="100px">
         <el-row>
           <el-col :span="12">
@@ -113,20 +143,13 @@
           </el-col>
           <el-col :span="12">
             <el-form-item label="提单日期" prop="billDate">
-              <el-date-picker v-model="form.billDate" type="date" placeholder="选择日期" value-format="YYYY-MM-DD" style="width: 100%" />
+              <el-date-picker v-model="form.billDate" type="datetime" placeholder="选择日期时间" value-format="YYYY-MM-DD HH:mm:ss" style="width: 100%" />
             </el-form-item>
           </el-col>
           <el-col :span="12">
             <el-form-item label="客户" prop="customerId">
               <el-select v-model="form.customerId" placeholder="请选择客户" style="width: 100%">
                 <el-option v-for="item in customerOptions" :key="item.customerId" :label="item.customerName" :value="item.customerId" />
-              </el-select>
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="货物" prop="goodsId">
-              <el-select v-model="form.goodsId" placeholder="请选择货物" style="width: 100%">
-                <el-option v-for="item in goodsOptions" :key="item.goodsId" :label="item.goodsName" :value="item.goodsId" />
               </el-select>
             </el-form-item>
           </el-col>
@@ -140,24 +163,9 @@
               <el-input v-model="form.unloadingAddress" placeholder="请输入卸货地址" />
             </el-form-item>
           </el-col>
-          <el-col :span="8">
-            <el-form-item label="总重量(吨)" prop="totalWeight">
-              <el-input-number v-model="form.totalWeight" :min="0" :precision="3" placeholder="请输入总重量" style="width: 100%" />
-            </el-form-item>
-          </el-col>
-          <el-col :span="8">
-            <el-form-item label="运价(元/吨)" prop="unitPrice">
-              <el-input-number v-model="form.unitPrice" :min="0" :precision="2" placeholder="请输入运价" style="width: 100%" />
-            </el-form-item>
-          </el-col>
-          <el-col :span="8">
-            <el-form-item label="总金额(元)" prop="totalAmount">
-              <el-input-number v-model="form.totalAmount" :min="0" :precision="2" placeholder="自动计算" style="width: 100%" :disabled="true" />
-            </el-form-item>
-          </el-col>
           <el-col :span="12">
             <el-form-item label="要求完成日期" prop="requireDate">
-              <el-date-picker v-model="form.requireDate" type="date" placeholder="选择日期" value-format="YYYY-MM-DD" style="width: 100%" />
+              <el-date-picker v-model="form.requireDate" type="datetime" placeholder="选择日期时间" value-format="YYYY-MM-DD HH:mm:ss" style="width: 100%" />
             </el-form-item>
           </el-col>
           <el-col :span="12">
@@ -169,12 +177,62 @@
               </el-select>
             </el-form-item>
           </el-col>
+        </el-row>
+
+        <el-divider content-position="left">货物明细</el-divider>
+
+        <el-row style="margin-bottom: 10px;">
           <el-col :span="24">
-            <el-form-item label="备注" prop="remark">
-              <el-input v-model="form.remark" type="textarea" placeholder="请输入内容" />
-            </el-form-item>
+            <el-button type="primary" plain icon="Plus" size="small" @click="handleAddItem">添加货物</el-button>
           </el-col>
         </el-row>
+
+        <el-table :data="form.billItems" border size="small" style="width: 100%">
+          <el-table-column label="货物" min-width="150">
+            <template #default="scope">
+              <el-select v-model="scope.row.goodsId" placeholder="选择货物" filterable style="width: 100%" @change="(val) => handleGoodsChange(val, scope.$index)">
+                <el-option v-for="item in goodsOptions" :key="item.goodsId" :label="item.goodsName" :value="item.goodsId" />
+              </el-select>
+            </template>
+          </el-table-column>
+          <el-table-column label="型号" width="120">
+            <template #default="scope">
+              <el-input v-model="scope.row.goodsModel" placeholder="型号" size="small" />
+            </template>
+          </el-table-column>
+          <el-table-column label="重量(吨)" width="140">
+            <template #default="scope">
+              <el-input-number v-model="scope.row.weight" :min="0.001" :precision="3" size="small" style="width: 100%" />
+            </template>
+          </el-table-column>
+          <el-table-column label="运价(元/吨)" width="140">
+            <template #default="scope">
+              <el-input-number v-model="scope.row.unitPrice" :min="0" :precision="2" size="small" style="width: 100%" />
+            </template>
+          </el-table-column>
+          <el-table-column label="金额(元)" width="120">
+            <template #default="scope">
+              {{ getItemAmount(scope.row) }}
+            </template>
+          </el-table-column>
+          <el-table-column label="操作" width="70" align="center">
+            <template #default="scope">
+              <el-button link type="danger" icon="Delete" @click="handleRemoveItem(scope.$index)" :disabled="form.billItems.length <= 1" />
+            </template>
+          </el-table-column>
+        </el-table>
+
+        <el-descriptions :column="3" border size="small" style="margin-top: 15px">
+          <el-descriptions-item label="合计重量">{{ totalItemWeight }} 吨</el-descriptions-item>
+          <el-descriptions-item label="合计金额">{{ totalItemAmount }} 元</el-descriptions-item>
+          <el-descriptions-item label="货物种类">{{ form.billItems.length }} 种</el-descriptions-item>
+        </el-descriptions>
+
+        <el-col :span="24">
+          <el-form-item label="备注" prop="remark" style="margin-top: 15px">
+            <el-input v-model="form.remark" type="textarea" placeholder="请输入内容" />
+          </el-form-item>
+        </el-col>
       </el-form>
       <template #footer>
         <div class="dialog-footer">
@@ -185,10 +243,11 @@
     </el-dialog>
 
     <!-- 提单分配明细对话框 -->
-    <el-dialog title="提单分配明细" v-model="allocationDialogVisible" width="800px" append-to-body>
-      <el-table :data="allocationList">
-        <el-table-column label="运单号" align="center" prop="orderNo" width="180" />
-        <el-table-column label="驾驶员单号" align="center" prop="driverOrderNo" width="180" />
+    <el-dialog title="提单分配明细" v-model="allocationDialogVisible" width="900px" append-to-body>
+      <el-table :data="allocationList" border>
+        <el-table-column label="运单号" align="center" prop="orderNo" width="160" />
+        <el-table-column label="货物名称" align="center" prop="goodsName" width="120" />
+        <el-table-column label="驾驶员单号" align="center" prop="driverOrderNo" width="160" />
         <el-table-column label="分配重量(吨)" align="center" prop="allocatedWeight" width="120">
           <template #default="scope">
             {{ scope.row.allocatedWeight ? scope.row.allocatedWeight.toFixed(3) : '0.000' }}
@@ -252,24 +311,45 @@ const data = reactive({
     ],
     unloadingAddress: [
       { required: true, message: "卸货地址不能为空", trigger: "blur" }
-    ],
-    totalWeight: [
-      { required: true, message: "总重量不能为空", trigger: "blur" }
-    ],
-    unitPrice: [
-      { required: true, message: "运价不能为空", trigger: "blur" }
     ]
   }
 })
 
 const { queryParams, form, rules } = toRefs(data)
 
-// 监听总重量和运价变化，自动计算总金额
-watch([() => form.value.totalWeight, () => form.value.unitPrice], ([newWeight, newPrice]) => {
-  if (newWeight != null && newPrice != null) {
-    form.value.totalAmount = (newWeight * newPrice).toFixed(2)
-  }
+// 货物明细合计
+const totalItemWeight = computed(() => {
+  return (form.value.billItems || []).reduce((sum, item) => {
+    return sum + (item.weight || 0)
+  }, 0).toFixed(3)
 })
+
+const totalItemAmount = computed(() => {
+  return (form.value.billItems || []).reduce((sum, item) => {
+    return sum + (item.weight || 0) * (item.unitPrice || 0)
+  }, 0).toFixed(2)
+})
+
+function getItemAmount(item) {
+  if (item.weight != null && item.unitPrice != null) {
+    return (item.weight * item.unitPrice).toFixed(2)
+  }
+  return '0.00'
+}
+
+function getRemainWeight(item) {
+  if (item.weight != null && item.allocatedWeight != null) {
+    return (item.weight - item.allocatedWeight).toFixed(3)
+  }
+  return item.weight ? item.weight.toFixed(3) : '0.000'
+}
+
+function getBillRemainWeight(row) {
+  if (row.totalWeight != null && row.allocatedWeight != null) {
+    return (row.totalWeight - row.allocatedWeight).toFixed(3)
+  }
+  return row.totalWeight ? row.totalWeight.toFixed(3) : '0.000'
+}
 
 function getList() {
   loading.value = true
@@ -293,11 +373,30 @@ function getGoodsList() {
   })
 }
 
-function getRemainWeight(row) {
-  if (row.totalWeight != null && row.allocatedWeight != null) {
-    return (row.totalWeight - row.allocatedWeight).toFixed(3)
+function handleGoodsChange(goodsId, index) {
+  const goods = goodsOptions.value.find(g => g.goodsId === goodsId)
+  if (goods) {
+    form.value.billItems[index].goodsName = goods.goodsName
+    form.value.billItems[index].unitPrice = goods.unitPrice
   }
-  return row.totalWeight ? row.totalWeight.toFixed(3) : '0.000'
+}
+
+function handleAddItem() {
+  if (!form.value.billItems) {
+    form.value.billItems = []
+  }
+  form.value.billItems.push({
+    goodsId: null,
+    goodsName: '',
+    goodsModel: '',
+    weight: null,
+    unitPrice: null,
+    amount: null
+  })
+}
+
+function handleRemoveItem(index) {
+  form.value.billItems.splice(index, 1)
 }
 
 function handleQuery() {
@@ -313,6 +412,15 @@ function resetQuery() {
 
 function handleAdd() {
   reset()
+  // 默认添加一行货物明细
+  form.value.billItems = [{
+    goodsId: null,
+    goodsName: '',
+    goodsModel: '',
+    weight: null,
+    unitPrice: null,
+    amount: null
+  }]
   open.value = true
   title.value = "添加提单"
 }
@@ -322,6 +430,17 @@ function handleUpdate(row) {
   const billId = row.billId || ids.value[0]
   getBill(billId).then(response => {
     form.value = response.data
+    // 确保货物明细存在
+    if (!form.value.billItems || form.value.billItems.length === 0) {
+      form.value.billItems = [{
+        goodsId: null,
+        goodsName: '',
+        goodsModel: '',
+        weight: null,
+        unitPrice: null,
+        amount: null
+      }]
+    }
     open.value = true
     title.value = "修改提单"
   })
@@ -338,6 +457,18 @@ function handleViewAllocations(row) {
 function submitForm() {
   proxy.$refs["billRef"].validate(valid => {
     if (valid) {
+      // 验证货物明细
+      const items = form.value.billItems
+      if (!items || items.length === 0) {
+        proxy.$modal.msgWarning("请至少添加一种货物")
+        return
+      }
+      const hasValidItem = items.some(item => item.goodsId && item.weight && item.weight > 0)
+      if (!hasValidItem) {
+        proxy.$modal.msgWarning("请至少填写一种完整货物信息")
+        return
+      }
+
       if (form.value.billId != null) {
         updateBill(form.value).then(() => {
           proxy.$modal.msgSuccess("修改成功")
@@ -386,12 +517,9 @@ function reset() {
     billNo: null,
     billDate: null,
     customerId: null,
-    goodsId: null,
     loadingAddress: null,
     unloadingAddress: null,
-    totalWeight: null,
-    unitPrice: null,
-    totalAmount: null,
+    billItems: [],
     priority: 'normal',
     requireDate: null,
     remark: null

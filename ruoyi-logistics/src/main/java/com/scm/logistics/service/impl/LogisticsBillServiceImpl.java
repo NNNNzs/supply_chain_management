@@ -1,12 +1,15 @@
 package com.scm.logistics.service.impl;
 
+import java.math.BigDecimal;
 import java.util.List;
-import java.util.ArrayList;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import com.scm.logistics.mapper.LogisticsBillMapper;
+import com.scm.logistics.mapper.LogisticsBillItemMapper;
 import com.scm.logistics.mapper.LogisticsBillOrderDetailMapper;
 import com.scm.logistics.domain.LogisticsBill;
+import com.scm.logistics.domain.LogisticsBillItem;
 import com.scm.logistics.domain.LogisticsBillOrderDetail;
 import com.scm.logistics.service.ILogisticsBillService;
 
@@ -23,10 +26,13 @@ public class LogisticsBillServiceImpl implements ILogisticsBillService
     private LogisticsBillMapper logisticsBillMapper;
 
     @Autowired
+    private LogisticsBillItemMapper logisticsBillItemMapper;
+
+    @Autowired
     private LogisticsBillOrderDetailMapper logisticsBillOrderDetailMapper;
 
     /**
-     * 查询提单
+     * 查询提单（含货物明细）
      *
      * @param billId 提单主键
      * @return 提单
@@ -34,7 +40,13 @@ public class LogisticsBillServiceImpl implements ILogisticsBillService
     @Override
     public LogisticsBill selectLogisticsBillByBillId(Long billId)
     {
-        return logisticsBillMapper.selectLogisticsBillByBillId(billId);
+        LogisticsBill bill = logisticsBillMapper.selectLogisticsBillByBillId(billId);
+        if (bill != null)
+        {
+            List<LogisticsBillItem> items = logisticsBillItemMapper.selectItemsByBillId(billId);
+            bill.setBillItems(items);
+        }
+        return bill;
     }
 
     /**
@@ -50,50 +62,99 @@ public class LogisticsBillServiceImpl implements ILogisticsBillService
     }
 
     /**
-     * 新增提单
+     * 新增提单（含货物明细，级联保存）
      *
      * @param logisticsBill 提单
      * @return 结果
      */
     @Override
+    @Transactional
     public int insertLogisticsBill(LogisticsBill logisticsBill)
     {
-        return logisticsBillMapper.insertLogisticsBill(logisticsBill);
+        // 汇总明细到主表
+        computeBillTotalsFromItems(logisticsBill);
+
+        // 保存提单主表
+        int rows = logisticsBillMapper.insertLogisticsBill(logisticsBill);
+
+        // 保存货物明细
+        if (logisticsBill.getBillItems() != null && !logisticsBill.getBillItems().isEmpty())
+        {
+            for (LogisticsBillItem item : logisticsBill.getBillItems())
+            {
+                item.setBillId(logisticsBill.getBillId());
+                logisticsBillItemMapper.insertLogisticsBillItem(item);
+            }
+        }
+
+        return rows;
     }
 
     /**
-     * 修改提单
+     * 修改提单（含货物明细，差量更新）
      *
      * @param logisticsBill 提单
      * @return 结果
      */
     @Override
+    @Transactional
     public int updateLogisticsBill(LogisticsBill logisticsBill)
     {
-        return logisticsBillMapper.updateLogisticsBill(logisticsBill);
+        // 汇总明细到主表
+        computeBillTotalsFromItems(logisticsBill);
+
+        // 更新提单主表
+        int rows = logisticsBillMapper.updateLogisticsBill(logisticsBill);
+
+        // 差量更新货物明细
+        if (logisticsBill.getBillItems() != null)
+        {
+            List<LogisticsBillItem> items = logisticsBill.getBillItems();
+            for (LogisticsBillItem item : items)
+            {
+                item.setBillId(logisticsBill.getBillId());
+                if (item.getItemId() != null)
+                {
+                    logisticsBillItemMapper.updateLogisticsBillItem(item);
+                }
+                else
+                {
+                    logisticsBillItemMapper.insertLogisticsBillItem(item);
+                }
+            }
+        }
+
+        return rows;
     }
 
     /**
-     * 批量删除提单
+     * 批量删除提单（级联删除明细）
      *
      * @param billIds 需要删除的提单主键
      * @return 结果
      */
     @Override
+    @Transactional
     public int deleteLogisticsBillByBillIds(Long[] billIds)
     {
+        for (Long billId : billIds)
+        {
+            logisticsBillItemMapper.softDeleteItemsByBillId(billId);
+        }
         return logisticsBillMapper.deleteLogisticsBillByBillIds(billIds);
     }
 
     /**
-     * 删除提单信息
+     * 删除提单信息（级联删除明细）
      *
      * @param billId 提单主键
      * @return 结果
      */
     @Override
+    @Transactional
     public int deleteLogisticsBillByBillId(Long billId)
     {
+        logisticsBillItemMapper.softDeleteItemsByBillId(billId);
         return logisticsBillMapper.deleteLogisticsBillByBillId(billId);
     }
 
@@ -121,6 +182,37 @@ public class LogisticsBillServiceImpl implements ILogisticsBillService
     {
         LogisticsBillOrderDetail detailQuery = new LogisticsBillOrderDetail();
         detailQuery.setBillId(billId);
-        return new ArrayList<>(logisticsBillOrderDetailMapper.selectLogisticsBillOrderDetailList(detailQuery));
+        List<LogisticsBillOrderDetail> details = logisticsBillOrderDetailMapper.selectLogisticsBillOrderDetailList(detailQuery);
+        return new java.util.ArrayList<>(details);
+    }
+
+    /**
+     * 从货物明细汇总计算主表的 totalWeight、totalAmount
+     */
+    private void computeBillTotalsFromItems(LogisticsBill bill)
+    {
+        List<LogisticsBillItem> items = bill.getBillItems();
+        if (items != null && !items.isEmpty())
+        {
+            BigDecimal totalWeight = BigDecimal.ZERO;
+            BigDecimal totalAmount = BigDecimal.ZERO;
+            for (int i = 0; i < items.size(); i++)
+            {
+                LogisticsBillItem item = items.get(i);
+                if (item.getSortOrder() == null)
+                {
+                    item.setSortOrder(i);
+                }
+                // 自动计算金额
+                if (item.getWeight() != null && item.getUnitPrice() != null)
+                {
+                    item.setAmount(item.getWeight().multiply(item.getUnitPrice()).setScale(2, BigDecimal.ROUND_HALF_UP));
+                }
+                totalWeight = totalWeight.add(item.getWeight() != null ? item.getWeight() : BigDecimal.ZERO);
+                totalAmount = totalAmount.add(item.getAmount() != null ? item.getAmount() : BigDecimal.ZERO);
+            }
+            bill.setTotalWeight(totalWeight);
+            bill.setTotalAmount(totalAmount);
+        }
     }
 }

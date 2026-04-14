@@ -1,8 +1,6 @@
 package com.scm.logistics.domain;
 
 import java.math.BigDecimal;
-import java.util.Date;
-import com.fasterxml.jackson.annotation.JsonFormat;
 import org.apache.commons.lang3.builder.ToStringBuilder;
 import org.apache.commons.lang3.builder.ToStringStyle;
 import com.scm.common.annotation.Excel;
@@ -24,9 +22,16 @@ public class LogisticsBillOrderDetail extends BaseEntity
     /** 提单ID */
     private Long billId;
 
+    /** 提单货物明细ID */
+    private Long billItemId;
+
     /** 提单号（非数据库字段，用于展示） */
     @Excel(name = "提单号")
     private String billNo;
+
+    /** 货物名称（非数据库字段，用于展示） */
+    @Excel(name = "货物名称")
+    private String goodsName;
 
     /** 运单ID */
     private Long orderId;
@@ -67,6 +72,16 @@ public class LogisticsBillOrderDetail extends BaseEntity
         return billId;
     }
 
+    public void setBillItemId(Long billItemId)
+    {
+        this.billItemId = billItemId;
+    }
+
+    public Long getBillItemId()
+    {
+        return billItemId;
+    }
+
     public String getBillNo()
     {
         return billNo;
@@ -75,6 +90,16 @@ public class LogisticsBillOrderDetail extends BaseEntity
     public void setBillNo(String billNo)
     {
         this.billNo = billNo;
+    }
+
+    public String getGoodsName()
+    {
+        return goodsName;
+    }
+
+    public void setGoodsName(String goodsName)
+    {
+        this.goodsName = goodsName;
     }
 
     public void setOrderId(Long orderId)
@@ -132,6 +157,7 @@ public class LogisticsBillOrderDetail extends BaseEntity
         return new ToStringBuilder(this,ToStringStyle.MULTI_LINE_STYLE)
             .append("detailId", getDetailId())
             .append("billId", getBillId())
+            .append("billItemId", getBillItemId())
             .append("orderId", getOrderId())
             .append("allocatedWeight", getAllocatedWeight())
             .append("unitPrice", getUnitPrice())

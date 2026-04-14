@@ -16,19 +16,13 @@ public class AllocationResultVO
     /** 运单号 */
     private String orderNo;
 
-    /** 驾驶员单ID */
-    private Long driverOrderId;
-
-    /** 驾驶员单号 */
-    private String driverOrderNo;
-
     /** 总装车重量 */
     private BigDecimal totalWeight;
 
     /** 总分配金额 */
     private BigDecimal totalAmount;
 
-    /** 创建的提单明细数量 */
+    /** 创建的货物明细数量 */
     private Integer detailCount;
 
     public Long getOrderId()
@@ -49,26 +43,6 @@ public class AllocationResultVO
     public void setOrderNo(String orderNo)
     {
         this.orderNo = orderNo;
-    }
-
-    public Long getDriverOrderId()
-    {
-        return driverOrderId;
-    }
-
-    public void setDriverOrderId(Long driverOrderId)
-    {
-        this.driverOrderId = driverOrderId;
-    }
-
-    public String getDriverOrderNo()
-    {
-        return driverOrderNo;
-    }
-
-    public void setDriverOrderNo(String driverOrderNo)
-    {
-        this.driverOrderNo = driverOrderNo;
     }
 
     public BigDecimal getTotalWeight()
