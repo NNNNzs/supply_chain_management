@@ -7,7 +7,7 @@ scm:
   # 版权年份
   copyrightYear: 2026
   # 文件路径 示例（ Windows配置D:/scm/uploadPath，Linux配置 /home/scm/uploadPath）
-  profile: D:/scm/uploadPath
+  profile: ${RUOYI_PROFILE:/app/uploadPath}
   # 获取ip地址开关
   addressEnabled: false
   # 验证码类型 math 数字计算 char 字符验证
