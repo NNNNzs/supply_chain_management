@@ -11,10 +11,10 @@ services:
       - ./scm-backend.jar:/app/app.jar:ro
       - ./logs:/app/logs
       - ./uploadPath:/app/uploadPath
-      - ./.env:/app/.env:ro
     working_dir: /app
+    env_file:
+      - .env
     environment:
-      SPRING_PROFILES_ACTIVE: prod
       TZ: Asia/Shanghai
       # JVM 参数，可根据需要调整
       JAVA_OPTS: "-Xms512m -Xmx1024m -XX:+UseG1GC"

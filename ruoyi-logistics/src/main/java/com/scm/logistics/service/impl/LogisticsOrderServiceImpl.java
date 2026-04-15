@@ -13,9 +13,9 @@ import com.scm.logistics.domain.LogisticsBill;
 import com.scm.logistics.domain.LogisticsCustomer;
 import com.scm.logistics.domain.LogisticsOrder;
 import com.scm.logistics.mapper.LogisticsBillMapper;
-import com.scm.logistics.mapper.LogisticsBillOrderDetailMapper;
 import com.scm.logistics.mapper.LogisticsCustomerMapper;
 import com.scm.logistics.mapper.LogisticsOrderMapper;
+import com.scm.logistics.service.ILogisticsOrderGoodsService;
 import com.scm.logistics.service.ILogisticsOrderService;
 
 /**
@@ -34,10 +34,7 @@ public class LogisticsOrderServiceImpl implements ILogisticsOrderService
     private LogisticsCustomerMapper customerMapper;
 
     @Autowired
-    private LogisticsBillOrderDetailMapper billOrderDetailMapper;
-
-    @Autowired
-    private LogisticsBillMapper billMapper;
+    private ILogisticsOrderGoodsService orderGoodsService;
 
     /**
      * 查询运输订单
@@ -48,7 +45,14 @@ public class LogisticsOrderServiceImpl implements ILogisticsOrderService
     @Override
     public LogisticsOrder selectOrderById(Long orderId)
     {
-        return orderMapper.selectOrderById(orderId);
+        LogisticsOrder order = orderMapper.selectOrderById(orderId);
+        if (order != null)
+        {
+            // 加载订单货物明细
+            List<com.scm.logistics.domain.LogisticsOrderGoods> goodsList = orderGoodsService.selectLogisticsOrderGoodsByOrderId(orderId);
+            order.setGoodsList(goodsList);
+        }
+        return order;
     }
 
     /**
@@ -70,13 +74,26 @@ public class LogisticsOrderServiceImpl implements ILogisticsOrderService
      * @return 结果
      */
     @Override
+    @Transactional
     public int insertOrder(LogisticsOrder logisticsOrder)
     {
         // 生成订单号
         generateOrderNo(logisticsOrder);
-        // 计算金额
-        calculateAmount(logisticsOrder);
-        return orderMapper.insertOrder(logisticsOrder);
+        // 计算金额（从货物明细汇总）
+        calculateAmountFromGoods(logisticsOrder);
+        // 保存订单
+        int result = orderMapper.insertOrder(logisticsOrder);
+        // 保存货物明细
+        if (logisticsOrder.getGoodsList() != null && !logisticsOrder.getGoodsList().isEmpty())
+        {
+            for (com.scm.logistics.domain.LogisticsOrderGoods goods : logisticsOrder.getGoodsList())
+            {
+                goods.setOrderId(logisticsOrder.getOrderId());
+                goods.setCreateBy(logisticsOrder.getCreateBy());
+            }
+            orderGoodsService.batchSaveOrderGoods(logisticsOrder.getOrderId(), logisticsOrder.getGoodsList());
+        }
+        return result;
     }
 
     /**
@@ -86,6 +103,7 @@ public class LogisticsOrderServiceImpl implements ILogisticsOrderService
      * @return 结果
      */
     @Override
+    @Transactional
     public int updateOrder(LogisticsOrder logisticsOrder)
     {
         // 如果订单号为空，生成订单号
@@ -101,9 +119,21 @@ public class LogisticsOrderServiceImpl implements ILogisticsOrderService
                 throw new ServiceException("修改订单失败，订单号已存在");
             }
         }
-        // 重新计算金额
-        calculateAmount(logisticsOrder);
-        return orderMapper.updateOrder(logisticsOrder);
+        // 重新计算金额（从货物明细汇总）
+        calculateAmountFromGoods(logisticsOrder);
+        // 更新订单
+        int result = orderMapper.updateOrder(logisticsOrder);
+        // 更新货物明细
+        if (logisticsOrder.getGoodsList() != null)
+        {
+            for (com.scm.logistics.domain.LogisticsOrderGoods goods : logisticsOrder.getGoodsList())
+            {
+                goods.setOrderId(logisticsOrder.getOrderId());
+                goods.setUpdateBy(logisticsOrder.getUpdateBy());
+            }
+            orderGoodsService.batchSaveOrderGoods(logisticsOrder.getOrderId(), logisticsOrder.getGoodsList());
+        }
+        return result;
     }
 
     /**
@@ -148,60 +178,11 @@ public class LogisticsOrderServiceImpl implements ILogisticsOrderService
             throw new ServiceException("已结算的订单不能删除");
         }
 
-        // 获取订单关联的提单ID列表
-        List<Long> billIds = billOrderDetailMapper.selectBillIdsByOrderId(orderId);
-
-        // 删除运单的提单关联明细
-        billOrderDetailMapper.deleteDetailsByOrderId(orderId);
-
-        // 更新关联提单的状态和已分配重量
-        for (Long billId : billIds)
-        {
-            updateBillStatusAfterOrderDelete(billId);
-        }
+        // 删除订单货物明细
+        orderGoodsService.deleteLogisticsOrderGoodsByOrderId(orderId);
 
         // 逻辑删除订单
         return orderMapper.deleteOrderById(orderId);
-    }
-
-    /**
-     * 删除订单后更新提单状态和已分配重量
-     *
-     * @param billId 提单ID
-     */
-    private void updateBillStatusAfterOrderDelete(Long billId)
-    {
-        // 重新计算提单的已分配重量
-        Double allocatedWeight = billOrderDetailMapper.sumAllocatedWeightByBillId(billId);
-        LogisticsBill bill = billMapper.selectLogisticsBillByBillId(billId);
-
-        if (bill != null)
-        {
-            // 更新已分配重量
-            bill.setAllocatedWeight(allocatedWeight != null ? BigDecimal.valueOf(allocatedWeight) : BigDecimal.ZERO);
-
-            // 根据已分配重量更新状态
-            if (bill.getTotalWeight() != null)
-            {
-                if (bill.getAllocatedWeight().compareTo(BigDecimal.ZERO) == 0)
-                {
-                    // 没有分配，恢复为待配载
-                    bill.setBillStatus("pending");
-                }
-                else if (bill.getAllocatedWeight().compareTo(bill.getTotalWeight()) < 0)
-                {
-                    // 部分分配
-                    bill.setBillStatus("partial");
-                }
-                else
-                {
-                    // 全部分配
-                    bill.setBillStatus("allocated");
-                }
-            }
-
-            billMapper.updateBillStatusAndWeight(bill);
-        }
     }
 
     /**
@@ -263,6 +244,35 @@ public class LogisticsOrderServiceImpl implements ILogisticsOrderService
         if (logisticsOrder.getWeight() != null && logisticsOrder.getUnitPrice() != null)
         {
             BigDecimal totalAmount = logisticsOrder.getWeight().multiply(logisticsOrder.getUnitPrice());
+            logisticsOrder.setTotalAmount(totalAmount);
+        }
+    }
+
+    /**
+     * 从货物明细汇总计算订单金额和重量
+     *
+     * @param logisticsOrder 运输订单
+     */
+    private void calculateAmountFromGoods(LogisticsOrder logisticsOrder)
+    {
+        if (logisticsOrder.getGoodsList() != null && !logisticsOrder.getGoodsList().isEmpty())
+        {
+            BigDecimal totalWeight = BigDecimal.ZERO;
+            BigDecimal totalAmount = BigDecimal.ZERO;
+
+            for (com.scm.logistics.domain.LogisticsOrderGoods goods : logisticsOrder.getGoodsList())
+            {
+                if (goods.getWeight() != null)
+                {
+                    totalWeight = totalWeight.add(goods.getWeight());
+                }
+                if (goods.getAmount() != null)
+                {
+                    totalAmount = totalAmount.add(goods.getAmount());
+                }
+            }
+
+            logisticsOrder.setTotalWeight(totalWeight);
             logisticsOrder.setTotalAmount(totalAmount);
         }
     }

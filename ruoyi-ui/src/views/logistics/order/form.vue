@@ -41,41 +41,64 @@
           </el-col>
         </el-row>
 
-        <el-divider content-position="left">货物信息</el-divider>
+        <el-divider content-position="left">
+          货物明细
+          <el-button type="primary" size="small" icon="Plus" style="margin-left: 10px" @click="addGoodsItem">添加货物</el-button>
+        </el-divider>
 
-        <el-row>
-          <el-col :span="12">
-            <el-form-item label="货物" prop="goodsId">
-              <el-select v-model="form.goodsId" placeholder="请选择货物" filterable clearable style="width: 100%" @change="handleGoodsChange">
+        <el-table :data="form.goodsList" border style="width: 100%">
+          <el-table-column type="index" width="50" label="序号" align="center" />
+          <el-table-column label="货物" min-width="150">
+            <template #default="scope">
+              <el-select v-model="scope.row.goodsId" placeholder="请选择货物" filterable style="width: 100%" @change="(val) => handleGoodsItemChange(scope.$index, val)">
                 <el-option v-for="item in goodsOptions" :key="item.goodsId" :label="item.goodsName" :value="item.goodsId" />
               </el-select>
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="货物型号">
-              <el-input v-model="form.goodsModel" placeholder="请输入货物型号" maxlength="100" />
-            </el-form-item>
-          </el-col>
-        </el-row>
-        <el-row>
+            </template>
+          </el-table-column>
+          <el-table-column label="货物型号" min-width="120">
+            <template #default="scope">
+              <el-input v-model="scope.row.goodsModel" placeholder="请输入货物型号" />
+            </template>
+          </el-table-column>
+          <el-table-column label="计量单位" width="100">
+            <template #default="scope">
+              <el-input v-model="scope.row.goodsUnit" placeholder="单位" />
+            </template>
+          </el-table-column>
+          <el-table-column label="重量(吨)" width="130">
+            <template #default="scope">
+              <el-input-number v-model="scope.row.weight" :min="0" :precision="3" :controls="false" style="width: 100%" @change="calculateGoodsItemAmount(scope.$index)" />
+            </template>
+          </el-table-column>
+          <el-table-column label="单价(元/吨)" width="140">
+            <template #default="scope">
+              <el-input-number v-model="scope.row.unitPrice" :min="0" :precision="2" :controls="false" style="width: 100%" @change="calculateGoodsItemAmount(scope.$index)" />
+            </template>
+          </el-table-column>
+          <el-table-column label="金额(元)" width="120">
+            <template #default="scope">
+              <el-input v-model="scope.row.amount" disabled />
+            </template>
+          </el-table-column>
+          <el-table-column label="操作" width="80" align="center">
+            <template #default="scope">
+              <el-button type="danger" icon="Delete" circle size="small" @click="removeGoodsItem(scope.$index)" :disabled="form.goodsList.length === 1" />
+            </template>
+          </el-table-column>
+        </el-table>
+
+        <el-row style="margin-top: 15px">
           <el-col :span="8">
-            <el-form-item label="重量(吨)" prop="weight">
-              <el-input-number v-model="form.weight" :min="0" :precision="3" :controls="false" style="width: 100%" @change="calculateAmount" />
-            </el-form-item>
-          </el-col>
-          <el-col :span="8">
-            <el-form-item label="运价(元/吨)" prop="unitPrice">
-              <el-input-number v-model="form.unitPrice" :min="0" :precision="2" :controls="false" style="width: 100%" @change="calculateAmount" />
+            <el-form-item label="总重量(吨)">
+              <el-input v-model="totalWeight" disabled />
             </el-form-item>
           </el-col>
           <el-col :span="8">
             <el-form-item label="总金额(元)">
-              <el-input v-model="computedAmount" disabled />
+              <el-input v-model="totalAmount" disabled />
             </el-form-item>
           </el-col>
-        </el-row>
-        <el-row>
-          <el-col :span="12">
+          <el-col :span="8">
             <el-form-item label="代垫付金额">
               <el-input-number v-model="form.advancePayment" :min="0" :precision="2" :controls="false" style="width: 100%" />
             </el-form-item>
@@ -151,10 +174,20 @@ const customerOptions = ref([])
 const goodsOptions = ref([])
 const driverOptions = ref([])
 
-const computedAmount = computed(() => {
-  const weight = form.value.weight || 0
-  const unitPrice = form.value.unitPrice || 0
-  return (weight * unitPrice).toFixed(2)
+const totalWeight = computed(() => {
+  let total = 0
+  form.value.goodsList.forEach(item => {
+    total += (item.weight || 0)
+  })
+  return total.toFixed(3)
+})
+
+const totalAmount = computed(() => {
+  let total = 0
+  form.value.goodsList.forEach(item => {
+    total += (item.amount || 0)
+  })
+  return total.toFixed(2)
 })
 
 const data = reactive({
@@ -164,11 +197,10 @@ const data = reactive({
     customerId: null,
     loadingAddress: null,
     unloadingAddress: null,
-    goodsId: null,
-    goodsName: null,
-    goodsModel: null,
-    weight: null,
-    unitPrice: null,
+    goodsList: [
+      { goodsId: null, goodsName: null, goodsModel: null, goodsUnit: null, weight: null, unitPrice: null, amount: 0 }
+    ],
+    totalWeight: 0,
     totalAmount: 0,
     advancePayment: 0,
     vehiclePlate: null,
@@ -191,12 +223,6 @@ const data = reactive({
     ],
     unloadingAddress: [
       { required: true, message: "卸货地址不能为空", trigger: "blur" }
-    ],
-    weight: [
-      { required: true, message: "重量不能为空", trigger: "blur" }
-    ],
-    unitPrice: [
-      { required: true, message: "运价不能为空", trigger: "blur" }
     ]
   }
 })
@@ -217,24 +243,47 @@ function getGoodsList() {
 
 function getDriverList() {
   listDriver({ status: "0", pageNum: 1, pageSize: 1000 }).then(response => {
-    driverOptions.value = response.rows
+    driverOptions.value = response.rows.filter(item => !item.isGroup)
   })
 }
 
-function calculateAmount() {
-  if (form.value.weight && form.value.unitPrice) {
-    form.value.totalAmount = form.value.weight * form.value.unitPrice
+function addGoodsItem() {
+  form.value.goodsList.push({
+    goodsId: null,
+    goodsName: null,
+    goodsModel: null,
+    goodsUnit: null,
+    weight: null,
+    unitPrice: null,
+    amount: 0
+  })
+}
+
+function removeGoodsItem(index) {
+  if (form.value.goodsList.length > 1) {
+    form.value.goodsList.splice(index, 1)
   }
 }
 
-function handleGoodsChange(goodsId) {
+function handleGoodsItemChange(index, goodsId) {
   const goods = goodsOptions.value.find(item => item.goodsId === goodsId)
   if (goods) {
-    form.value.goodsName = goods.goodsName
+    form.value.goodsList[index].goodsName = goods.goodsName
+    form.value.goodsList[index].goodsModel = goods.goodsModel
+    form.value.goodsList[index].goodsUnit = goods.goodsUnit
     if (goods.unitPrice) {
-      form.value.unitPrice = goods.unitPrice
-      calculateAmount()
+      form.value.goodsList[index].unitPrice = goods.unitPrice
+      calculateGoodsItemAmount(index)
     }
+  }
+}
+
+function calculateGoodsItemAmount(index) {
+  const item = form.value.goodsList[index]
+  if (item.weight && item.unitPrice) {
+    item.amount = item.weight * item.unitPrice
+  } else {
+    item.amount = 0
   }
 }
 
@@ -249,7 +298,14 @@ function handleDriverChange(driverId) {
 function loadOrderData() {
   if (orderId.value) {
     getOrder(orderId.value).then(response => {
-      form.value = response.data
+      const data = response.data
+      // 确保货物明细列表存在
+      if (!data.goodsList || data.goodsList.length === 0) {
+        data.goodsList = [
+          { goodsId: null, goodsName: null, goodsModel: null, goodsUnit: null, weight: null, unitPrice: null, amount: 0 }
+        ]
+      }
+      form.value = data
     })
   }
 }
@@ -257,6 +313,17 @@ function loadOrderData() {
 function submitForm() {
   proxy.$refs.orderRef.validate(valid => {
     if (valid) {
+      // 验证货物明细
+      const hasValidGoods = form.value.goodsList.some(item => item.goodsId && item.weight && item.unitPrice)
+      if (!hasValidGoods) {
+        proxy.$modal.msgWarning("请至少添加一个有效的货物明细")
+        return
+      }
+
+      // 计算总重量和总金额
+      form.value.totalWeight = parseFloat(totalWeight.value)
+      form.value.totalAmount = parseFloat(totalAmount.value)
+
       const apiCall = isEdit.value ? updateOrder(form.value) : addOrder(form.value)
       apiCall.then(response => {
         proxy.$modal.msgSuccess(isEdit.value ? "修改成功" : "新增成功")

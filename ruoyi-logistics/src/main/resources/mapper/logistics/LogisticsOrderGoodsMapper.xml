@@ -1,0 +1,135 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.scm.logistics.mapper.LogisticsOrderGoodsMapper">
+
+    <resultMap type="LogisticsOrderGoods" id="LogisticsOrderGoodsResult">
+        <result property="detailId"       column="detail_id"       />
+        <result property="orderId"        column="order_id"        />
+        <result property="goodsId"        column="goods_id"        />
+        <result property="goodsName"      column="goods_name"      />
+        <result property="goodsModel"     column="goods_model"     />
+        <result property="goodsUnit"      column="goods_unit"      />
+        <result property="weight"         column="weight"          />
+        <result property="unitPrice"      column="unit_price"      />
+        <result property="amount"         column="amount"          />
+        <result property="remark"         column="remark"          />
+        <result property="delFlag"        column="del_flag"        />
+        <result property="createBy"       column="create_by"       />
+        <result property="createTime"     column="create_time"     />
+        <result property="updateBy"       column="update_by"       />
+        <result property="updateTime"     column="update_time"     />
+    </resultMap>
+
+    <sql id="selectLogisticsOrderGoodsVo">
+        select detail_id, order_id, goods_id, goods_name, goods_model, goods_unit, weight, unit_price, amount, remark, del_flag, create_by, create_time, update_by, update_time
+        from logistics_order_goods
+    </sql>
+
+    <select id="selectLogisticsOrderGoodsList" parameterType="LogisticsOrderGoods" resultMap="LogisticsOrderGoodsResult">
+        <include refid="selectLogisticsOrderGoodsVo"/>
+        <where>
+            and del_flag = '0'
+            <if test="orderId != null">
+                and order_id = #{orderId}
+            </if>
+            <if test="goodsId != null">
+                and goods_id = #{goodsId}
+            </if>
+            <if test="goodsName != null and goodsName != ''">
+                and goods_name like concat('%', #{goodsName}, '%')
+            </if>
+        </where>
+        order by detail_id desc
+    </select>
+
+    <select id="selectLogisticsOrderGoodsByDetailId" parameterType="Long" resultMap="LogisticsOrderGoodsResult">
+        <include refid="selectLogisticsOrderGoodsVo"/>
+        where detail_id = #{detailId} and del_flag = '0'
+    </select>
+
+    <select id="selectLogisticsOrderGoodsByOrderId" parameterType="Long" resultMap="LogisticsOrderGoodsResult">
+        <include refid="selectLogisticsOrderGoodsVo"/>
+        where order_id = #{orderId} and del_flag = '0'
+        order by detail_id
+    </select>
+
+    <insert id="insertLogisticsOrderGoods" parameterType="LogisticsOrderGoods" useGeneratedKeys="true" keyProperty="detailId">
+        insert into logistics_order_goods
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="orderId != null">order_id,</if>
+            <if test="goodsId != null">goods_id,</if>
+            <if test="goodsName != null and goodsName != ''">goods_name,</if>
+            <if test="goodsModel != null">goods_model,</if>
+            <if test="goodsUnit != null">goods_unit,</if>
+            <if test="weight != null">weight,</if>
+            <if test="unitPrice != null">unit_price,</if>
+            <if test="amount != null">amount,</if>
+            <if test="remark != null">remark,</if>
+            <if test="delFlag != null">del_flag,</if>
+            <if test="createBy != null">create_by,</if>
+            <if test="createTime != null">create_time,</if>
+            <if test="updateBy != null">update_by,</if>
+            <if test="updateTime != null">update_time,</if>
+         </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="orderId != null">#{orderId},</if>
+            <if test="goodsId != null">#{goodsId},</if>
+            <if test="goodsName != null and goodsName != ''">#{goodsName},</if>
+            <if test="goodsModel != null">#{goodsModel},</if>
+            <if test="goodsUnit != null">#{goodsUnit},</if>
+            <if test="weight != null">#{weight},</if>
+            <if test="unitPrice != null">#{unitPrice},</if>
+            <if test="amount != null">#{amount},</if>
+            <if test="remark != null">#{remark},</if>
+            <if test="delFlag != null">#{delFlag},</if>
+            <if test="createBy != null">#{createBy},</if>
+            <if test="createTime != null">#{createTime},</if>
+            <if test="updateBy != null">#{updateBy},</if>
+            <if test="updateTime != null">#{updateTime},</if>
+         </trim>
+    </insert>
+
+    <insert id="batchInsertLogisticsOrderGoods" parameterType="java.util.List">
+        insert into logistics_order_goods (order_id, goods_id, goods_name, goods_model, goods_unit, weight, unit_price, amount, remark, del_flag, create_by, create_time)
+        values
+        <foreach collection="list" item="item" separator=",">
+            (#{item.orderId}, #{item.goodsId}, #{item.goodsName}, #{item.goodsModel}, #{item.goodsUnit}, #{item.weight}, #{item.unitPrice}, #{item.amount}, #{item.remark}, '0', #{item.createBy}, now())
+        </foreach>
+    </insert>
+
+    <update id="updateLogisticsOrderGoods" parameterType="LogisticsOrderGoods">
+        update logistics_order_goods
+        <trim prefix="SET" suffixOverrides=",">
+            <if test="orderId != null">order_id = #{orderId},</if>
+            <if test="goodsId != null">goods_id = #{goodsId},</if>
+            <if test="goodsName != null and goodsName != ''">goods_name = #{goodsName},</if>
+            <if test="goodsModel != null">goods_model = #{goodsModel},</if>
+            <if test="goodsUnit != null">goods_unit = #{goodsUnit},</if>
+            <if test="weight != null">weight = #{weight},</if>
+            <if test="unitPrice != null">unit_price = #{unitPrice},</if>
+            <if test="amount != null">amount = #{amount},</if>
+            <if test="remark != null">remark = #{remark},</if>
+            <if test="updateBy != null">update_by = #{updateBy},</if>
+            update_time = now()
+        </trim>
+        where detail_id = #{detailId}
+    </update>
+
+    <delete id="deleteLogisticsOrderGoodsByDetailId" parameterType="Long">
+        update logistics_order_goods set del_flag = '2' where detail_id = #{detailId}
+    </delete>
+
+    <delete id="deleteLogisticsOrderGoodsByDetailIds" parameterType="Long">
+        update logistics_order_goods set del_flag = '2' where detail_id in
+        <foreach item="detailId" collection="array" open="(" separator="," close=")">
+            #{detailId}
+        </foreach>
+    </delete>
+
+    <delete id="deleteLogisticsOrderGoodsByOrderId" parameterType="Long">
+        update logistics_order_goods set del_flag = '2' where order_id = #{orderId}
+    </delete>
+
+</mapper>

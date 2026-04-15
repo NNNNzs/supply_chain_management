@@ -38,6 +38,18 @@ public class LogisticsDriver extends BaseEntity
     @Excel(name = "驾驶证号")
     private String driverLicense;
 
+    /** 司机类型（individual个人，fleet车队） */
+    @Excel(name = "司机类型", readConverterExp = "individual=个人司机,fleet=车队司机")
+    private String driverType;
+
+    /** 车队老板姓名 */
+    @Excel(name = "车队老板姓名")
+    private String fleetOwnerName;
+
+    /** 老板联系电话 */
+    @Excel(name = "老板联系电话")
+    private String fleetOwnerPhone;
+
     /** 常用车牌号 */
     @Excel(name = "常用车牌号")
     private String vehiclePlate;
@@ -53,6 +65,18 @@ public class LogisticsDriver extends BaseEntity
     /** 账户姓名 */
     @Excel(name = "账户姓名")
     private String accountName;
+
+    /** 车队开票账户名称 */
+    @Excel(name = "车队开票账户名称")
+    private String fleetAccountName;
+
+    /** 车队开票账号 */
+    @Excel(name = "车队开票账号")
+    private String fleetAccountNumber;
+
+    /** 车队开户行 */
+    @Excel(name = "车队开户行")
+    private String fleetBankName;
 
     /** 状态（0正常 1停用） */
     @Excel(name = "状态", readConverterExp = "0=正常,1=停用")
@@ -121,6 +145,36 @@ public class LogisticsDriver extends BaseEntity
         return driverLicense;
     }
 
+    public void setDriverType(String driverType)
+    {
+        this.driverType = driverType;
+    }
+
+    public String getDriverType()
+    {
+        return driverType;
+    }
+
+    public void setFleetOwnerName(String fleetOwnerName)
+    {
+        this.fleetOwnerName = fleetOwnerName;
+    }
+
+    public String getFleetOwnerName()
+    {
+        return fleetOwnerName;
+    }
+
+    public void setFleetOwnerPhone(String fleetOwnerPhone)
+    {
+        this.fleetOwnerPhone = fleetOwnerPhone;
+    }
+
+    public String getFleetOwnerPhone()
+    {
+        return fleetOwnerPhone;
+    }
+
     public void setVehiclePlate(String vehiclePlate)
     {
         this.vehiclePlate = vehiclePlate;
@@ -161,6 +215,36 @@ public class LogisticsDriver extends BaseEntity
         return accountName;
     }
 
+    public void setFleetAccountName(String fleetAccountName)
+    {
+        this.fleetAccountName = fleetAccountName;
+    }
+
+    public String getFleetAccountName()
+    {
+        return fleetAccountName;
+    }
+
+    public void setFleetAccountNumber(String fleetAccountNumber)
+    {
+        this.fleetAccountNumber = fleetAccountNumber;
+    }
+
+    public String getFleetAccountNumber()
+    {
+        return fleetAccountNumber;
+    }
+
+    public void setFleetBankName(String fleetBankName)
+    {
+        this.fleetBankName = fleetBankName;
+    }
+
+    public String getFleetBankName()
+    {
+        return fleetBankName;
+    }
+
     public void setStatus(String status)
     {
         this.status = status;
@@ -190,10 +274,16 @@ public class LogisticsDriver extends BaseEntity
             .append("driverPhone", getDriverPhone())
             .append("idCard", getIdCard())
             .append("driverLicense", getDriverLicense())
+            .append("driverType", getDriverType())
+            .append("fleetOwnerName", getFleetOwnerName())
+            .append("fleetOwnerPhone", getFleetOwnerPhone())
             .append("vehiclePlate", getVehiclePlate())
             .append("bankAccount", getBankAccount())
             .append("bankName", getBankName())
             .append("accountName", getAccountName())
+            .append("fleetAccountName", getFleetAccountName())
+            .append("fleetAccountNumber", getFleetAccountNumber())
+            .append("fleetBankName", getFleetBankName())
             .append("status", getStatus())
             .append("delFlag", getDelFlag())
             .append("createBy", getCreateBy())

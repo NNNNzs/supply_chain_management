@@ -2,6 +2,7 @@ package com.scm.logistics.domain;
 
 import java.math.BigDecimal;
 import java.util.Date;
+import java.util.List;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
@@ -131,6 +132,9 @@ public class LogisticsOrder extends BaseEntity
 
     /** 派车状态（not_dispatched未派车，partial_dispatched部分派车，dispatched已派车） */
     private String dispatchStatus;
+
+    /** 货物明细列表（非数据库字段） */
+    private List<LogisticsOrderGoods> goodsList;
 
     public void setOrderId(Long orderId)
     {
@@ -512,6 +516,16 @@ public class LogisticsOrder extends BaseEntity
     public void setDispatchStatus(String dispatchStatus)
     {
         this.dispatchStatus = dispatchStatus;
+    }
+
+    public List<LogisticsOrderGoods> getGoodsList()
+    {
+        return goodsList;
+    }
+
+    public void setGoodsList(List<LogisticsOrderGoods> goodsList)
+    {
+        this.goodsList = goodsList;
     }
 
     @Override

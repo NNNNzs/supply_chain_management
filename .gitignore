@@ -47,3 +47,4 @@ nbdist/
 !*/build/*.xml
 
 .env
+.token
