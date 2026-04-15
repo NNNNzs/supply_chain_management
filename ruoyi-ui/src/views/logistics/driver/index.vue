@@ -1,27 +1,14 @@
 <template>
   <div class="app-container">
     <el-form :model="queryParams" ref="queryRef" :inline="true" v-show="showSearch" label-width="68px">
-      <el-form-item label="司机编码" prop="driverCode">
+      <el-form-item label="搜索" prop="keyword">
         <el-input
-          v-model="queryParams.driverCode"
-          placeholder="请输入司机编码"
+          v-model="queryParams.keyword"
+          placeholder="搜索车队名称或司机姓名"
           clearable
           @keyup.enter="handleQuery"
+          style="width: 200px"
         />
-      </el-form-item>
-      <el-form-item label="司机姓名" prop="driverName">
-        <el-input
-          v-model="queryParams.driverName"
-          placeholder="请输入司机姓名"
-          clearable
-          @keyup.enter="handleQuery"
-        />
-      </el-form-item>
-      <el-form-item label="司机类型" prop="driverType">
-        <el-select v-model="queryParams.driverType" placeholder="请选择司机类型" clearable>
-          <el-option label="个人司机" value="individual" />
-          <el-option label="车队司机" value="fleet" />
-        </el-select>
       </el-form-item>
       <el-form-item label="状态" prop="status">
         <el-select v-model="queryParams.status" placeholder="请选择状态" clearable>
@@ -41,29 +28,18 @@
           type="primary"
           plain
           icon="Plus"
-          @click="handleAdd"
+          @click="handleAddFleet"
           v-hasPermi="['logistics:driver:add']"
-        >新增</el-button>
+        >新增车队</el-button>
       </el-col>
       <el-col :span="1.5">
         <el-button
           type="success"
           plain
-          icon="Edit"
-          :disabled="single"
-          @click="handleUpdate"
-          v-hasPermi="['logistics:driver:edit']"
-        >修改</el-button>
-      </el-col>
-      <el-col :span="1.5">
-        <el-button
-          type="danger"
-          plain
-          icon="Delete"
-          :disabled="multiple"
-          @click="handleDelete"
-          v-hasPermi="['logistics:driver:remove']"
-        >删除</el-button>
+          icon="Plus"
+          @click="handleAddDriver"
+          v-hasPermi="['logistics:driver:add']"
+        >新增司机</el-button>
       </el-col>
       <el-col :span="1.5">
         <el-button
@@ -74,78 +50,152 @@
           v-hasPermi="['logistics:driver:export']"
         >导出</el-button>
       </el-col>
-      <right-toolbar v-model:showSearch="showSearch" @queryTable="getList"></right-toolbar>
+      <right-toolbar v-model:showSearch="showSearch" @queryTable="getTreeList"></right-toolbar>
     </el-row>
 
     <el-table
       v-loading="loading"
-      :data="driverList"
-      row-key="driverId"
+      :data="treeData"
+      row-key="id"
       :tree-props="{ children: 'children', hasChildren: 'hasChildren' }"
       :default-expand-all="false"
-      @selection-change="handleSelectionChange"
+      style="width: 100%"
     >
-      <el-table-column type="selection" width="55" align="center" />
-      <el-table-column label="司机编码" align="center" prop="driverCode" width="120" />
-      <el-table-column label="司机姓名" align="center" prop="driverName" width="120" />
-      <el-table-column label="司机电话" align="center" prop="driverPhone" width="130" />
-      <el-table-column label="司机类型" align="center" prop="driverType" width="100">
+      <el-table-column label="名称" min-width="180" show-overflow-tooltip>
         <template #default="scope">
-          <el-tag v-if="!scope.row.isGroup" :type="scope.row.driverType === 'individual' ? 'success' : 'warning'">
-            {{ scope.row.driverType === 'individual' ? '个人司机' : '车队司机' }}
-          </el-tag>
-          <el-tag v-else type="info">{{ scope.row.label }}</el-tag>
+          <span class="table-cell">
+            <el-icon v-if="scope.row.type === 'fleet'" color="#409EFF" :size="16" style="margin-right: 6px; vertical-align: -2px;"><OfficeBuilding /></el-icon>
+            <el-icon v-else color="#67C23A" :size="16" style="margin-right: 6px; vertical-align: -2px;"><User /></el-icon>
+            <span>{{ scope.row.type === 'fleet' ? scope.row.fleetName : scope.row.driverName }}</span>
+          </span>
         </template>
       </el-table-column>
-      <el-table-column label="常用车牌号" align="center" prop="vehiclePlate" width="120" />
-      <el-table-column label="车队老板" align="center" prop="fleetOwnerName" width="100">
+      <el-table-column label="类型" align="center" width="90">
         <template #default="scope">
-          <span v-if="scope.row.driverType === 'fleet'">{{ scope.row.fleetOwnerName }}</span>
+          <el-tag v-if="scope.row.type === 'fleet'" type="warning" size="small">车队</el-tag>
+          <el-tag v-else-if="scope.row.driverType === 'individual'" type="success" size="small">个人</el-tag>
+          <el-tag v-else type="info" size="small">车队</el-tag>
         </template>
       </el-table-column>
-      <el-table-column label="银行信息" align="center" width="200">
+      <el-table-column label="联系电话" align="center" width="125">
         <template #default="scope">
-          <div v-if="scope.row.driverType === 'individual' && !scope.row.isGroup">
-            <div>{{ scope.row.bankName }}</div>
-            <div class="text-xs text-gray-500">{{ scope.row.bankAccount }}</div>
+          <span v-if="scope.row.type === 'fleet'">{{ scope.row.ownerPhone || '-' }}</span>
+          <span v-else>{{ scope.row.driverPhone || '-' }}</span>
+        </template>
+      </el-table-column>
+      <el-table-column label="车牌号" align="center" width="100">
+        <template #default="scope">
+          <span v-if="scope.row.type === 'driver'">{{ scope.row.vehiclePlate || '-' }}</span>
+          <span v-else>-</span>
+        </template>
+      </el-table-column>
+      <el-table-column label="结算账户" align="center" min-width="180" show-overflow-tooltip>
+        <template #default="scope">
+          <span v-if="scope.row.type === 'fleet' && scope.row.accountName">{{ scope.row.accountName }}</span>
+          <span v-else-if="scope.row.type === 'driver' && scope.row.driverType === 'individual' && scope.row.bankName">{{ scope.row.bankName }}</span>
+          <span v-else-if="scope.row.type === 'driver' && scope.row.driverType === 'fleet'">车队结算</span>
+          <span v-else class="text-gray-400">未设置</span>
+        </template>
+      </el-table-column>
+      <el-table-column label="司机数" align="center" width="80">
+        <template #default="scope">
+          <span v-if="scope.row.type === 'fleet'">{{ scope.row.driverCount || 0 }}</span>
+          <span v-else>-</span>
+        </template>
+      </el-table-column>
+      <el-table-column label="状态" align="center" width="75">
+        <template #default="scope">
+          <el-tag v-if="scope.row.status === '0'" type="success" size="small">正常</el-tag>
+          <el-tag v-else type="danger" size="small">停用</el-tag>
+        </template>
+      </el-table-column>
+      <el-table-column label="操作" align="center" width="130" fixed="right">
+        <template #default="scope">
+          <div class="table-actions">
+            <el-button
+              link
+              type="primary"
+              @click="scope.row.type === 'fleet' ? handleEditFleet(scope.row) : handleEditDriver(scope.row)"
+              v-hasPermi="['logistics:driver:edit']"
+            >编辑</el-button>
+            <el-button
+              link
+              type="danger"
+              @click="scope.row.type === 'fleet' ? handleDeleteFleet(scope.row) : handleDeleteDriver(scope.row)"
+              v-hasPermi="['logistics:driver:remove']"
+            >删除</el-button>
           </div>
-          <div v-else-if="scope.row.driverType === 'fleet' && !scope.row.isGroup">
-            <div>{{ scope.row.fleetBankName }}</div>
-            <div class="text-xs text-gray-500">{{ scope.row.fleetAccountNumber }}</div>
-          </div>
-        </template>
-      </el-table-column>
-      <el-table-column label="状态" align="center" prop="status" width="80">
-        <template #default="scope">
-          <el-tag v-if="!scope.row.isGroup && scope.row.status === '0'" type="success">正常</el-tag>
-          <el-tag v-else-if="!scope.row.isGroup" type="danger">停用</el-tag>
-        </template>
-      </el-table-column>
-      <el-table-column label="操作" align="center" class-name="small-padding fixed-width" width="180" fixed="right">
-        <template #default="scope">
-          <template v-if="!scope.row.isGroup">
-            <el-button link type="primary" icon="Edit" @click="handleUpdate(scope.row)" v-hasPermi="['logistics:driver:edit']">修改</el-button>
-            <el-button link type="primary" icon="Delete" @click="handleDelete(scope.row)" v-hasPermi="['logistics:driver:remove']">删除</el-button>
-          </template>
         </template>
       </el-table-column>
     </el-table>
 
-    <pagination
-      v-show="total>0"
-      :total="total"
-      v-model:page="queryParams.pageNum"
-      v-model:limit="queryParams.pageSize"
-      @pagination="getList"
-    />
+    <!-- 车队表单对话框 -->
+    <el-dialog :title="fleetTitle" v-model="fleetOpen" width="700px" append-to-body>
+      <el-form ref="fleetRef" :model="fleetForm" :rules="fleetRules" label-width="120px">
+        <el-row>
+          <el-col :span="12">
+            <el-form-item label="车队名称" prop="fleetName">
+              <el-input v-model="fleetForm.fleetName" placeholder="请输入车队名称" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="状态" prop="status">
+              <el-radio-group v-model="fleetForm.status">
+                <el-radio label="0">正常</el-radio>
+                <el-radio label="1">停用</el-radio>
+              </el-radio-group>
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="车队老板姓名" prop="ownerName">
+              <el-input v-model="fleetForm.ownerName" placeholder="请输入车队老板姓名" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="老板联系电话" prop="ownerPhone">
+              <el-input v-model="fleetForm.ownerPhone" placeholder="请输入老板联系电话" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="24">
+            <el-divider content-position="left">结算账户信息</el-divider>
+          </el-col>
+          <el-col :span="24">
+            <el-form-item label="车队开票账户" prop="accountName">
+              <el-input v-model="fleetForm.accountName" placeholder="请输入车队开票账户名称（公司名称或个体户名称）" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="开票账号" prop="accountNumber">
+              <el-input v-model="fleetForm.accountNumber" placeholder="请输入车队开票账号" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="开户行" prop="bankName">
+              <el-input v-model="fleetForm.bankName" placeholder="请输入车队开户行" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="24">
+            <el-form-item label="备注" prop="remark">
+              <el-input v-model="fleetForm.remark" type="textarea" placeholder="请输入内容" />
+            </el-form-item>
+          </el-col>
+        </el-row>
+      </el-form>
+      <template #footer>
+        <div class="dialog-footer">
+          <el-button type="primary" @click="submitFleetForm">确 定</el-button>
+          <el-button @click="cancelFleet">取 消</el-button>
+        </div>
+      </template>
+    </el-dialog>
 
-    <!-- 添加或修改司机信息对话框 -->
-    <el-dialog :title="title" v-model="open" width="900px" append-to-body>
-      <el-form ref="driverRef" :model="form" :rules="rules" label-width="120px">
+    <!-- 司机表单对话框 -->
+    <el-dialog :title="driverTitle" v-model="driverOpen" width="800px" append-to-body>
+      <el-form ref="driverRef" :model="driverForm" :rules="driverRules" label-width="120px">
         <el-row>
           <el-col :span="12">
             <el-form-item label="司机类型" prop="driverType">
-              <el-radio-group v-model="form.driverType" @change="handleDriverTypeChange">
+              <el-radio-group v-model="driverForm.driverType" @change="handleDriverTypeChange">
                 <el-radio label="individual">个人司机</el-radio>
                 <el-radio label="fleet">车队司机</el-radio>
               </el-radio-group>
@@ -153,102 +203,87 @@
           </el-col>
           <el-col :span="12">
             <el-form-item label="状态" prop="status">
-              <el-radio-group v-model="form.status">
+              <el-radio-group v-model="driverForm.status">
                 <el-radio label="0">正常</el-radio>
                 <el-radio label="1">停用</el-radio>
               </el-radio-group>
             </el-form-item>
           </el-col>
           <el-col :span="12">
-            <el-form-item label="司机编码" prop="driverCode">
-              <el-input v-model="form.driverCode" placeholder="请输入司机编码" />
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
             <el-form-item label="司机姓名" prop="driverName">
-              <el-input v-model="form.driverName" placeholder="请输入司机姓名" />
+              <el-input v-model="driverForm.driverName" placeholder="请输入司机姓名" />
             </el-form-item>
           </el-col>
           <el-col :span="12">
             <el-form-item label="司机电话" prop="driverPhone">
-              <el-input v-model="form.driverPhone" placeholder="请输入司机电话" />
+              <el-input v-model="driverForm.driverPhone" placeholder="请输入司机电话" />
             </el-form-item>
           </el-col>
           <el-col :span="12">
             <el-form-item label="身份证号" prop="idCard">
-              <el-input v-model="form.idCard" placeholder="请输入身份证号" />
+              <el-input v-model="driverForm.idCard" placeholder="请输入身份证号" />
             </el-form-item>
           </el-col>
           <el-col :span="12">
             <el-form-item label="驾驶证号" prop="driverLicense">
-              <el-input v-model="form.driverLicense" placeholder="请输入驾驶证号" />
+              <el-input v-model="driverForm.driverLicense" placeholder="请输入驾驶证号" />
             </el-form-item>
           </el-col>
           <el-col :span="12">
             <el-form-item label="常用车牌号" prop="vehiclePlate">
-              <el-input v-model="form.vehiclePlate" placeholder="请输入常用车牌号" />
+              <el-input v-model="driverForm.vehiclePlate" placeholder="请输入常用车牌号" />
             </el-form-item>
           </el-col>
 
-          <!-- 个人司机字段 -->
-          <template v-if="form.driverType === 'individual'">
+          <!-- 车队司机：选择车队 -->
+          <template v-if="driverForm.driverType === 'fleet'">
             <el-col :span="12">
-              <el-form-item label="银行账号" prop="bankAccount">
-                <el-input v-model="form.bankAccount" placeholder="请输入银行账号" />
-              </el-form-item>
-            </el-col>
-            <el-col :span="12">
-              <el-form-item label="开户行" prop="bankName">
-                <el-input v-model="form.bankName" placeholder="请输入开户行" />
-              </el-form-item>
-            </el-col>
-            <el-col :span="12">
-              <el-form-item label="账户姓名" prop="accountName">
-                <el-input v-model="form.accountName" placeholder="请输入账户姓名" />
+              <el-form-item label="所属车队" prop="fleetId">
+                <el-select v-model="driverForm.fleetId" placeholder="请选择车队" clearable filterable>
+                  <el-option
+                    v-for="fleet in fleetList"
+                    :key="fleet.fleetId"
+                    :label="fleet.fleetName"
+                    :value="fleet.fleetId"
+                  />
+                </el-select>
               </el-form-item>
             </el-col>
           </template>
 
-          <!-- 车队司机字段 -->
-          <template v-if="form.driverType === 'fleet'">
+          <!-- 个人司机：银行账户信息 -->
+          <template v-if="driverForm.driverType === 'individual'">
+            <el-col :span="24">
+              <el-divider content-position="left">结算账户信息</el-divider>
+            </el-col>
             <el-col :span="12">
-              <el-form-item label="车队老板姓名" prop="fleetOwnerName">
-                <el-input v-model="form.fleetOwnerName" placeholder="请输入车队老板姓名" />
+              <el-form-item label="银行账号" prop="bankAccount">
+                <el-input v-model="driverForm.bankAccount" placeholder="请输入银行账号" />
               </el-form-item>
             </el-col>
             <el-col :span="12">
-              <el-form-item label="老板联系电话" prop="fleetOwnerPhone">
-                <el-input v-model="form.fleetOwnerPhone" placeholder="请输入老板联系电话" />
+              <el-form-item label="开户行" prop="bankName">
+                <el-input v-model="driverForm.bankName" placeholder="请输入开户行" />
               </el-form-item>
             </el-col>
             <el-col :span="12">
-              <el-form-item label="车队开票账户" prop="fleetAccountName">
-                <el-input v-model="form.fleetAccountName" placeholder="请输入车队开票账户名称" />
-              </el-form-item>
-            </el-col>
-            <el-col :span="12">
-              <el-form-item label="车队开票账号" prop="fleetAccountNumber">
-                <el-input v-model="form.fleetAccountNumber" placeholder="请输入车队开票账号" />
-              </el-form-item>
-            </el-col>
-            <el-col :span="12">
-              <el-form-item label="车队开户行" prop="fleetBankName">
-                <el-input v-model="form.fleetBankName" placeholder="请输入车队开户行" />
+              <el-form-item label="账户姓名" prop="accountName">
+                <el-input v-model="driverForm.accountName" placeholder="请输入账户姓名" />
               </el-form-item>
             </el-col>
           </template>
 
           <el-col :span="24">
             <el-form-item label="备注" prop="remark">
-              <el-input v-model="form.remark" type="textarea" placeholder="请输入内容" />
+              <el-input v-model="driverForm.remark" type="textarea" placeholder="请输入内容" />
             </el-form-item>
           </el-col>
         </el-row>
       </el-form>
       <template #footer>
         <div class="dialog-footer">
-          <el-button type="primary" @click="submitForm">确 定</el-button>
-          <el-button @click="cancel">取 消</el-button>
+          <el-button type="primary" @click="submitDriverForm">确 定</el-button>
+          <el-button @click="cancelDriver">取 消</el-button>
         </div>
       </template>
     </el-dialog>
@@ -256,216 +291,294 @@
 </template>
 
 <script setup name="Driver">
-import { listDriver, getDriver, delDriver, addDriver, updateDriver } from "@/api/logistics/driver"
+import { treeList, getDriver, getFleet, addDriver, addFleet, updateDriver, updateFleet, delDriver, delFleet, exportDriver, getAllFleets } from "@/api/logistics/driver"
+import { OfficeBuilding, User } from '@element-plus/icons-vue'
 
 const { proxy } = getCurrentInstance()
 
-const driverList = ref([])
-const open = ref(false)
+const treeData = ref([])
+const fleetList = ref([])
 const loading = ref(true)
 const showSearch = ref(true)
-const ids = ref([])
-const single = ref(true)
-const multiple = ref(true)
-const total = ref(0)
-const title = ref("")
 
-const data = reactive({
-  form: {},
-  queryParams: {
-    pageNum: 1,
-    pageSize: 10,
-    driverCode: undefined,
-    driverName: undefined,
-    driverType: undefined,
-    driverPhone: undefined,
-    status: undefined
-  },
-  rules: {
-    driverCode: [
-      { required: true, message: "司机编码不能为空", trigger: "blur" }
-    ],
-    driverName: [
-      { required: true, message: "司机姓名不能为空", trigger: "blur" }
-    ],
-    driverPhone: [
-      { required: true, message: "司机电话不能为空", trigger: "blur" }
-    ],
-    driverType: [
-      { required: true, message: "请选择司机类型", trigger: "change" }
-    ]
-  }
+// 车队表单
+const fleetOpen = ref(false)
+const fleetTitle = ref("")
+const fleetForm = ref({})
+const fleetRules = {
+  fleetName: [{ required: true, message: "车队名称不能为空", trigger: "blur" }]
+}
+
+// 司机表单
+const driverOpen = ref(false)
+const driverTitle = ref("")
+const driverForm = ref({})
+const driverRules = {
+  driverName: [{ required: true, message: "司机姓名不能为空", trigger: "blur" }],
+  driverPhone: [{ required: true, message: "司机电话不能为空", trigger: "blur" }],
+  driverType: [{ required: true, message: "请选择司机类型", trigger: "change" }],
+  fleetId: [{ required: true, message: "请选择所属车队", trigger: "change" }]
+}
+
+const queryParams = ref({
+  keyword: undefined,
+  status: undefined
 })
 
-const { queryParams, form, rules } = toRefs(data)
-
-/** 查询司机信息列表 */
-function getList() {
+/** 查询树形列表 */
+function getTreeList() {
   loading.value = true
-  listDriver(queryParams.value).then(response => {
-    const list = response.rows || []
-    // 构建树形数据结构
-    driverList.value = buildTreeData(list)
-    total.value = response.total
+  const params = {}
+
+  // 处理关键词搜索
+  if (queryParams.value.keyword) {
+    params.keyword = queryParams.value.keyword
+  }
+
+  if (queryParams.value.status) {
+    params.status = queryParams.value.status
+  }
+
+  // 查询树形数据
+  treeList(params).then(response => {
+    treeData.value = response.data || []
+    loading.value = false
+  }).catch(() => {
     loading.value = false
   })
 }
 
-/** 构建树形数据结构 */
-function buildTreeData(list) {
-  // 分组数据
-  const individualDrivers = list.filter(item => item.driverType === 'individual')
-  const fleetDrivers = list.filter(item => item.driverType === 'fleet')
-
-  const tree = []
-
-  // 添加个人司机分组
-  if (individualDrivers.length > 0) {
-    tree.push({
-      driverId: 'individual',
-      label: '个人司机',
-      isGroup: true,
-      children: individualDrivers
-    })
-  }
-
-  // 添加车队司机分组
-  if (fleetDrivers.length > 0) {
-    tree.push({
-      driverId: 'fleet',
-      label: '车队司机',
-      isGroup: true,
-      children: fleetDrivers
-    })
-  }
-
-  return tree
+/** 查询车队列表（下拉选择用） */
+function getFleetList() {
+  getAllFleets().then(response => {
+    fleetList.value = response.data || []
+  })
 }
 
 /** 司机类型切换 */
 function handleDriverTypeChange(value) {
-  // 清空相关字段
   if (value === 'individual') {
-    form.value.fleetOwnerName = undefined
-    form.value.fleetOwnerPhone = undefined
-    form.value.fleetAccountName = undefined
-    form.value.fleetAccountNumber = undefined
-    form.value.fleetBankName = undefined
+    driverForm.value.fleetId = undefined
   } else {
-    form.value.bankAccount = undefined
-    form.value.bankName = undefined
-    form.value.accountName = undefined
+    driverForm.value.bankAccount = undefined
+    driverForm.value.bankName = undefined
+    driverForm.value.accountName = undefined
   }
+  proxy.$refs["driverRef"]?.clearValidate()
 }
 
-/** 取消按钮 */
-function cancel() {
-  open.value = false
-  reset()
+// ========== 车队操作 ==========
+
+/** 新增车队 */
+function handleAddFleet() {
+  resetFleetForm()
+  fleetOpen.value = true
+  fleetTitle.value = "新增车队"
 }
 
-/** 表单重置 */
-function reset() {
-  form.value = {
-    driverId: null,
-    driverCode: null,
-    driverName: null,
-    driverPhone: null,
-    idCard: null,
-    driverLicense: null,
-    driverType: 'individual',
-    fleetOwnerName: null,
-    fleetOwnerPhone: null,
-    vehiclePlate: null,
-    bankAccount: null,
-    bankName: null,
-    accountName: null,
-    fleetAccountName: null,
-    fleetAccountNumber: null,
-    fleetBankName: null,
-    status: "0",
-    remark: null
-  }
-  proxy.resetForm("driverRef")
-}
-
-/** 搜索按钮操作 */
-function handleQuery() {
-  queryParams.value.pageNum = 1
-  getList()
-}
-
-/** 重置按钮操作 */
-function resetQuery() {
-  proxy.resetForm("queryRef")
-  handleQuery()
-}
-
-/** 多选框选中数据 */
-function handleSelectionChange(selection) {
-  // 过滤掉分组节点，只选择实际司机数据
-  const realSelection = selection.filter(item => !item.isGroup)
-  ids.value = realSelection.map(item => item.driverId)
-  single.value = realSelection.length != 1
-  multiple.value = !realSelection.length
-}
-
-/** 新增按钮操作 */
-function handleAdd() {
-  reset()
-  open.value = true
-  title.value = "添加司机信息"
-}
-
-/** 修改按钮操作 */
-function handleUpdate(row) {
-  reset()
-  const _driverId = row.driverId || ids.value
-  getDriver(_driverId).then(response => {
-    form.value = response.data
-    open.value = true
-    title.value = "修改司机信息"
+/** 编辑车队 */
+function handleEditFleet(row) {
+  resetFleetForm()
+  const fleetId = row.fleetId
+  getFleet(fleetId).then(response => {
+    fleetForm.value = response.data
+    fleetOpen.value = true
+    fleetTitle.value = "编辑车队"
   })
 }
 
-/** 提交按钮 */
-function submitForm() {
-  proxy.$refs["driverRef"].validate(valid => {
+/** 提交车队表单 */
+function submitFleetForm() {
+  proxy.$refs["fleetRef"].validate(valid => {
     if (valid) {
-      if (form.value.driverId != null) {
-        updateDriver(form.value).then(() => {
+      if (fleetForm.value.fleetId != null) {
+        updateFleet(fleetForm.value).then(() => {
           proxy.$modal.msgSuccess("修改成功")
-          open.value = false
-          getList()
+          fleetOpen.value = false
+          getTreeList()
         })
       } else {
-        addDriver(form.value).then(() => {
+        addFleet(fleetForm.value).then(() => {
           proxy.$modal.msgSuccess("新增成功")
-          open.value = false
-          getList()
+          fleetOpen.value = false
+          getTreeList()
         })
       }
     }
   })
 }
 
-/** 删除按钮操作 */
-function handleDelete(row) {
-  const _driverIds = row.driverId || ids.value
-  proxy.$modal.confirm('是否确认删除司机信息编号为"' + _driverIds + '"的数据项？').then(function() {
-    return delDriver(_driverIds)
+/** 删除车队 */
+function handleDeleteFleet(row) {
+  const fleetName = row.fleetName || ''
+  const driverCount = row.driverCount || 0
+  let message = `是否确认删除车队"${fleetName}"？`
+  if (driverCount > 0) {
+    message = `车队"${fleetName}"下还有 ${driverCount} 个司机，是否确认删除？`
+  }
+  proxy.$modal.confirm(message).then(function() {
+    return delFleet(row.fleetId)
   }).then(() => {
-    getList()
+    getTreeList()
     proxy.$modal.msgSuccess("删除成功")
   }).catch(() => {})
 }
 
-/** 导出按钮操作 */
-function handleExport() {
-  proxy.download('logistics/driver/export', {
-    ...queryParams.value
-  }, `driver_${new Date().getTime()}.xlsx`)
+/** 取消车队表单 */
+function cancelFleet() {
+  fleetOpen.value = false
+  resetFleetForm()
 }
 
-getList()
+/** 重置车队表单 */
+function resetFleetForm() {
+  fleetForm.value = {
+    fleetId: null,
+    fleetName: null,
+    ownerName: null,
+    ownerPhone: null,
+    accountName: null,
+    accountNumber: null,
+    bankName: null,
+    status: "0",
+    remark: null
+  }
+  proxy.resetForm("fleetRef")
+}
+
+// ========== 司机操作 ==========
+
+/** 新增司机 */
+function handleAddDriver() {
+  resetDriverForm()
+  getFleetList()
+  driverOpen.value = true
+  driverTitle.value = "新增司机"
+}
+
+/** 编辑司机 */
+function handleEditDriver(row) {
+  resetDriverForm()
+  getFleetList()
+  getDriver(row.driverId).then(response => {
+    driverForm.value = response.data
+    driverOpen.value = true
+    driverTitle.value = "编辑司机"
+  })
+}
+
+/** 提交司机表单 */
+function submitDriverForm() {
+  proxy.$refs["driverRef"].validate(valid => {
+    if (valid) {
+      if (driverForm.value.driverId != null) {
+        updateDriver(driverForm.value).then(() => {
+          proxy.$modal.msgSuccess("修改成功")
+          driverOpen.value = false
+          getTreeList()
+        })
+      } else {
+        addDriver(driverForm.value).then(() => {
+          proxy.$modal.msgSuccess("新增成功")
+          driverOpen.value = false
+          getTreeList()
+        })
+      }
+    }
+  })
+}
+
+/** 删除司机 */
+function handleDeleteDriver(row) {
+  const driverName = row.driverName || ''
+  proxy.$modal.confirm('是否确认删除司机"' + driverName + '"？').then(function() {
+    return delDriver(row.driverId)
+  }).then(() => {
+    getTreeList()
+    proxy.$modal.msgSuccess("删除成功")
+  }).catch(() => {})
+}
+
+/** 取消司机表单 */
+function cancelDriver() {
+  driverOpen.value = false
+  resetDriverForm()
+}
+
+/** 重置司机表单 */
+function resetDriverForm() {
+  driverForm.value = {
+    driverId: null,
+    driverName: null,
+    driverPhone: null,
+    idCard: null,
+    driverLicense: null,
+    driverType: 'individual',
+    fleetId: null,
+    vehiclePlate: null,
+    bankAccount: null,
+    bankName: null,
+    accountName: null,
+    status: "0",
+    remark: null
+  }
+  proxy.resetForm("driverRef")
+}
+
+// ========== 通用操作 ==========
+
+/** 搜索按钮操作 */
+function handleQuery() {
+  getTreeList()
+}
+
+/** 重置按钮操作 */
+function resetQuery() {
+  proxy.resetForm("queryRef")
+  queryParams.value = {
+    keyword: undefined,
+    status: undefined
+  }
+  handleQuery()
+}
+
+/** 导出按钮操作 */
+function handleExport() {
+  proxy.download('logistics/driver/export', {}, `driver_${new Date().getTime()}.xlsx`)
+}
+
+getTreeList()
 </script>
+
+<style scoped>
+.table-cell {
+  display: inline-block;
+}
+
+.table-actions {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+}
+
+.table-actions .el-button {
+  margin: 0;
+  padding: 0;
+}
+
+:deep(.el-table__row) {
+  cursor: pointer;
+}
+
+:deep(.el-table__expand-icon) {
+  margin-right: 4px;
+}
+
+:deep(.el-table__indent) {
+  padding-left: 8px;
+}
+
+.text-gray-400 {
+  color: #9ca3af;
+}
+</style>

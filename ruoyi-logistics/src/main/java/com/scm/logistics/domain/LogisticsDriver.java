@@ -18,10 +18,6 @@ public class LogisticsDriver extends BaseEntity
     /** 司机ID */
     private Long driverId;
 
-    /** 司机编码 */
-    @Excel(name = "司机编码")
-    private String driverCode;
-
     /** 司机姓名 */
     @Excel(name = "司机姓名")
     private String driverName;
@@ -42,41 +38,28 @@ public class LogisticsDriver extends BaseEntity
     @Excel(name = "司机类型", readConverterExp = "individual=个人司机,fleet=车队司机")
     private String driverType;
 
-    /** 车队老板姓名 */
-    @Excel(name = "车队老板姓名")
-    private String fleetOwnerName;
+    /** 所属车队ID（车队司机时关联） */
+    private Long fleetId;
 
-    /** 老板联系电话 */
-    @Excel(name = "老板联系电话")
-    private String fleetOwnerPhone;
+    /** 车队名称（关联查询用） */
+    @Excel(name = "所属车队")
+    private String fleetName;
 
     /** 常用车牌号 */
     @Excel(name = "常用车牌号")
     private String vehiclePlate;
 
-    /** 银行账号 */
+    /** 银行账号（个人司机） */
     @Excel(name = "银行账号")
     private String bankAccount;
 
-    /** 开户行 */
+    /** 开户行（个人司机） */
     @Excel(name = "开户行")
     private String bankName;
 
-    /** 账户姓名 */
+    /** 账户姓名（个人司机） */
     @Excel(name = "账户姓名")
     private String accountName;
-
-    /** 车队开票账户名称 */
-    @Excel(name = "车队开票账户名称")
-    private String fleetAccountName;
-
-    /** 车队开票账号 */
-    @Excel(name = "车队开票账号")
-    private String fleetAccountNumber;
-
-    /** 车队开户行 */
-    @Excel(name = "车队开户行")
-    private String fleetBankName;
 
     /** 状态（0正常 1停用） */
     @Excel(name = "状态", readConverterExp = "0=正常,1=停用")
@@ -93,16 +76,6 @@ public class LogisticsDriver extends BaseEntity
     public Long getDriverId()
     {
         return driverId;
-    }
-
-    public void setDriverCode(String driverCode)
-    {
-        this.driverCode = driverCode;
-    }
-
-    public String getDriverCode()
-    {
-        return driverCode;
     }
 
     public void setDriverName(String driverName)
@@ -155,24 +128,24 @@ public class LogisticsDriver extends BaseEntity
         return driverType;
     }
 
-    public void setFleetOwnerName(String fleetOwnerName)
+    public void setFleetId(Long fleetId)
     {
-        this.fleetOwnerName = fleetOwnerName;
+        this.fleetId = fleetId;
     }
 
-    public String getFleetOwnerName()
+    public Long getFleetId()
     {
-        return fleetOwnerName;
+        return fleetId;
     }
 
-    public void setFleetOwnerPhone(String fleetOwnerPhone)
+    public void setFleetName(String fleetName)
     {
-        this.fleetOwnerPhone = fleetOwnerPhone;
+        this.fleetName = fleetName;
     }
 
-    public String getFleetOwnerPhone()
+    public String getFleetName()
     {
-        return fleetOwnerPhone;
+        return fleetName;
     }
 
     public void setVehiclePlate(String vehiclePlate)
@@ -215,36 +188,6 @@ public class LogisticsDriver extends BaseEntity
         return accountName;
     }
 
-    public void setFleetAccountName(String fleetAccountName)
-    {
-        this.fleetAccountName = fleetAccountName;
-    }
-
-    public String getFleetAccountName()
-    {
-        return fleetAccountName;
-    }
-
-    public void setFleetAccountNumber(String fleetAccountNumber)
-    {
-        this.fleetAccountNumber = fleetAccountNumber;
-    }
-
-    public String getFleetAccountNumber()
-    {
-        return fleetAccountNumber;
-    }
-
-    public void setFleetBankName(String fleetBankName)
-    {
-        this.fleetBankName = fleetBankName;
-    }
-
-    public String getFleetBankName()
-    {
-        return fleetBankName;
-    }
-
     public void setStatus(String status)
     {
         this.status = status;
@@ -269,21 +212,17 @@ public class LogisticsDriver extends BaseEntity
     public String toString() {
         return new ToStringBuilder(this,ToStringStyle.MULTI_LINE_STYLE)
             .append("driverId", getDriverId())
-            .append("driverCode", getDriverCode())
             .append("driverName", getDriverName())
             .append("driverPhone", getDriverPhone())
             .append("idCard", getIdCard())
             .append("driverLicense", getDriverLicense())
             .append("driverType", getDriverType())
-            .append("fleetOwnerName", getFleetOwnerName())
-            .append("fleetOwnerPhone", getFleetOwnerPhone())
+            .append("fleetId", getFleetId())
+            .append("fleetName", getFleetName())
             .append("vehiclePlate", getVehiclePlate())
             .append("bankAccount", getBankAccount())
             .append("bankName", getBankName())
             .append("accountName", getAccountName())
-            .append("fleetAccountName", getFleetAccountName())
-            .append("fleetAccountNumber", getFleetAccountNumber())
-            .append("fleetBankName", getFleetBankName())
             .append("status", getStatus())
             .append("delFlag", getDelFlag())
             .append("createBy", getCreateBy())

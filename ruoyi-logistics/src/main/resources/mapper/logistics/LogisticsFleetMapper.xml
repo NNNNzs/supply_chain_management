@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.scm.logistics.mapper.LogisticsFleetMapper">
+
+    <resultMap type="LogisticsFleet" id="LogisticsFleetResult">
+        <result property="fleetId"    column="fleet_id"    />
+        <result property="fleetName"    column="fleet_name"    />
+        <result property="ownerName"    column="owner_name"    />
+        <result property="ownerPhone"    column="owner_phone"    />
+        <result property="accountName"    column="account_name"    />
+        <result property="accountNumber"    column="account_number"    />
+        <result property="bankName"    column="bank_name"    />
+        <result property="status"    column="status"    />
+        <result property="delFlag"    column="del_flag"    />
+        <result property="createBy"    column="create_by"    />
+        <result property="createTime"    column="create_time"    />
+        <result property="updateBy"    column="update_by"    />
+        <result property="updateTime"    column="update_time"    />
+        <result property="remark"    column="remark"    />
+    </resultMap>
+
+    <sql id="selectLogisticsFleetVo">
+        select fleet_id, fleet_name, owner_name, owner_phone, account_name, account_number, bank_name, status, del_flag, create_by, create_time, update_by, update_time, remark from logistics_fleet
+    </sql>
+
+    <select id="selectLogisticsFleetList" parameterType="LogisticsFleet" resultMap="LogisticsFleetResult">
+        <include refid="selectLogisticsFleetVo"/>
+        <where>
+            and del_flag = '0'
+            <if test="fleetName != null  and fleetName != ''"> and fleet_name like concat('%', #{fleetName}, '%')</if>
+            <if test="ownerName != null  and ownerName != ''"> and owner_name like concat('%', #{ownerName}, '%')</if>
+            <if test="ownerPhone != null  and ownerPhone != ''"> and owner_phone = #{ownerPhone}</if>
+            <if test="status != null  and status != ''"> and status = #{status}</if>
+        </where>
+        order by fleet_id desc
+    </select>
+
+    <select id="selectLogisticsFleetByFleetId" parameterType="Long" resultMap="LogisticsFleetResult">
+        <include refid="selectLogisticsFleetVo"/>
+        where fleet_id = #{fleetId} and del_flag = '0'
+    </select>
+
+    <select id="countDriversByFleetId" parameterType="Long" resultType="int">
+        select count(*) from logistics_driver where fleet_id = #{fleetId} and del_flag = '0'
+    </select>
+
+    <insert id="insertLogisticsFleet" parameterType="LogisticsFleet" useGeneratedKeys="true" keyProperty="fleetId">
+        insert into logistics_fleet
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="fleetName != null and fleetName != ''">fleet_name,</if>
+            <if test="ownerName != null">owner_name,</if>
+            <if test="ownerPhone != null">owner_phone,</if>
+            <if test="accountName != null">account_name,</if>
+            <if test="accountNumber != null">account_number,</if>
+            <if test="bankName != null">bank_name,</if>
+            <if test="status != null">status,</if>
+            <if test="delFlag != null">del_flag,</if>
+            <if test="createBy != null">create_by,</if>
+            <if test="remark != null">remark,</if>
+            create_time
+         </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="fleetName != null and fleetName != ''">#{fleetName},</if>
+            <if test="ownerName != null">#{ownerName},</if>
+            <if test="ownerPhone != null">#{ownerPhone},</if>
+            <if test="accountName != null">#{accountName},</if>
+            <if test="accountNumber != null">#{accountNumber},</if>
+            <if test="bankName != null">#{bankName},</if>
+            <if test="status != null">#{status},</if>
+            <if test="delFlag != null">#{delFlag},</if>
+            <if test="createBy != null">#{createBy},</if>
+            <if test="remark != null">#{remark},</if>
+            sysdate()
+         </trim>
+    </insert>
+
+    <update id="updateLogisticsFleet" parameterType="LogisticsFleet">
+        update logistics_fleet
+        <trim prefix="SET" suffixOverrides=",">
+            <if test="fleetName != null and fleetName != ''">fleet_name = #{fleetName},</if>
+            <if test="ownerName != null">owner_name = #{ownerName},</if>
+            <if test="ownerPhone != null">owner_phone = #{ownerPhone},</if>
+            <if test="accountName != null">account_name = #{accountName},</if>
+            <if test="accountNumber != null">account_number = #{accountNumber},</if>
+            <if test="bankName != null">bank_name = #{bankName},</if>
+            <if test="status != null">status = #{status},</if>
+            <if test="delFlag != null">del_flag = #{delFlag},</if>
+            <if test="updateBy != null">update_by = #{updateBy},</if>
+            <if test="remark != null">remark = #{remark},</if>
+            update_time = sysdate()
+        </trim>
+        where fleet_id = #{fleetId}
+    </update>
+
+    <delete id="deleteLogisticsFleetByFleetId" parameterType="Long">
+        update logistics_fleet set del_flag = '2' where fleet_id = #{fleetId}
+    </delete>
+
+    <delete id="deleteLogisticsFleetByFleetIds" parameterType="String">
+        update logistics_fleet set del_flag = '2' where fleet_id in
+        <foreach item="fleetId" collection="array" open="(" separator="," close=")">
+            #{fleetId}
+        </foreach>
+    </delete>
+</mapper>

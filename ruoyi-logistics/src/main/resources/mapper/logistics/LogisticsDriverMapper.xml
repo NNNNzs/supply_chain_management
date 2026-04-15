@@ -6,11 +6,13 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
 
     <resultMap type="LogisticsDriver" id="LogisticsDriverResult">
         <result property="driverId"    column="driver_id"    />
-        <result property="driverCode"    column="driver_code"    />
         <result property="driverName"    column="driver_name"    />
         <result property="driverPhone"    column="driver_phone"    />
         <result property="idCard"    column="id_card"    />
         <result property="driverLicense"    column="driver_license"    />
+        <result property="driverType"    column="driver_type"    />
+        <result property="fleetId"    column="fleet_id"    />
+        <result property="fleetName"    column="fleet_name"    />
         <result property="vehiclePlate"    column="vehicle_plate"    />
         <result property="bankAccount"    column="bank_account"    />
         <result property="bankName"    column="bank_name"    />
@@ -25,33 +27,41 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
     </resultMap>
 
     <sql id="selectLogisticsDriverVo">
-        select driver_id, driver_code, driver_name, driver_phone, id_card, driver_license, vehicle_plate, bank_account, bank_name, account_name, status, del_flag, create_by, create_time, update_by, update_time, remark from logistics_driver
+        select d.driver_id, d.driver_name, d.driver_phone, d.id_card, d.driver_license,
+               d.driver_type, d.fleet_id, f.fleet_name,
+               d.vehicle_plate, d.bank_account, d.bank_name, d.account_name,
+               d.status, d.del_flag, d.create_by, d.create_time, d.update_by, d.update_time, d.remark
+        from logistics_driver d
+        left join logistics_fleet f on d.fleet_id = f.fleet_id
     </sql>
 
     <select id="selectLogisticsDriverList" parameterType="LogisticsDriver" resultMap="LogisticsDriverResult">
         <include refid="selectLogisticsDriverVo"/>
         <where>
-            <if test="driverCode != null  and driverCode != ''"> and driver_code like concat('%', #{driverCode}, '%')</if>
-            <if test="driverName != null  and driverName != ''"> and driver_name like concat('%', #{driverName}, '%')</if>
-            <if test="driverPhone != null  and driverPhone != ''"> and driver_phone = #{driverPhone}</if>
-            <if test="status != null  and status != ''"> and status = #{status}</if>
+            d.del_flag = '0'
+            <if test="driverName != null  and driverName != ''"> and d.driver_name like concat('%', #{driverName}, '%')</if>
+            <if test="driverPhone != null  and driverPhone != ''"> and d.driver_phone = #{driverPhone}</if>
+            <if test="driverType != null  and driverType != ''"> and d.driver_type = #{driverType}</if>
+            <if test="fleetId != null"> and d.fleet_id = #{fleetId}</if>
+            <if test="status != null  and status != ''"> and d.status = #{status}</if>
         </where>
-        order by driver_id desc
+        order by d.driver_id desc
     </select>
 
     <select id="selectLogisticsDriverByDriverId" parameterType="Long" resultMap="LogisticsDriverResult">
         <include refid="selectLogisticsDriverVo"/>
-        where driver_id = #{driverId}
+        where d.driver_id = #{driverId} and d.del_flag = '0'
     </select>
 
     <insert id="insertLogisticsDriver" parameterType="LogisticsDriver" useGeneratedKeys="true" keyProperty="driverId">
         insert into logistics_driver
         <trim prefix="(" suffix=")" suffixOverrides=",">
-            <if test="driverCode != null and driverCode != ''">driver_code,</if>
             <if test="driverName != null and driverName != ''">driver_name,</if>
             <if test="driverPhone != null and driverPhone != ''">driver_phone,</if>
             <if test="idCard != null">id_card,</if>
             <if test="driverLicense != null">driver_license,</if>
+            <if test="driverType != null">driver_type,</if>
+            <if test="fleetId != null">fleet_id,</if>
             <if test="vehiclePlate != null">vehicle_plate,</if>
             <if test="bankAccount != null">bank_account,</if>
             <if test="bankName != null">bank_name,</if>
@@ -63,11 +73,12 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             create_time
          </trim>
         <trim prefix="values (" suffix=")" suffixOverrides=",">
-            <if test="driverCode != null and driverCode != ''">#{driverCode},</if>
             <if test="driverName != null and driverName != ''">#{driverName},</if>
             <if test="driverPhone != null and driverPhone != ''">#{driverPhone},</if>
             <if test="idCard != null">#{idCard},</if>
             <if test="driverLicense != null">#{driverLicense},</if>
+            <if test="driverType != null">#{driverType},</if>
+            <if test="fleetId != null">#{fleetId},</if>
             <if test="vehiclePlate != null">#{vehiclePlate},</if>
             <if test="bankAccount != null">#{bankAccount},</if>
             <if test="bankName != null">#{bankName},</if>
@@ -83,11 +94,12 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
     <update id="updateLogisticsDriver" parameterType="LogisticsDriver">
         update logistics_driver
         <trim prefix="SET" suffixOverrides=",">
-            <if test="driverCode != null and driverCode != ''">driver_code = #{driverCode},</if>
             <if test="driverName != null and driverName != ''">driver_name = #{driverName},</if>
             <if test="driverPhone != null and driverPhone != ''">driver_phone = #{driverPhone},</if>
             <if test="idCard != null">id_card = #{idCard},</if>
             <if test="driverLicense != null">driver_license = #{driverLicense},</if>
+            <if test="driverType != null">driver_type = #{driverType},</if>
+            <if test="fleetId != null">fleet_id = #{fleetId},</if>
             <if test="vehiclePlate != null">vehicle_plate = #{vehiclePlate},</if>
             <if test="bankAccount != null">bank_account = #{bankAccount},</if>
             <if test="bankName != null">bank_name = #{bankName},</if>
@@ -102,11 +114,11 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
     </update>
 
     <delete id="deleteLogisticsDriverByDriverId" parameterType="Long">
-        delete from logistics_driver where driver_id = #{driverId}
+        update logistics_driver set del_flag = '2' where driver_id = #{driverId}
     </delete>
 
     <delete id="deleteLogisticsDriverByDriverIds" parameterType="String">
-        delete from logistics_driver where driver_id in
+        update logistics_driver set del_flag = '2' where driver_id in
         <foreach item="driverId" collection="array" open="(" separator="," close=")">
             #{driverId}
         </foreach>
