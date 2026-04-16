@@ -82,35 +82,12 @@
           <el-date-picker v-model="form.receiptDate" type="date" placeholder="选择回单日期" value-format="YYYY-MM-DD" style="width: 100%" />
         </el-form-item>
         <el-form-item label="回单图片" prop="receiptImage">
-          <el-upload
-            ref="uploadRef"
-            :action="upload.url"
-            :headers="upload.headers"
-            :file-list="upload.fileList"
-            :on-success="handleUploadSuccess"
-            :on-remove="handleUploadRemove"
-            :limit="1"
-            :auto-upload="false"
-            :on-change="handleUploadChange"
-            accept=".jpg,.jpeg,.png,.gif"
-            list-type="picture-card">
-            <el-icon><Plus /></el-icon>
-            <template #file="{ file }">
-              <div>
-                <el-image
-                  v-if="file.url"
-                  :src="file.url"
-                  fit="cover"
-                  style="width: 100%; height: 100%"
-                  :preview-src-list="[file.url]"
-                  :initial-index="0"
-                />
-                <div v-else class="el-upload-list__item-thumbnail">
-                  <img :src="file.url" alt="" />
-                </div>
-              </div>
-            </template>
-          </el-upload>
+          <image-upload
+            v-model="form.receiptImage"
+            :limit="5"
+            :file-size="10"
+            :file-type="['jpg', 'jpeg', 'png', 'gif']"
+          />
         </el-form-item>
         <el-form-item label="回单状态" prop="receiptStatus">
           <el-radio-group v-model="form.receiptStatus">
@@ -176,12 +153,6 @@ const imagePreviewOpen = ref(false)
 const confirmOpen = ref(false)
 const previewImage = ref("")
 
-const upload = reactive({
-  url: import.meta.env.VITE_APP_BASE_API + "/common/upload",
-  headers: { Authorization: "Bearer " + getToken() },
-  fileList: []
-})
-
 const data = reactive({
   form: {},
   queryParams: {
@@ -241,7 +212,6 @@ function reset() {
     receiver: null,
     remark: null
   }
-  upload.fileList = []
   proxy.resetForm("receiptRef")
 }
 
@@ -274,16 +244,6 @@ function handleUpdate(row) {
   const _receiptId = row.receiptId || ids.value[0]
   getReceipt(_receiptId).then(response => {
     form.value = response.data
-    // 修复图片回显问题
-    if (form.value.receiptImage) {
-      upload.fileList = [{
-        name: "回单图片",
-        url: form.value.receiptImage,
-        // 添加这些字段确保el-upload能正确显示
-        status: 'success',
-        uid: Date.now()
-      }]
-    }
     open.value = true
     title.value = "修改回单信息"
   })
@@ -301,9 +261,6 @@ function handleView(row) {
 function submitForm() {
   proxy.$refs["receiptRef"].validate(valid => {
     if (valid) {
-      if (upload.fileList.length > 0 && upload.fileList[0].response) {
-        form.value.receiptImage = upload.fileList[0].response.url
-      }
       if (form.value.receiptId != null) {
         updateReceipt(form.value).then(response => {
           proxy.$modal.msgSuccess("修改成功")
@@ -347,21 +304,6 @@ function submitConfirm() {
       })
     }
   })
-}
-
-function handleUploadSuccess(response, file, fileList) {
-  form.value.receiptImage = response.url
-}
-
-function handleUploadRemove(file, fileList) {
-  form.value.receiptImage = null
-}
-
-function handleUploadChange(file, fileList) {
-  // 限制只能上传一张图片
-  if (fileList.length > 1) {
-    fileList.splice(0, 1)
-  }
 }
 
 function handleExport() {

@@ -223,7 +223,14 @@ function listToString(list, separator) {
   separator = separator || ","
   for (let i in list) {
     if (undefined !== list[i].url && list[i].url.indexOf("blob:") !== 0) {
-      strs += list[i].url.replace(baseUrl, "") + separator
+      const url = list[i].url
+      // 如果是外部链接（http/https开头），保留完整URL
+      // 否则移除baseUrl前缀，只保留相对路径
+      if (isExternal(url)) {
+        strs += url + separator
+      } else {
+        strs += url.replace(baseUrl, "") + separator
+      }
     }
   }
   return strs != "" ? strs.substr(0, strs.length - 1) : ""

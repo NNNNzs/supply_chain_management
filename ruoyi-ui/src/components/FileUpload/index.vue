@@ -29,7 +29,7 @@
     <!-- 文件列表 -->
     <transition-group ref="uploadFileList" class="upload-file-list el-upload-list el-upload-list--text" name="el-fade-in-linear" tag="ul">
       <li :key="file.uid" class="el-upload-list__item ele-upload-list__item-content" v-for="(file, index) in fileList">
-        <el-link :href="`${baseUrl}${file.url}`" underline="never" target="_blank">
+        <el-link :href="getFileUrl(file.url)" underline="never" target="_blank">
           <span class="el-icon-document"> {{ getFileName(file.name) }} </span>
         </el-link>
         <div class="ele-upload-list__item-content-action">
@@ -42,6 +42,7 @@
 
 <script setup>
 import { getToken } from "@/utils/auth"
+import { isExternal } from "@/utils/validate"
 import Sortable from 'sortablejs'
 
 const props = defineProps({
@@ -198,6 +199,16 @@ function getFileName(name) {
   } else {
     return name
   }
+}
+
+// 获取文件下载URL
+function getFileUrl(url) {
+  // 如果是外部链接（http/https开头），直接返回
+  // 否则拼接 baseUrl
+  if (isExternal(url)) {
+    return url
+  }
+  return baseUrl + url
 }
 
 // 对象转成指定字符串分隔

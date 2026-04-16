@@ -14,8 +14,10 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 import com.scm.common.config.RuoYiConfig;
+import com.scm.common.config.CosConfig;
 import com.scm.common.core.domain.AjaxResult;
 import com.scm.common.utils.StringUtils;
+import com.scm.common.utils.cos.CosFileUploadUtils;
 import com.scm.common.utils.file.FileUploadUtils;
 import com.scm.common.utils.file.FileUtils;
 import com.scm.framework.config.ServerConfig;
@@ -33,6 +35,9 @@ public class CommonController
 
     @Autowired
     private ServerConfig serverConfig;
+
+    @Autowired
+    private CosFileUploadUtils cosFileUploadUtils;
 
     private static final String FILE_DELIMITER = ",";
 
@@ -76,11 +81,27 @@ public class CommonController
     {
         try
         {
-            // 上传文件路径
-            String filePath = RuoYiConfig.getUploadPath();
-            // 上传并返回新文件名称
-            String fileName = FileUploadUtils.upload(filePath, file);
-            String url = serverConfig.getUrl() + fileName;
+            String url;
+            String fileName;
+
+            // 优先使用COS上传
+            if (cosFileUploadUtils.isEnabled())
+            {
+                log.info("使用腾讯云COS上传文件：{}", file.getOriginalFilename());
+                url = cosFileUploadUtils.upload(file);
+                // COS上传时，fileName返回完整URL，以便前端ImageUpload组件正确处理
+                fileName = url;
+            }
+            else
+            {
+                log.info("使用本地文件系统上传文件：{}", file.getOriginalFilename());
+                // 上传文件路径
+                String filePath = RuoYiConfig.getUploadPath();
+                // 上传并返回新文件名称
+                fileName = FileUploadUtils.upload(filePath, file);
+                url = serverConfig.getUrl() + fileName;
+            }
+
             AjaxResult ajax = AjaxResult.success();
             ajax.put("url", url);
             ajax.put("fileName", fileName);
@@ -90,6 +111,7 @@ public class CommonController
         }
         catch (Exception e)
         {
+            log.error("文件上传失败", e);
             return AjaxResult.error(e.getMessage());
         }
     }
@@ -102,22 +124,39 @@ public class CommonController
     {
         try
         {
-            // 上传文件路径
-            String filePath = RuoYiConfig.getUploadPath();
             List<String> urls = new ArrayList<String>();
             List<String> fileNames = new ArrayList<String>();
             List<String> newFileNames = new ArrayList<String>();
             List<String> originalFilenames = new ArrayList<String>();
+
+            // 判断是否使用COS上传
+            boolean useCos = cosFileUploadUtils.isEnabled();
+
             for (MultipartFile file : files)
             {
-                // 上传并返回新文件名称
-                String fileName = FileUploadUtils.upload(filePath, file);
-                String url = serverConfig.getUrl() + fileName;
+                String url;
+                String fileName;
+
+                if (useCos)
+                {
+                    // 使用COS上传
+                    url = cosFileUploadUtils.upload(file);
+                    fileName = FileUtils.getName(url);
+                }
+                else
+                {
+                    // 使用本地文件系统上传
+                    String filePath = RuoYiConfig.getUploadPath();
+                    fileName = FileUploadUtils.upload(filePath, file);
+                    url = serverConfig.getUrl() + fileName;
+                }
+
                 urls.add(url);
                 fileNames.add(fileName);
                 newFileNames.add(FileUtils.getName(fileName));
                 originalFilenames.add(file.getOriginalFilename());
             }
+
             AjaxResult ajax = AjaxResult.success();
             ajax.put("urls", StringUtils.join(urls, FILE_DELIMITER));
             ajax.put("fileNames", StringUtils.join(fileNames, FILE_DELIMITER));
@@ -127,6 +166,7 @@ public class CommonController
         }
         catch (Exception e)
         {
+            log.error("批量文件上传失败", e);
             return AjaxResult.error(e.getMessage());
         }
     }
