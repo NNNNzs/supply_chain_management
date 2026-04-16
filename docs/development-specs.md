@@ -136,21 +136,103 @@ export function updateOrder(data) { }
 export function delOrder(orderId) { }
 ```
 
-### 2.3 数据库规范
+### 2.3 数据库规范 ⚠️ 重要
 
-#### 2.3.1 表命名
+#### 2.3.1 版本管理规范
+
+**生产环境已上线，以后所有数据库变更必须使用增量迁移脚本。**
+
+详细规范请参考：[数据库脚本管理文档](../../sql/README.md)
+
+**核心原则**：
+- ✅ **生产环境禁止执行完整初始化脚本**
+- ✅ **所有变更必须创建增量迁移脚本**
+- ✅ **脚本必须可重复执行（幂等性）**
+- ✅ **必须先在测试环境验证**
+
+#### 2.3.2 表命名
 
 ```
 物流模块表：logistics_ + 功能名
 示例：logistics_order, logistics_customer
 ```
 
-#### 2.3.2 字段命名
+#### 2.3.3 字段命名
 
 ```
 使用下划线命名法（snake_case）
 主键：表名_id
 示例：order_id, customer_name
+```
+
+#### 2.3.4 数据库变更流程
+
+```
+需求变更发生
+    ↓
+更新需求文档
+    ↓
+创建增量迁移脚本（sql/migrations/vX.Y.Z_description.sql）
+    ↓
+在开发环境测试脚本
+    ↓
+在测试环境验证脚本
+    ↓
+备份生产数据库
+    ↓
+在生产环境执行增量脚本
+    ↓
+验证功能正常
+    ↓
+更新数据库版本记录
+```
+
+#### 2.3.5 增量迁移脚本规范
+
+**文件位置**：`sql/migrations/`
+
+**命名格式**：`vX.Y.Z_brief_description.sql`
+
+**脚本模板**：
+
+```sql
+-- =============================
+-- 物流管理系统增量迁移脚本
+-- 版本: v3.1.1
+-- 说明: 添加索引优化司机查询
+-- 作者: xxx
+-- 日期: 2026-04-17
+-- 依赖: v3.1.0
+-- =============================
+
+-- 检查版本依赖
+SELECT IF((SELECT COUNT(*) FROM db_version WHERE version = 'v3.1.0') > 0,
+    '版本依赖检查通过',
+    CONCAT('ERROR: 缺少前置版本 v3.1.0')) AS dependency_check;
+
+-- 业务变更（示例：添加索引）
+SET @index_exists = (
+    SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS
+    WHERE TABLE_SCHEMA = DATABASE()
+    AND TABLE_NAME = 'logistics_driver'
+    AND INDEX_NAME = 'idx_driver_phone'
+);
+
+SET @sql = IF(@index_exists = 0,
+    'CREATE INDEX idx_driver_phone ON logistics_driver(driver_phone)',
+    'SELECT "Index already exists" AS message'
+);
+
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+-- 更新版本记录
+INSERT INTO db_version (version, description, executed_at, execute_by)
+VALUES ('v3.1.1', '添加司机电话索引', NOW(), 'admin')
+ON DUPLICATE KEY UPDATE executed_at = NOW();
+
+SELECT '迁移脚本 v3.1.1 执行完成！' AS message;
 ```
 
 ---
@@ -249,6 +331,22 @@ describe('Order API', () => {
 - [ ] 需求文档已更新（如有业务变更）
 - [ ] 提交信息符合规范
 - [ ] 无敏感信息泄露
+- [ ] 数据库变更已创建增量脚本（如有数据库变更）
+- [ ] 增量脚本已在测试环境验证（如有数据库变更）
+
+### 5.3 数据库部署规范
+
+**生产环境数据库变更必须遵循以下流程**：
+
+1. **创建增量迁移脚本**：在 `sql/migrations/` 目录下创建
+2. **测试环境验证**：确保脚本可重复执行且无副作用
+3. **备份生产数据库**：`mysqldump -u username -p database_name > backup.sql`
+4. **执行迁移脚本**：按版本顺序执行
+5. **验证功能正常**：测试相关功能
+6. **更新版本记录**：确认 `db_version` 表已更新
+7. **准备回滚方案**：保留备份和回滚脚本
+
+详细文档：[数据库脚本管理](../../sql/README.md)
 
 ---
 
@@ -257,3 +355,4 @@ describe('Order API', () => {
 | 日期 | 版本 | 变更内容 | 变更人 |
 |------|------|----------|--------|
 | 2026-04-14 | v1.0 | 初始版本，定义开发规范 | - |
+| 2026-04-16 | v1.1 | 新增数据库版本管理规范（增量迁移脚本） | System |

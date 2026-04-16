@@ -16,7 +16,7 @@
 ### 1.1 技术栈
 
 **后端：**
-- Spring Boot 3.x
+- Spring Boot 4.0.3
 - MyBatis
 - MySQL
 - Java 17

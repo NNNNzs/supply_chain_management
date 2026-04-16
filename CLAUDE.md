@@ -6,7 +6,7 @@
 
 供应链管理系统，基于若依框架开发。
 
-- **后端**: Spring Boot + MySQL + Redis
+- **后端**: Spring Boot 4.0.3 + MySQL + Redis
 - **前端**: Vue 3 + Element Plus + Vite
 - **部署**: GitHub Actions + Docker Compose
 
@@ -30,9 +30,10 @@ supply_chain_management/
 ### 项目文档
 | 文档 | 说明 |
 |------|------|
-| [开发规范](docs/development-specs.md) | **开发规范文档（含文档管理、代码规范、Git 工作流）** |
+| [开发规范](docs/development-specs.md) | **开发规范文档（含文档管理、代码规范、Git 工作流、数据库版本管理）** |
 | [部署文档](docs/deployment.md) | GitHub Actions 自动化部署、Docker 配置、Nginx 配置 |
 | [README.md](README.md) | 项目介绍和本地开发指南 |
+| [数据库脚本管理](sql/README.md) | **数据库脚本管理规范（生产环境增量迁移）** |
 
 ### 物流管理模块文档
 | 文档 | 说明 |
@@ -54,7 +55,7 @@ supply_chain_management/
 - 更新需求文档时，记录变更日期、版本号、变更内容和变更人
 
 ### 后端开发
-- 基于 Spring Boot 3.x
+- 基于 Spring Boot 4.0.3
 - 使用 MyBatis Plus
 - 遵循 RESTful API 设计
 
@@ -149,15 +150,16 @@ ruoyi-ui/src/
 | 货物管理 | ✅ 已完成 | 100% |
 | 司机管理 | ✅ 已完成 | 100% |
 | 车辆管理 | ✅ 已完成 | 100% |
-| 提单管理 | ✅ 已完成 | 100% |
-| 配载管理 | ✅ 已完成 | 100% |
+| 车队管理 | ✅ 已完成 | 100% |
+| 提单管理 | ⚠️ 已废弃 | - |
+| 配载管理 | ⚠️ 已废弃 | - |
 | 运单管理 | ✅ 已完成 | 100% |
 | 回单管理 | ✅ 已完成 | 100% |
 | 发票管理 | ⚠️ 部分完成 | 67% |
 | 应收结算 | ⚠️ 待实现 | 33% |
 | 应付结算 | ⚠️ 待实现 | 33% |
 | 财务报表 | ⚠️ 待实现 | 33% |
-| **总体进度** | | **78%** |
+| **总体进度** | | **75%** |
 
 ### 订单号生成规则
 
@@ -174,18 +176,35 @@ ruoyi-ui/src/
 
 ### 数据库表
 
+**基础数据表**：
 - logistics_customer - 客户信息表
 - logistics_goods - 货物信息表
-- logistics_driver - 司机信息表
+- logistics_fleet - 车队信息表（v3.1新增）
+- logistics_driver - 司机信息表（支持个人/车队类型）
 - logistics_vehicle - 车辆信息表
-- logistics_bill - 提单表（委托单）
-- logistics_bill_item - 提单货物明细表
-- logistics_bill_order_detail - 提单运单明细表
+
+**运输业务表**：
+- logistics_bill - 提单表（已废弃，保留结构）
+- logistics_bill_item - 提单货物明细表（已废弃）
+- logistics_bill_order_detail - 提单运单明细表（已废弃）
 - logistics_order - 运单表（货运单/派车单）
+- logistics_order_goods - 订单货物明细表（v3.0新增）
 - logistics_receipt - 回单信息表
+
+**财务结算表**：
 - logistics_invoice_batch - 发票批次表
 - logistics_invoice_detail - 发票批次明细表
 - logistics_settlement - 财务结算表
 - logistics_settlement_detail - 结算明细表
 
-SQL 脚本位置：`sql/logistics.sql`, `sql/logistics_allocation_full.sql`
+**SQL 脚本**：
+- `sql/logistics.sql` - 完整初始化脚本（仅用于新环境）
+- `sql/migrations/` - 增量迁移脚本目录（生产环境使用）
+- `sql/migrations/v3.1.0_init_version_tracker.sql` - 版本追踪表初始化（已执行）
+
+**⚠️ 生产环境数据库变更规范**：
+- 已创建 `db_version` 表记录所有迁移历史
+- 以后所有变更必须使用增量迁移脚本
+- 详细规范请参考：[数据库脚本管理](sql/README.md)
+
+**当前数据库版本**：v3.1.0（司机/车队重构、订单多货物支持）

@@ -20,7 +20,13 @@
       "Bash(mv business/order/* order/)",
       "Bash(mvn compile:*)",
       "Bash(cmd /c \"mvn clean compile -DskipTests 2>&1 | head -100\")",
-      "Bash(./mvnw clean:*)"
+      "Bash(./mvnw clean:*)",
+      "Bash(find . -name *.java -path */logistics/* -type f)",
+      "Bash(ls -la *.xml)",
+      "Bash(wc -l /Users/nnnnzs/project/supply_chain_management/sql/*.sql)",
+      "Bash(grep -E \"\\\\.sql$|^d\")",
+      "Bash(python3:*)",
+      "Bash(ls:*)"
     ]
   }
 }

@@ -247,7 +247,7 @@ SQL 脚本包含的初始测试数据：
 
 ## 技术栈
 
-- **后端**：Spring Boot 3.x + MyBatis + MySQL
+- **后端**：Spring Boot 4.0.3 + MyBatis + MySQL
 - **前端**：Vue 3 + Element Plus + Vite
 - **代码生成**：若依代码生成器
 - **权限控制**：若依权限系统
