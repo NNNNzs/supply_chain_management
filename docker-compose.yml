@@ -17,7 +17,8 @@ services:
     environment:
       TZ: Asia/Shanghai
       # JVM 参数，可根据需要调整
-      JAVA_OPTS: "-Xms512m -Xmx1024m -XX:+UseG1GC"
+      # 添加时区和日志相关参数，确保日志使用东八区时间
+      JAVA_OPTS: "-Xms512m -Xmx1024m -XX:+UseG1GC -Duser.timezone=Asia/Shanghai -Dfile.encoding=UTF-8"
     command: ["sh", "-c", "java $$JAVA_OPTS -jar /app/app.jar"]
     networks:
       - scm-network

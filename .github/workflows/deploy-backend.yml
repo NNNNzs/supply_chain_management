@@ -72,6 +72,7 @@ jobs:
 
       - name: Deploy and restart service
         uses: appleboy/ssh-action@v1.0.3
+        timeout-minutes: 10  # 设置超时时间为10分钟，确保有足够时间完成健康检查
         with:
           host: ${{ secrets.SERVER_HOST }}
           port: ${{ secrets.SERVER_PORT }}

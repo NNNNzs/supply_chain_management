@@ -69,19 +69,23 @@ fi
 
 # 健康检查
 log_info "Performing health check..."
-MAX_ATTEMPTS=30
+# 考虑到 Docker health check 的 start_period 是 60s，应用启动约 15s
+# 使用更长的等待时间，确保应用完全启动
+MAX_ATTEMPTS=40
 ATTEMPT=0
+CHECK_INTERVAL=5
 
 while [ $ATTEMPT -lt $MAX_ATTEMPTS ]; do
-    if docker exec "${CONTAINER_NAME}" wget --no-verbose --tries=1 --spider "http://localhost:8080/" 2>/dev/null; then
+    # 修复端口：使用正确的 8897 端口而不是 8080
+    if docker exec "${CONTAINER_NAME}" wget --no-verbose --tries=1 --spider "http://localhost:8897/" 2>/dev/null; then
         log_info "Health check passed! Application is ready."
         log_info "Deployment completed successfully!"
         exit 0
     fi
 
     ATTEMPT=$((ATTEMPT + 1))
-    log_warn "Health check attempt $ATTEMPT/$MAX_ATTEMPTS failed. Retrying in 5 seconds..."
-    sleep 5
+    log_warn "Health check attempt $ATTEMPT/$MAX_ATTEMPTS failed. Retrying in ${CHECK_INTERVAL} seconds..."
+    sleep $CHECK_INTERVAL
 done
 
 log_error "Health check failed after $MAX_ATTEMPTS attempts!"
