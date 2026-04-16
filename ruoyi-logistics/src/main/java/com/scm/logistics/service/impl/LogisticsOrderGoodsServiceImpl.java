@@ -1,10 +1,10 @@
 package com.scm.logistics.service.impl;
 
 import java.util.List;
-import com.scm.common.utils.DateUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import com.scm.common.utils.BaseEntityUtils;
 import com.scm.logistics.mapper.LogisticsOrderGoodsMapper;
 import com.scm.logistics.domain.LogisticsOrderGoods;
 import com.scm.logistics.service.ILogisticsOrderGoodsService;
@@ -66,7 +66,7 @@ public class LogisticsOrderGoodsServiceImpl implements ILogisticsOrderGoodsServi
     @Override
     public int insertLogisticsOrderGoods(LogisticsOrderGoods logisticsOrderGoods)
     {
-        logisticsOrderGoods.setCreateTime(DateUtils.getNowDate());
+        BaseEntityUtils.fillCreateInfo(logisticsOrderGoods);
         return logisticsOrderGoodsMapper.insertLogisticsOrderGoods(logisticsOrderGoods);
     }
 
@@ -79,7 +79,7 @@ public class LogisticsOrderGoodsServiceImpl implements ILogisticsOrderGoodsServi
     @Override
     public int updateLogisticsOrderGoods(LogisticsOrderGoods logisticsOrderGoods)
     {
-        logisticsOrderGoods.setUpdateTime(DateUtils.getNowDate());
+        BaseEntityUtils.fillUpdateInfo(logisticsOrderGoods);
         return logisticsOrderGoodsMapper.updateLogisticsOrderGoods(logisticsOrderGoods);
     }
 

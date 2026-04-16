@@ -190,6 +190,25 @@ public class LogisticsDriverController extends BaseController
     }
 
     /**
+     * 获取司机树形选择数据（仅司机，车队作为分组，不可选择）
+     */
+    @GetMapping("/driverTree")
+    public AjaxResult getDriverTree()
+    {
+        LogisticsFleet fleetQuery = new LogisticsFleet();
+        fleetQuery.setStatus("0");
+        List<LogisticsFleet> fleetList = logisticsFleetService.selectLogisticsFleetList(fleetQuery);
+
+        LogisticsDriver driverQuery = new LogisticsDriver();
+        driverQuery.setStatus("0");
+        List<LogisticsDriver> driverList = logisticsDriverService.selectLogisticsDriverList(driverQuery);
+
+        // 构建只包含司机的树形结构
+        List<Object> treeData = buildDriverOnlyTree(fleetList, driverList);
+        return success(treeData);
+    }
+
+    /**
      * 构建树形数据
      */
     private List<Object> buildTreeData(List<LogisticsFleet> fleetList, List<LogisticsDriver> driverList)
@@ -246,6 +265,66 @@ public class LogisticsDriverController extends BaseController
                 driverNode.put("remark", driver.getRemark());
                 result.add(driverNode);
             }
+        }
+
+        return result;
+    }
+
+    /**
+     * 构建只包含司机的树形数据（车队作为分组，不可选择）
+     */
+    private List<Object> buildDriverOnlyTree(List<LogisticsFleet> fleetList, List<LogisticsDriver> driverList)
+    {
+        List<Object> result = new java.util.ArrayList<>();
+
+        // 添加车队及其司机
+        for (LogisticsFleet fleet : fleetList)
+        {
+            // 查找该车队的司机
+            List<LogisticsDriver> fleetDrivers = new java.util.ArrayList<>();
+            for (LogisticsDriver driver : driverList)
+            {
+                if ("fleet".equals(driver.getDriverType()) && fleet.getFleetId().equals(driver.getFleetId()))
+                {
+                    fleetDrivers.add(driver);
+                }
+            }
+
+            // 如果车队有司机，则添加到结果中
+            if (!fleetDrivers.isEmpty())
+            {
+                java.util.Map<String, Object> fleetNode = new java.util.HashMap<>();
+                fleetNode.put("id", "F" + fleet.getFleetId());
+                fleetNode.put("value", "F" + fleet.getFleetId());  // for el-tree-select
+                fleetNode.put("label", fleet.getFleetName() + " (车队)");
+                fleetNode.put("type", "fleet");
+                fleetNode.put("disabled", true);  // 车队节点不可选择
+                fleetNode.put("children", fleetDrivers);
+                result.add(fleetNode);
+            }
+        }
+
+        // 添加个人司机分组
+        List<LogisticsDriver> individualDrivers = new java.util.ArrayList<>();
+        for (LogisticsDriver driver : driverList)
+        {
+            if ("individual".equals(driver.getDriverType()))
+            {
+                individualDrivers.add(driver);
+            }
+        }
+
+        // 如果有个人司机，创建一个"个人司机"分组
+        if (!individualDrivers.isEmpty())
+        {
+            java.util.Map<String, Object> individualGroup = new java.util.HashMap<>();
+            individualGroup.put("id", "INDIVIDUAL_GROUP");
+            individualGroup.put("value", "INDIVIDUAL_GROUP");
+            individualGroup.put("label", "个人司机");
+            individualGroup.put("type", "group");
+            individualGroup.put("disabled", true);  // 分组节点不可选择
+            individualGroup.put("children", individualDrivers);
+            result.add(individualGroup);
         }
 
         return result;

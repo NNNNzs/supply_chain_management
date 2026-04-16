@@ -110,3 +110,11 @@ export function getAllDrivers() {
     method: 'get'
   })
 }
+
+// 获取司机树形选择数据（仅司机，车队作为分组）
+export function getDriverTree() {
+  return request({
+    url: '/logistics/driver/driverTree',
+    method: 'get'
+  })
+}

@@ -28,7 +28,7 @@
 
     <el-table v-loading="loading" :data="goodsList" @selection-change="handleSelectionChange">
       <el-table-column type="selection" width="55" align="center" />
-      <el-table-column label="货物编码" align="center" prop="goodsCode" width="120" />
+      <el-table-column label="货物编码" align="center" prop="goodsCode" min-width="120" />
       <el-table-column label="货物名称" align="center" prop="goodsName" :show-overflow-tooltip="true" />
       <el-table-column label="货物型号" align="center" prop="goodsModel" width="120" />
       <el-table-column label="货物分类" align="center" prop="goodsCategory" width="100" />

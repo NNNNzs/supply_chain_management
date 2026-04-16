@@ -268,7 +268,6 @@ public class LogisticsOrder extends BaseEntity
         this.goodsModel = goodsModel;
     }
 
-    @NotNull(message = "重量不能为空")
     public BigDecimal getWeight()
     {
         return weight;
@@ -320,7 +319,6 @@ public class LogisticsOrder extends BaseEntity
         this.dispatchDate = dispatchDate;
     }
 
-    @NotNull(message = "运价不能为空")
     public BigDecimal getUnitPrice()
     {
         return unitPrice;

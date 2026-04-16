@@ -82,4 +82,36 @@ public interface LogisticsOrderMapper
      * @return 结果
      */
     public LogisticsOrder checkOrderNoExistsInDb(String orderNo);
+
+    /**
+     * 查询装货地址列表（去重并统计使用次数）
+     *
+     * @param keyword 关键词
+     * @return 地址列表
+     */
+    public List<java.util.Map<String, Object>> selectLoadingAddressList(String keyword);
+
+    /**
+     * 查询卸货地址列表（去重并统计使用次数）
+     *
+     * @param keyword 关键词
+     * @return 地址列表
+     */
+    public List<java.util.Map<String, Object>> selectUnloadingAddressList(String keyword);
+
+    /**
+     * 查询所有地址列表（装货和卸货合并，去重并统计使用次数）
+     *
+     * @param keyword 关键词
+     * @return 地址列表
+     */
+    public List<java.util.Map<String, Object>> selectAllAddressList(String keyword);
+
+    /**
+     * 根据订单号前缀查询最大订单号（用于生成流水号）
+     *
+     * @param orderNoPrefix 订单号前缀
+     * @return 最大订单号
+     */
+    public String selectMaxOrderNoByPrefix(String orderNoPrefix);
 }

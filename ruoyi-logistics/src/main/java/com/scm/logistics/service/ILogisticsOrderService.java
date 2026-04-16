@@ -89,4 +89,28 @@ public interface ILogisticsOrderService
      * @return 结果
      */
     public int changeOrderStatus(Long orderId, String orderStatus);
+
+    /**
+     * 查询装货地址列表（用于自动完成）
+     *
+     * @param keyword 关键词
+     * @return 地址列表
+     */
+    public java.util.List<java.util.Map<String, Object>> selectLoadingAddressList(String keyword);
+
+    /**
+     * 查询卸货地址列表（用于自动完成）
+     *
+     * @param keyword 关键词
+     * @return 地址列表
+     */
+    public java.util.List<java.util.Map<String, Object>> selectUnloadingAddressList(String keyword);
+
+    /**
+     * 查询所有地址列表（装货和卸货合并，用于自动完成）
+     *
+     * @param keyword 关键词
+     * @return 地址列表
+     */
+    public java.util.List<java.util.Map<String, Object>> selectAllAddressList(String keyword);
 }

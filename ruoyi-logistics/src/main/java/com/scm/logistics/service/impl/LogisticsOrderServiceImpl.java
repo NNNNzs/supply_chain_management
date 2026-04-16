@@ -8,6 +8,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import com.scm.common.exception.ServiceException;
+import com.scm.common.utils.BaseEntityUtils;
 import com.scm.common.utils.StringUtils;
 import com.scm.logistics.domain.LogisticsBill;
 import com.scm.logistics.domain.LogisticsCustomer;
@@ -81,6 +82,8 @@ public class LogisticsOrderServiceImpl implements ILogisticsOrderService
         generateOrderNo(logisticsOrder);
         // 计算金额（从货物明细汇总）
         calculateAmountFromGoods(logisticsOrder);
+        // 填充创建信息
+        BaseEntityUtils.fillCreateInfo(logisticsOrder);
         // 保存订单
         int result = orderMapper.insertOrder(logisticsOrder);
         // 保存货物明细
@@ -121,6 +124,8 @@ public class LogisticsOrderServiceImpl implements ILogisticsOrderService
         }
         // 重新计算金额（从货物明细汇总）
         calculateAmountFromGoods(logisticsOrder);
+        // 填充更新信息
+        BaseEntityUtils.fillUpdateInfo(logisticsOrder);
         // 更新订单
         int result = orderMapper.updateOrder(logisticsOrder);
         // 更新货物明细
@@ -187,7 +192,8 @@ public class LogisticsOrderServiceImpl implements ILogisticsOrderService
 
     /**
      * 生成订单号
-     * 格式：类型(2位) + 客户编码 + 年月日 + 流水号(4位)
+     * 格式：客户编码 + 连字符 + 日期 + 连字符 + 当日序号(3位)
+     * 例如：RMWJ-20260416-001
      *
      * @param logisticsOrder 运输订单
      */
@@ -202,34 +208,30 @@ public class LogisticsOrderServiceImpl implements ILogisticsOrderService
                 throw new ServiceException("客户信息不存在");
             }
 
-            // 订单号格式：YS(运输) + 客户编码 + 年月日 + 流水号
+            // 订单号格式：客户编码 + 连字符 + 日期 + 连字符 + 当日序号
             String dateStr = new SimpleDateFormat("yyyyMMdd").format(logisticsOrder.getOrderDate());
-            String prefix = "YS" + customer.getCustomerCode() + dateStr;
+            String prefix = customer.getCustomerCode() + "-" + dateStr + "-";
 
-            // 查询当天该客户的订单数量作为流水号
-            List<LogisticsOrder> orders = orderMapper.selectOrdersByCustomerId(logisticsOrder.getCustomerId());
-            int count = 0;
-            for (LogisticsOrder order : orders)
+            // 查询数据库中该前缀的最大订单号（包括已删除的记录）
+            String maxOrderNo = orderMapper.selectMaxOrderNoByPrefix(prefix);
+
+            int serialNo = 1; // 默认从1开始
+            if (maxOrderNo != null && maxOrderNo.length() > prefix.length())
             {
-                if (order.getOrderNo() != null && order.getOrderNo().startsWith(prefix))
+                try
                 {
-                    count++;
+                    // 提取流水号部分并加1
+                    String currentSerial = maxOrderNo.substring(prefix.length());
+                    serialNo = Integer.parseInt(currentSerial) + 1;
+                }
+                catch (NumberFormatException e)
+                {
+                    serialNo = 1;
                 }
             }
 
-            // 生成订单号并检查数据库中是否存在（包括已删除的记录）
-            String serialNo;
-            String candidateOrderNo;
-            int attempt = 0;
-            do
-            {
-                serialNo = String.format("%04d", count + 1 + attempt);
-                candidateOrderNo = prefix + serialNo;
-                attempt++;
-            }
-            while (orderMapper.checkOrderNoExistsInDb(candidateOrderNo) != null);
-
-            logisticsOrder.setOrderNo(candidateOrderNo);
+            // 生成订单号，流水号3位补零
+            logisticsOrder.setOrderNo(prefix + String.format("%03d", serialNo));
         }
     }
 
@@ -255,11 +257,11 @@ public class LogisticsOrderServiceImpl implements ILogisticsOrderService
      */
     private void calculateAmountFromGoods(LogisticsOrder logisticsOrder)
     {
+        BigDecimal totalWeight = BigDecimal.ZERO;
+        BigDecimal totalAmount = BigDecimal.ZERO;
+
         if (logisticsOrder.getGoodsList() != null && !logisticsOrder.getGoodsList().isEmpty())
         {
-            BigDecimal totalWeight = BigDecimal.ZERO;
-            BigDecimal totalAmount = BigDecimal.ZERO;
-
             for (com.scm.logistics.domain.LogisticsOrderGoods goods : logisticsOrder.getGoodsList())
             {
                 if (goods.getWeight() != null)
@@ -271,9 +273,20 @@ public class LogisticsOrderServiceImpl implements ILogisticsOrderService
                     totalAmount = totalAmount.add(goods.getAmount());
                 }
             }
+        }
 
-            logisticsOrder.setTotalWeight(totalWeight);
-            logisticsOrder.setTotalAmount(totalAmount);
+        // 设置汇总值（即使为0也要设置，避免数据库NOT NULL错误）
+        logisticsOrder.setTotalWeight(totalWeight);
+        logisticsOrder.setTotalAmount(totalAmount);
+
+        // 为了兼容旧的数据库表结构，设置旧字段的默认值
+        if (logisticsOrder.getWeight() == null)
+        {
+            logisticsOrder.setWeight(BigDecimal.ZERO);
+        }
+        if (logisticsOrder.getUnitPrice() == null)
+        {
+            logisticsOrder.setUnitPrice(BigDecimal.ZERO);
         }
     }
 
@@ -309,5 +322,41 @@ public class LogisticsOrderServiceImpl implements ILogisticsOrderService
         order.setOrderId(orderId);
         order.setOrderStatus(orderStatus);
         return orderMapper.updateOrder(order);
+    }
+
+    /**
+     * 查询装货地址列表（用于自动完成）
+     *
+     * @param keyword 关键词
+     * @return 地址列表
+     */
+    @Override
+    public List<java.util.Map<String, Object>> selectLoadingAddressList(String keyword)
+    {
+        return orderMapper.selectLoadingAddressList(keyword);
+    }
+
+    /**
+     * 查询卸货地址列表（用于自动完成）
+     *
+     * @param keyword 关键词
+     * @return 地址列表
+     */
+    @Override
+    public List<java.util.Map<String, Object>> selectUnloadingAddressList(String keyword)
+    {
+        return orderMapper.selectUnloadingAddressList(keyword);
+    }
+
+    /**
+     * 查询所有地址列表（装货和卸货合并，用于自动完成）
+     *
+     * @param keyword 关键词
+     * @return 地址列表
+     */
+    @Override
+    public List<java.util.Map<String, Object>> selectAllAddressList(String keyword)
+    {
+        return orderMapper.selectAllAddressList(keyword);
     }
 }

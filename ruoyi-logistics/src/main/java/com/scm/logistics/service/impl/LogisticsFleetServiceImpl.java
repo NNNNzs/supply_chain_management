@@ -1,7 +1,7 @@
 package com.scm.logistics.service.impl;
 
 import java.util.List;
-import com.scm.common.utils.DateUtils;
+import com.scm.common.utils.BaseEntityUtils;
 import com.scm.common.exception.ServiceException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -54,7 +54,7 @@ public class LogisticsFleetServiceImpl implements ILogisticsFleetService
     @Override
     public int insertLogisticsFleet(LogisticsFleet logisticsFleet)
     {
-        logisticsFleet.setCreateTime(DateUtils.getNowDate());
+        BaseEntityUtils.fillCreateInfo(logisticsFleet);
         return logisticsFleetMapper.insertLogisticsFleet(logisticsFleet);
     }
 
@@ -67,7 +67,7 @@ public class LogisticsFleetServiceImpl implements ILogisticsFleetService
     @Override
     public int updateLogisticsFleet(LogisticsFleet logisticsFleet)
     {
-        logisticsFleet.setUpdateTime(DateUtils.getNowDate());
+        BaseEntityUtils.fillUpdateInfo(logisticsFleet);
         return logisticsFleetMapper.updateLogisticsFleet(logisticsFleet);
     }
 

@@ -179,4 +179,34 @@ public class LogisticsOrderController extends BaseController
         ExcelUtil<LogisticsOrder> util = new ExcelUtil<LogisticsOrder>(LogisticsOrder.class);
         util.importTemplateExcel(response, "运输订单数据");
     }
+
+    /**
+     * 查询装货地址列表（用于自动完成）
+     */
+    @GetMapping("/loadingAddresses")
+    public AjaxResult getLoadingAddresses(String keyword)
+    {
+        List<java.util.Map<String, Object>> list = orderService.selectLoadingAddressList(keyword);
+        return success(list);
+    }
+
+    /**
+     * 查询卸货地址列表（用于自动完成）
+     */
+    @GetMapping("/unloadingAddresses")
+    public AjaxResult getUnloadingAddresses(String keyword)
+    {
+        List<java.util.Map<String, Object>> list = orderService.selectUnloadingAddressList(keyword);
+        return success(list);
+    }
+
+    /**
+     * 查询所有地址列表（装货和卸货合并，用于自动完成）
+     */
+    @GetMapping("/addresses")
+    public AjaxResult getAddresses(String keyword)
+    {
+        List<java.util.Map<String, Object>> list = orderService.selectAllAddressList(keyword);
+        return success(list);
+    }
 }

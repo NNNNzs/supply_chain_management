@@ -47,7 +47,13 @@
 
     <el-table v-loading="loading" :data="orderList" @selection-change="handleSelectionChange">
       <el-table-column type="selection" width="55" align="center" />
-      <el-table-column label="订单号" align="center" prop="orderNo" width="180" :show-overflow-tooltip="true" />
+      <el-table-column label="订单号" align="center" prop="orderNo" width="180">
+        <template #default="scope">
+          <el-link type="primary" @click="handleViewGoodsDetail(scope.row)" :underline="false">
+            {{ scope.row.orderNo }}
+          </el-link>
+        </template>
+      </el-table-column>
       <el-table-column label="订单日期" align="center" prop="orderDate" width="110" />
       <el-table-column label="客户" align="center" prop="customerName" width="120" :show-overflow-tooltip="true" />
       <el-table-column label="装货地址" align="center" prop="loadingAddress" :show-overflow-tooltip="true" />
@@ -89,8 +95,8 @@
         <template #default="scope">
           <el-button link type="primary" icon="Edit" @click="handleUpdate(scope.row)" v-hasPermi="['logistics:order:edit']">修改</el-button>
           <el-dropdown v-if="scope.row.orderStatus !== 'completed' && scope.row.orderStatus !== 'cancelled'" v-hasPermi="['logistics:order:edit']">
-            <el-button link type="primary" icon="Refresh">
-              更改状态
+            <el-button link type="primary" icon="MoreFilled" style="margin-left: 8px; margin-right: 8px;">
+              状态
             </el-button>
             <template #dropdown>
               <el-dropdown-menu>
@@ -107,13 +113,43 @@
 
     <pagination v-show="total > 0" :total="total" v-model:page="queryParams.pageNum" v-model:limit="queryParams.pageSize" @pagination="getList" />
 
+    <!-- 货物详情对话框 -->
+    <el-dialog title="订单货物明细" v-model="goodsDetailVisible" width="700px" append-to-body>
+      <el-table :data="currentOrderGoods" border style="width: 100%">
+        <el-table-column type="index" width="50" label="序号" align="center" />
+        <el-table-column label="货物名称" prop="goodsName" min-width="120" />
+        <el-table-column label="货物型号" prop="goodsModel" width="120" />
+        <el-table-column label="单位" prop="goodsUnit" width="80" align="center" />
+        <el-table-column label="重量(吨)" prop="weight" width="100" align="center">
+          <template #default="scope">
+            {{ scope.row.weight ? scope.row.weight.toFixed(3) : '0.000' }}
+          </template>
+        </el-table-column>
+        <el-table-column label="单价(元/吨)" prop="unitPrice" width="110" align="center">
+          <template #default="scope">
+            {{ scope.row.unitPrice ? scope.row.unitPrice.toFixed(2) : '0.00' }}
+          </template>
+        </el-table-column>
+        <el-table-column label="金额(元)" prop="amount" width="100" align="center">
+          <template #default="scope">
+            {{ scope.row.amount ? scope.row.amount.toFixed(2) : '0.00' }}
+          </template>
+        </el-table-column>
+      </el-table>
+      <template #footer>
+        <div class="dialog-footer">
+          <el-button type="info" @click="goodsDetailVisible = false">关 闭</el-button>
+        </div>
+      </template>
+    </el-dialog>
+
     <!-- 订单导入对话框 -->
     <excel-import-dialog ref="importRef" title="订单导入" action="/logistics/order/importData" template-action="/logistics/order/importTemplate" template-file-name="order_template" update-support-label="是否更新已经存在的订单数据" @success="getList" />
   </div>
 </template>
 
 <script setup name="Order">
-import { listOrder, delOrder, exportOrder, changeOrderStatus } from "@/api/logistics/order"
+import { listOrder, delOrder, exportOrder, changeOrderStatus, getOrder } from "@/api/logistics/order"
 import { listCustomer } from "@/api/logistics/customer"
 import ExcelImportDialog from "@/components/ExcelImportDialog"
 import { useRouter, useRoute } from 'vue-router'
@@ -132,6 +168,8 @@ const multiple = ref(true)
 const total = ref(0)
 const dateRange = ref([])
 const customerOptions = ref([])
+const goodsDetailVisible = ref(false)
+const currentOrderGoods = ref([])
 
 const data = reactive({
   queryParams: {
@@ -223,6 +261,15 @@ function handleSelectionChange(selection) {
   ids.value = selection.map(item => item.orderId)
   single.value = selection.length !== 1
   multiple.value = !selection.length
+}
+
+// 查看货物详情
+function handleViewGoodsDetail(row) {
+  getOrder(row.orderId).then(response => {
+    const order = response.data
+    currentOrderGoods.value = order.goodsList || []
+    goodsDetailVisible.value = true
+  })
 }
 
 // 从URL参数中读取orderId并自动搜索

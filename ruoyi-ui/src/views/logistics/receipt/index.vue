@@ -91,9 +91,25 @@
             :on-remove="handleUploadRemove"
             :limit="1"
             :auto-upload="false"
+            :on-change="handleUploadChange"
             accept=".jpg,.jpeg,.png,.gif"
             list-type="picture-card">
             <el-icon><Plus /></el-icon>
+            <template #file="{ file }">
+              <div>
+                <el-image
+                  v-if="file.url"
+                  :src="file.url"
+                  fit="cover"
+                  style="width: 100%; height: 100%"
+                  :preview-src-list="[file.url]"
+                  :initial-index="0"
+                />
+                <div v-else class="el-upload-list__item-thumbnail">
+                  <img :src="file.url" alt="" />
+                </div>
+              </div>
+            </template>
           </el-upload>
         </el-form-item>
         <el-form-item label="回单状态" prop="receiptStatus">
@@ -258,8 +274,15 @@ function handleUpdate(row) {
   const _receiptId = row.receiptId || ids.value[0]
   getReceipt(_receiptId).then(response => {
     form.value = response.data
+    // 修复图片回显问题
     if (form.value.receiptImage) {
-      upload.fileList = [{ name: "回单图片", url: form.value.receiptImage }]
+      upload.fileList = [{
+        name: "回单图片",
+        url: form.value.receiptImage,
+        // 添加这些字段确保el-upload能正确显示
+        status: 'success',
+        uid: Date.now()
+      }]
     }
     open.value = true
     title.value = "修改回单信息"
@@ -332,6 +355,13 @@ function handleUploadSuccess(response, file, fileList) {
 
 function handleUploadRemove(file, fileList) {
   form.value.receiptImage = null
+}
+
+function handleUploadChange(file, fileList) {
+  // 限制只能上传一张图片
+  if (fileList.length > 1) {
+    fileList.splice(0, 1)
+  }
 }
 
 function handleExport() {

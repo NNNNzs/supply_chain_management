@@ -99,6 +99,55 @@ public String generateOrderNo(String orderType, String customerCode) {
 }
 ```
 
+#### 2.1.3 BaseEntity 字段填充规范 ⚠️ 重要
+
+所有继承 `BaseEntity` 的实体类，在插入和更新操作时必须使用 `BaseEntityUtils` 工具类自动填充审计字段。
+
+**填充规则：**
+
+| 操作 | 方法 | 填充字段 |
+|------|------|---------|
+| 新增 | `BaseEntityUtils.fillCreateInfo(entity)` | createBy, updateBy, createTime, updateTime |
+| 修改 | `BaseEntityUtils.fillUpdateInfo(entity)` | updateBy, updateTime |
+| 批量新增 | `BaseEntityUtils.fillCreateInfoForBatch(list)` | 同上，批量处理 |
+| 批量修改 | `BaseEntityUtils.fillUpdateInfoForBatch(list)` | 同上，批量处理 |
+
+**使用示例：**
+
+```java
+@Service
+public class LogisticsCustomerServiceImpl implements ILogisticsCustomerService {
+
+    @Override
+    public int insertCustomer(LogisticsCustomer customer) {
+        // 校验业务逻辑
+        if (!checkCustomerCodeUnique(customer)) {
+            throw new ServiceException("客户编码已存在");
+        }
+        // 填充创建信息
+        BaseEntityUtils.fillCreateInfo(customer);
+        return customerMapper.insertCustomer(customer);
+    }
+
+    @Override
+    public int updateCustomer(LogisticsCustomer customer) {
+        // 校验业务逻辑
+        if (!checkCustomerCodeUnique(customer)) {
+            throw new ServiceException("客户编码已存在");
+        }
+        // 填充更新信息
+        BaseEntityUtils.fillUpdateInfo(customer);
+        return customerMapper.updateCustomer(customer);
+    }
+}
+```
+
+**注意事项：**
+- `fillCreateInfo` 会同时设置 createBy、updateBy、createTime、updateTime
+- `fillUpdateInfo` 只更新 updateBy 和 updateTime
+- 工具类会自动获取当前登录用户名，无需手动传递
+- 获取用户名失败时，时间字段仍会正常填充
+
 ### 2.2 前端代码规范
 
 #### 2.2.1 组件命名
@@ -300,7 +349,7 @@ public void testGenerateOrderNo() {
 
     // Then
     assertNotNull(orderNo);
-    assertTrue(orderNo.startsWith("YSCZGS"));
+    assertTrue(orderNo.matches("^[A-Z]+-\\d{8}-\\d{3}$"));
 }
 ```
 

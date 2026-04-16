@@ -5,6 +5,7 @@ import java.util.Date;
 import java.util.List;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import com.scm.common.utils.BaseEntityUtils;
 import com.scm.logistics.mapper.LogisticsGoodsMapper;
 import com.scm.logistics.domain.LogisticsGoods;
 import com.scm.logistics.service.ILogisticsGoodsService;
@@ -60,6 +61,7 @@ public class LogisticsGoodsServiceImpl implements ILogisticsGoodsService
             String timestamp = new SimpleDateFormat("yyyyMMddHHmmss").format(new Date());
             logisticsGoods.setGoodsCode("GD" + timestamp);
         }
+        BaseEntityUtils.fillCreateInfo(logisticsGoods);
         return logisticsGoodsMapper.insertLogisticsGoods(logisticsGoods);
     }
 
@@ -72,6 +74,7 @@ public class LogisticsGoodsServiceImpl implements ILogisticsGoodsService
     @Override
     public int updateLogisticsGoods(LogisticsGoods logisticsGoods)
     {
+        BaseEntityUtils.fillUpdateInfo(logisticsGoods);
         return logisticsGoodsMapper.updateLogisticsGoods(logisticsGoods);
     }
 

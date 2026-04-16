@@ -3,6 +3,7 @@ package com.scm.logistics.service.impl;
 import java.util.List;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import com.scm.common.utils.BaseEntityUtils;
 import com.scm.logistics.mapper.LogisticsSettlementMapper;
 import com.scm.logistics.domain.LogisticsSettlement;
 import com.scm.logistics.service.ILogisticsSettlementService;
@@ -52,6 +53,7 @@ public class LogisticsSettlementServiceImpl implements ILogisticsSettlementServi
     @Override
     public int insertLogisticsSettlement(LogisticsSettlement logisticsSettlement)
     {
+        BaseEntityUtils.fillCreateInfo(logisticsSettlement);
         return logisticsSettlementMapper.insertLogisticsSettlement(logisticsSettlement);
     }
 
@@ -64,6 +66,7 @@ public class LogisticsSettlementServiceImpl implements ILogisticsSettlementServi
     @Override
     public int updateLogisticsSettlement(LogisticsSettlement logisticsSettlement)
     {
+        BaseEntityUtils.fillUpdateInfo(logisticsSettlement);
         return logisticsSettlementMapper.updateLogisticsSettlement(logisticsSettlement);
     }
 

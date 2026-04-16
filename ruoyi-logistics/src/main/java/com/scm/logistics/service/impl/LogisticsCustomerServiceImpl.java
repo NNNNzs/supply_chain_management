@@ -4,6 +4,7 @@ import java.util.List;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import com.scm.common.exception.ServiceException;
+import com.scm.common.utils.BaseEntityUtils;
 import com.scm.common.utils.StringUtils;
 import com.scm.logistics.domain.LogisticsBill;
 import com.scm.logistics.domain.LogisticsCustomer;
@@ -63,6 +64,7 @@ public class LogisticsCustomerServiceImpl implements ILogisticsCustomerService
         {
             throw new ServiceException("新增客户'" + logisticsCustomer.getCustomerName() + "'失败，客户编码已存在");
         }
+        BaseEntityUtils.fillCreateInfo(logisticsCustomer);
         return customerMapper.insertCustomer(logisticsCustomer);
     }
 
@@ -79,6 +81,7 @@ public class LogisticsCustomerServiceImpl implements ILogisticsCustomerService
         {
             throw new ServiceException("修改客户'" + logisticsCustomer.getCustomerName() + "'失败，客户编码已存在");
         }
+        BaseEntityUtils.fillUpdateInfo(logisticsCustomer);
         return customerMapper.updateCustomer(logisticsCustomer);
     }
 

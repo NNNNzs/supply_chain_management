@@ -340,28 +340,33 @@ public AllocationResultVO createOrderWithBills(
 
 ```java
 /**
- * 运单号生成规则：类型(2位) + 客户编码 + 年月日 + 流水号(4位)
- * 示例：YSCZGS202604140001
- * 特点：防重检查包括已删除记录，循环递增流水号直到找到未使用的号码
+ * 运单号生成规则：客户编码 + 连字符 + 日期 + 连字符 + 当日序号(3位)
+ * 示例：RMWJ-20260416-001
+ * 特点：防重检查包括已删除记录，查询最大订单号并递增
  */
 @Override
 public void generateOrderNo(LogisticsOrder logisticsOrder) {
     if (StringUtils.isEmpty(logisticsOrder.getOrderNo())) {
         LogisticsCustomer customer = customerMapper.selectCustomerById(logisticsOrder.getCustomerId());
         String dateStr = new SimpleDateFormat("yyyyMMdd").format(logisticsOrder.getOrderDate());
-        String prefix = "YS" + customer.getCustomerCode() + dateStr;
+        String prefix = customer.getCustomerCode() + "-" + dateStr + "-";
 
-        List<LogisticsOrder> orders = orderMapper.selectOrdersByCustomerId(logisticsOrder.getCustomerId());
-        int count = 0;
-        for (LogisticsOrder order : orders) {
-            if (order.getOrderNo() != null && order.getOrderNo().startsWith(prefix)) {
-                count++;
+        // 查询数据库中该前缀的最大订单号（包括已删除的记录）
+        String maxOrderNo = orderMapper.selectMaxOrderNoByPrefix(prefix);
+
+        int serialNo = 1; // 默认从1开始
+        if (maxOrderNo != null && maxOrderNo.length() > prefix.length()) {
+            try {
+                // 提取流水号部分并加1
+                String currentSerial = maxOrderNo.substring(prefix.length());
+                serialNo = Integer.parseInt(currentSerial) + 1;
+            } catch (NumberFormatException e) {
+                serialNo = 1;
             }
         }
 
-        // 循环检查数据库中是否存在（包括已删除记录）
-        String serialNo;
-        String candidateOrderNo;
+        // 生成订单号，流水号3位补零
+        logisticsOrder.setOrderNo(prefix + String.format("%03d", serialNo));
         int attempt = 0;
         do {
             serialNo = String.format("%04d", count + 1 + attempt);

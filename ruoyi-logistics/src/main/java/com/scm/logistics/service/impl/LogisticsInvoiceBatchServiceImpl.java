@@ -3,6 +3,7 @@ package com.scm.logistics.service.impl;
 import java.util.List;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import com.scm.common.utils.BaseEntityUtils;
 import com.scm.logistics.mapper.LogisticsInvoiceBatchMapper;
 import com.scm.logistics.domain.LogisticsInvoiceBatch;
 import com.scm.logistics.service.ILogisticsInvoiceBatchService;
@@ -52,6 +53,7 @@ public class LogisticsInvoiceBatchServiceImpl implements ILogisticsInvoiceBatchS
     @Override
     public int insertLogisticsInvoiceBatch(LogisticsInvoiceBatch logisticsInvoiceBatch)
     {
+        BaseEntityUtils.fillCreateInfo(logisticsInvoiceBatch);
         return logisticsInvoiceBatchMapper.insertLogisticsInvoiceBatch(logisticsInvoiceBatch);
     }
 
@@ -64,6 +66,7 @@ public class LogisticsInvoiceBatchServiceImpl implements ILogisticsInvoiceBatchS
     @Override
     public int updateLogisticsInvoiceBatch(LogisticsInvoiceBatch logisticsInvoiceBatch)
     {
+        BaseEntityUtils.fillUpdateInfo(logisticsInvoiceBatch);
         return logisticsInvoiceBatchMapper.updateLogisticsInvoiceBatch(logisticsInvoiceBatch);
     }
 

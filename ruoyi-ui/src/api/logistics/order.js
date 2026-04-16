@@ -77,3 +77,30 @@ export function changeOrderStatus(orderId, orderStatus) {
     data: { orderStatus }
   })
 }
+
+// 查询装货地址列表（用于自动完成）
+export function getLoadingAddresses(keyword) {
+  return request({
+    url: '/logistics/order/loadingAddresses',
+    method: 'get',
+    params: { keyword }
+  })
+}
+
+// 查询卸货地址列表（用于自动完成）
+export function getUnloadingAddresses(keyword) {
+  return request({
+    url: '/logistics/order/unloadingAddresses',
+    method: 'get',
+    params: { keyword }
+  })
+}
+
+// 查询所有地址列表（装货和卸货合并，用于自动完成）
+export function getAddresses(keyword) {
+  return request({
+    url: '/logistics/order/addresses',
+    method: 'get',
+    params: { keyword }
+  })
+}

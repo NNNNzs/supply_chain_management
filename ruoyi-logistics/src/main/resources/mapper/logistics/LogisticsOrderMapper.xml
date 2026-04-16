@@ -228,4 +228,77 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         </foreach>
     </delete>
 
+    <!-- 查询装货地址列表（去重并统计使用次数） -->
+    <select id="selectLoadingAddressList" parameterType="String" resultType="java.util.Map">
+        SELECT
+            loading_address AS address,
+            COUNT(*) AS count
+        FROM logistics_order
+        WHERE loading_address IS NOT NULL
+            AND loading_address != ''
+            AND del_flag = '0'
+            <if test="keyword != null and keyword != ''">
+                AND loading_address LIKE CONCAT('%', #{keyword}, '%')
+            </if>
+        GROUP BY loading_address
+        ORDER BY count DESC, loading_address ASC
+        LIMIT 50
+    </select>
+
+    <!-- 查询卸货地址列表（去重并统计使用次数） -->
+    <select id="selectUnloadingAddressList" parameterType="String" resultType="java.util.Map">
+        SELECT
+            unloading_address AS address,
+            COUNT(*) AS count
+        FROM logistics_order
+        WHERE unloading_address IS NOT NULL
+            AND unloading_address != ''
+            AND del_flag = '0'
+            <if test="keyword != null and keyword != ''">
+                AND unloading_address LIKE CONCAT('%', #{keyword}, '%')
+            </if>
+        GROUP BY unloading_address
+        ORDER BY count DESC, unloading_address ASC
+        LIMIT 50
+    </select>
+
+    <!-- 查询所有地址列表（装货和卸货合并，去重并统计使用次数） -->
+    <select id="selectAllAddressList" parameterType="String" resultType="java.util.Map">
+        SELECT address, SUM(count) AS total_count
+        FROM (
+            SELECT
+                loading_address AS address,
+                COUNT(*) AS count
+            FROM logistics_order
+            WHERE loading_address IS NOT NULL
+                AND loading_address != ''
+                AND del_flag = '0'
+                <if test="keyword != null and keyword != ''">
+                    AND loading_address LIKE CONCAT('%', #{keyword}, '%')
+                </if>
+            GROUP BY loading_address
+            UNION ALL
+            SELECT
+                unloading_address AS address,
+                COUNT(*) AS count
+            FROM logistics_order
+            WHERE unloading_address IS NOT NULL
+                AND unloading_address != ''
+                AND del_flag = '0'
+                <if test="keyword != null and keyword != ''">
+                    AND unloading_address LIKE CONCAT('%', #{keyword}, '%')
+                </if>
+            GROUP BY unloading_address
+        ) AS combined
+        GROUP BY address
+        ORDER BY total_count DESC, address ASC
+        LIMIT 50
+    </select>
+
+    <!-- 根据订单号前缀查询最大订单号（包括已删除的记录） -->
+    <select id="selectMaxOrderNoByPrefix" parameterType="String" resultType="String">
+        SELECT MAX(order_no) FROM logistics_order
+        WHERE order_no LIKE CONCAT(#{orderNoPrefix}, '%')
+    </select>
+
 </mapper>

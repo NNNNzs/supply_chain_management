@@ -6,6 +6,7 @@ import java.util.List;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import com.scm.common.utils.BaseEntityUtils;
 import com.scm.common.utils.StringUtils;
 import com.scm.logistics.mapper.LogisticsReceiptMapper;
 import com.scm.logistics.mapper.LogisticsOrderMapper;
@@ -71,6 +72,7 @@ public class LogisticsReceiptServiceImpl implements ILogisticsReceiptService
         {
             logisticsReceipt.setReceiptStatus("not_received");
         }
+        BaseEntityUtils.fillCreateInfo(logisticsReceipt);
         return logisticsReceiptMapper.insertLogisticsReceipt(logisticsReceipt);
     }
 
@@ -83,6 +85,7 @@ public class LogisticsReceiptServiceImpl implements ILogisticsReceiptService
     @Override
     public int updateLogisticsReceipt(LogisticsReceipt logisticsReceipt)
     {
+        BaseEntityUtils.fillUpdateInfo(logisticsReceipt);
         return logisticsReceiptMapper.updateLogisticsReceipt(logisticsReceipt);
     }
 

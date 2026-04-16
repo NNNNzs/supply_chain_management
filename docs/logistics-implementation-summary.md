@@ -135,8 +135,8 @@ ruoyi-logistics/
 需要手动添加的业务逻辑：
 
 1. **订单号生成逻辑**
-   - 格式：类型(2位) + 客户编码 + 年月日 + 流水号
-   - 示例：YSCZGS202604140001
+   - 格式：客户编码 + 连字符 + 日期 + 连字符 + 当日序号(3位)
+   - 示例：RMWJ-20260416-001
 
 2. **订单金额自动计算**
    - 总金额 = 重量 × 运价
@@ -207,12 +207,10 @@ SQL 脚本包含的初始测试数据：
 
 ### 订单号生成规则
 
-**格式：** 类型(2位) + 客户编码 + 年月日 + 流水号(4位)
+**格式：** 客户编码 + 连字符 + 日期 + 连字符 + 当日序号(3位)
 
-- 类型编码：
-  - `YS` - 运输订单
-  - `DB` - 短驳订单
-- 示例：`YSCZGS202604140001`
+- 格式：`{客户编码}-{yyyyMMdd}-{序号}`
+- 示例：`RMWJ-20260416-001`
 
 ### 合并开票功能
 
@@ -249,6 +247,51 @@ SQL 脚本包含的初始测试数据：
 
 - **后端**：Spring Boot 4.0.3 + MyBatis + MySQL
 - **前端**：Vue 3 + Element Plus + Vite
+
+## 通用工具类
+
+### BaseEntityUtils
+
+**位置**：`ruoyi-common/src/main/java/com/scm/common/utils/BaseEntityUtils.java`
+
+**功能**：自动填充 BaseEntity 的审计字段（createBy、updateBy、createTime、updateTime）
+
+**方法说明**：
+
+| 方法 | 用途 | 填充字段 |
+|------|------|---------|
+| `fillCreateInfo(BaseEntity)` | 新增操作 | createBy, updateBy, createTime, updateTime |
+| `fillUpdateInfo(BaseEntity)` | 修改操作 | updateBy, updateTime |
+| `fillCreateInfoForBatch(List)` | 批量新增 | 同 fillCreateInfo |
+| `fillUpdateInfoForBatch(List)` | 批量修改 | 同 fillUpdateInfo |
+
+**使用示例**：
+
+```java
+// 新增操作
+public int insertCustomer(LogisticsCustomer customer) {
+    BaseEntityUtils.fillCreateInfo(customer);
+    return customerMapper.insertCustomer(customer);
+}
+
+// 修改操作
+public int updateCustomer(LogisticsCustomer customer) {
+    BaseEntityUtils.fillUpdateInfo(customer);
+    return customerMapper.updateCustomer(customer);
+}
+```
+
+**已应用的 Service 实现**：
+- LogisticsCustomerServiceImpl
+- LogisticsGoodsServiceImpl
+- LogisticsDriverServiceImpl
+- LogisticsVehicleServiceImpl
+- LogisticsFleetServiceImpl
+- LogisticsOrderServiceImpl
+- LogisticsOrderGoodsServiceImpl
+- LogisticsReceiptServiceImpl
+- LogisticsInvoiceBatchServiceImpl
+- LogisticsSettlementServiceImpl
 - **代码生成**：若依代码生成器
 - **权限控制**：若依权限系统
 - **文件上传**：若依文件上传组件
