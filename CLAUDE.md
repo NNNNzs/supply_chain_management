@@ -44,7 +44,7 @@ supply_chain_management/
 | [物流实现总结](docs/logistics-implementation-summary.md) | 物流管理模块完整实现说明 |
 | [数据库脚本指南](docs/logistics-database-guide.md) | 物流数据库表和菜单 SQL 执行指南 |
 | [后端代码清单](docs/logistics-backend-checklist.md) | 使用代码生成器生成后端代码的详细步骤 |
-| [发票管理流程](docs/logistics/invoice-workflow.md) | 发票管理业务流程图和接口说明 |
+| [业务流程](docs/logistics/business-workflow.md) | **完整业务流程梳理**（订单、回单、发票、结算） |
 | [工作台账](docs/工作台账.md) | 物流运输工作台账原始数据 |
 
 ## 开发规范

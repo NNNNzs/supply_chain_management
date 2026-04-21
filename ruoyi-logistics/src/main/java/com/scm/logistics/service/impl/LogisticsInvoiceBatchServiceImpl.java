@@ -11,6 +11,7 @@ import org.springframework.transaction.annotation.Transactional;
 import com.scm.common.core.domain.AjaxResult;
 import com.scm.common.utils.BaseEntityUtils;
 import com.scm.common.utils.SecurityUtils;
+import com.scm.logistics.domain.LogisticsInvoiceBatch;
 import com.scm.logistics.domain.LogisticsInvoiceDetail;
 import com.scm.logistics.domain.LogisticsOrder;
 import com.scm.logistics.mapper.LogisticsInvoiceBatchMapper;
