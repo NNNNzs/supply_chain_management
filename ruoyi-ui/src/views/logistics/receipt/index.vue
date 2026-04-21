@@ -9,8 +9,12 @@
       </el-form-item>
       <el-form-item label="回单状态" prop="receiptStatus">
         <el-select v-model="queryParams.receiptStatus" placeholder="回单状态" clearable style="width: 150px">
-          <el-option label="未收到" value="not_received" />
-          <el-option label="已收到" value="received" />
+          <el-option
+            v-for="dict in logistics_receipt_status"
+            :key="dict.value"
+            :label="dict.label"
+            :value="dict.value"
+          />
         </el-select>
       </el-form-item>
       <el-form-item>
@@ -41,8 +45,7 @@
       </el-table-column>
       <el-table-column label="回单状态" align="center" prop="receiptStatus" width="100">
         <template #default="scope">
-          <el-tag v-if="scope.row.receiptStatus === 'not_received'" type="warning">未收到</el-tag>
-          <el-tag v-else-if="scope.row.receiptStatus === 'received'" type="success">已收到</el-tag>
+          <dict-tag :options="logistics_receipt_status" :value="scope.row.receiptStatus" />
         </template>
       </el-table-column>
       <el-table-column label="接收人" align="center" prop="receiver" width="100" />
@@ -87,9 +90,11 @@
 
 <script setup name="Receipt">
 import { listReceipt, getReceipt, delReceipt, confirmReceipt, exportReceipt } from "@/api/logistics/receipt"
+import { useDict } from '@/utils/dict'
 import ReceiptDialog from "@/components/ReceiptDialog/index.vue"
 
 const { proxy } = getCurrentInstance()
+const { logistics_receipt_status } = useDict('logistics_receipt_status')
 
 const receiptList = ref([])
 const loading = ref(true)

@@ -13,9 +13,12 @@
       </el-form-item>
       <el-form-item label="发票状态" prop="invoiceStatus">
         <el-select v-model="queryParams.invoiceStatus" placeholder="发票状态" clearable style="width: 150px">
-          <el-option label="草稿" value="draft" />
-          <el-option label="已开具" value="issued" />
-          <el-option label="已作废" value="cancelled" />
+          <el-option
+            v-for="dict in logistics_batch_status"
+            :key="dict.value"
+            :label="dict.label"
+            :value="dict.value"
+          />
         </el-select>
       </el-form-item>
       <el-form-item>
@@ -62,15 +65,12 @@
       </el-table-column>
       <el-table-column label="发票类型" align="center" prop="invoiceType" width="100">
         <template #default="scope">
-          <el-tag v-if="scope.row.invoiceType === 'ordinary'" type="info">普通发票</el-tag>
-          <el-tag v-else-if="scope.row.invoiceType === 'vat'" type="warning">增值税发票</el-tag>
+          <dict-tag :options="logistics_invoice_type" :value="scope.row.invoiceType" />
         </template>
       </el-table-column>
       <el-table-column label="发票状态" align="center" prop="invoiceStatus" width="90">
         <template #default="scope">
-          <el-tag v-if="scope.row.invoiceStatus === 'draft'" type="info">草稿</el-tag>
-          <el-tag v-else-if="scope.row.invoiceStatus === 'issued'" type="success">已开具</el-tag>
-          <el-tag v-else-if="scope.row.invoiceStatus === 'cancelled'" type="danger">已作废</el-tag>
+          <dict-tag :options="logistics_batch_status" :value="scope.row.invoiceStatus" />
         </template>
       </el-table-column>
       <el-table-column label="创建时间" align="center" prop="createTime" width="160" />
@@ -110,8 +110,12 @@
           <el-col :span="12">
             <el-form-item label="发票类型" prop="invoiceType">
               <el-select v-model="mergeForm.invoiceType" placeholder="请选择发票类型" style="width: 100%">
-                <el-option label="普通发票" value="ordinary" />
-                <el-option label="增值税发票" value="vat" />
+                <el-option
+                  v-for="dict in logistics_invoice_type"
+                  :key="dict.value"
+                  :label="dict.label"
+                  :value="dict.value"
+                />
               </el-select>
             </el-form-item>
           </el-col>
@@ -144,8 +148,7 @@
         </el-table-column>
         <el-table-column label="开票状态" align="center" prop="invoiceStatus" width="90">
           <template #default="scope">
-            <el-tag v-if="scope.row.invoiceStatus === 'not_invoiced'" type="info">未开票</el-tag>
-            <el-tag v-else-if="scope.row.invoiceStatus === 'invoiced'" type="success">已开票</el-tag>
+            <dict-tag :options="logistics_invoice_status" :value="scope.row.invoiceStatus" />
           </template>
         </el-table-column>
       </el-table>
@@ -171,8 +174,7 @@
         <el-descriptions-item label="客户">{{ invoiceDetail.customerName }}</el-descriptions-item>
         <el-descriptions-item label="开票日期">{{ invoiceDetail.invoiceDate }}</el-descriptions-item>
         <el-descriptions-item label="发票类型">
-          <el-tag v-if="invoiceDetail.invoiceType === 'ordinary'">普通发票</el-tag>
-          <el-tag v-else-if="invoiceDetail.invoiceType === 'vat'">增值税发票</el-tag>
+          <dict-tag :options="logistics_invoice_type" :value="invoiceDetail.invoiceType" />
         </el-descriptions-item>
         <el-descriptions-item label="订单数量">{{ invoiceDetail.orderCount }}</el-descriptions-item>
         <el-descriptions-item label="开票金额(元)">{{ invoiceDetail.totalAmount ? invoiceDetail.totalAmount.toFixed(2) :
@@ -183,9 +185,7 @@
         <el-descriptions-item label="税额(元)">{{ invoiceDetail.taxAmount ? invoiceDetail.taxAmount.toFixed(2) : '0.00'
         }}</el-descriptions-item>
         <el-descriptions-item label="发票状态">
-          <el-tag v-if="invoiceDetail.invoiceStatus === 'draft'">草稿</el-tag>
-          <el-tag v-else-if="invoiceDetail.invoiceStatus === 'issued'" type="success">已开具</el-tag>
-          <el-tag v-else-if="invoiceDetail.invoiceStatus === 'cancelled'" type="danger">已作废</el-tag>
+          <dict-tag :options="logistics_batch_status" :value="invoiceDetail.invoiceStatus" />
         </el-descriptions-item>
         <el-descriptions-item label="创建时间">{{ invoiceDetail.createTime }}</el-descriptions-item>
         <el-descriptions-item label="备注" :span="2">{{ invoiceDetail.remark }}</el-descriptions-item>
@@ -221,8 +221,10 @@
 <script setup name="Invoice">
 import { listInvoiceBatch, getInvoiceBatch, mergeInvoice, issueInvoice, cancelInvoice, cancelMerge, listInvoiceableOrders, delInvoiceBatch } from "@/api/logistics/invoice"
 import { listCustomer } from "@/api/logistics/customer"
+import { useDict } from '@/utils/dict'
 
 const { proxy } = getCurrentInstance()
+const { logistics_batch_status, logistics_invoice_type, logistics_invoice_status } = useDict('logistics_batch_status', 'logistics_invoice_type', 'logistics_invoice_status')
 
 const invoiceList = ref([])
 const orderListForMerge = ref([])

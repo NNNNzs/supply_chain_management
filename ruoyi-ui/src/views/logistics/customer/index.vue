@@ -9,8 +9,12 @@
       </el-form-item>
       <el-form-item label="状态" prop="status">
         <el-select v-model="queryParams.status" placeholder="客户状态" clearable style="width: 200px">
-          <el-option label="正常" value="0" />
-          <el-option label="停用" value="1" />
+          <el-option
+            v-for="dict in logistics_common_status"
+            :key="dict.value"
+            :label="dict.label"
+            :value="dict.value"
+          />
         </el-select>
       </el-form-item>
       <el-form-item>
@@ -36,8 +40,7 @@
       <el-table-column label="联系电话" align="center" prop="contactPhone" width="120" />
       <el-table-column label="结算方式" align="center" prop="settlementType" width="100">
         <template #default="scope">
-          <el-tag v-if="scope.row.settlementType === 'monthly'" type="success">月结</el-tag>
-          <el-tag v-else-if="scope.row.settlementType === 'cash'" type="warning">现结</el-tag>
+          <dict-tag :options="logistics_settlement_type" :value="scope.row.settlementType" />
         </template>
       </el-table-column>
       <el-table-column label="信用额度" align="center" prop="creditLimit" width="120">
@@ -103,8 +106,12 @@
           <el-col :span="12">
             <el-form-item label="结算方式" prop="settlementType">
               <el-select v-model="form.settlementType" placeholder="请选择结算方式">
-                <el-option label="月结" value="monthly" />
-                <el-option label="现结" value="cash" />
+                <el-option
+                  v-for="dict in logistics_settlement_type"
+                  :key="dict.value"
+                  :label="dict.label"
+                  :value="dict.value"
+                />
               </el-select>
             </el-form-item>
           </el-col>
@@ -118,8 +125,11 @@
           <el-col :span="12">
             <el-form-item label="状态" prop="status">
               <el-radio-group v-model="form.status">
-                <el-radio value="0">正常</el-radio>
-                <el-radio value="1">停用</el-radio>
+                <el-radio
+                  v-for="dict in logistics_common_status"
+                  :key="dict.value"
+                  :value="dict.value"
+                >{{ dict.label }}</el-radio>
               </el-radio-group>
             </el-form-item>
           </el-col>
@@ -144,8 +154,10 @@
 
 <script setup name="Customer">
 import { listCustomer, getCustomer, addCustomer, updateCustomer, delCustomer, exportCustomer } from "@/api/logistics/customer"
+import { useDict } from '@/utils/dict'
 
 const { proxy } = getCurrentInstance()
+const { logistics_settlement_type, logistics_common_status } = useDict('logistics_settlement_type', 'logistics_common_status')
 
 const customerList = ref([])
 const open = ref(false)

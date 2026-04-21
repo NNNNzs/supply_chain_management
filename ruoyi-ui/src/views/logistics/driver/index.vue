@@ -12,8 +12,12 @@
       </el-form-item>
       <el-form-item label="状态" prop="status">
         <el-select v-model="queryParams.status" placeholder="请选择状态" clearable>
-          <el-option label="正常" value="0" />
-          <el-option label="停用" value="1" />
+          <el-option
+            v-for="dict in logistics_common_status"
+            :key="dict.value"
+            :label="dict.label"
+            :value="dict.value"
+          />
         </el-select>
       </el-form-item>
       <el-form-item>
@@ -141,8 +145,11 @@
           <el-col :span="12">
             <el-form-item label="状态" prop="status">
               <el-radio-group v-model="fleetForm.status">
-                <el-radio label="0">正常</el-radio>
-                <el-radio label="1">停用</el-radio>
+                <el-radio
+                  v-for="dict in logistics_common_status"
+                  :key="dict.value"
+                  :value="dict.value"
+                >{{ dict.label }}</el-radio>
               </el-radio-group>
             </el-form-item>
           </el-col>
@@ -196,16 +203,22 @@
           <el-col :span="12">
             <el-form-item label="司机类型" prop="driverType">
               <el-radio-group v-model="driverForm.driverType" @change="handleDriverTypeChange">
-                <el-radio label="individual">个人司机</el-radio>
-                <el-radio label="fleet">车队司机</el-radio>
+                <el-radio
+                  v-for="dict in logistics_driver_type"
+                  :key="dict.value"
+                  :value="dict.value"
+                >{{ dict.label }}</el-radio>
               </el-radio-group>
             </el-form-item>
           </el-col>
           <el-col :span="12">
             <el-form-item label="状态" prop="status">
               <el-radio-group v-model="driverForm.status">
-                <el-radio label="0">正常</el-radio>
-                <el-radio label="1">停用</el-radio>
+                <el-radio
+                  v-for="dict in logistics_common_status"
+                  :key="dict.value"
+                  :value="dict.value"
+                >{{ dict.label }}</el-radio>
               </el-radio-group>
             </el-form-item>
           </el-col>
@@ -292,9 +305,11 @@
 
 <script setup name="Driver">
 import { treeList, getDriver, getFleet, addDriver, addFleet, updateDriver, updateFleet, delDriver, delFleet, exportDriver, getAllFleets } from "@/api/logistics/driver"
+import { useDict } from '@/utils/dict'
 import { OfficeBuilding, User } from '@element-plus/icons-vue'
 
 const { proxy } = getCurrentInstance()
+const { logistics_driver_type, logistics_common_status } = useDict('logistics_driver_type', 'logistics_common_status')
 
 const treeData = ref([])
 const fleetList = ref([])
@@ -547,6 +562,7 @@ function handleExport() {
   proxy.download('logistics/driver/export', {}, `driver_${new Date().getTime()}.xlsx`)
 }
 
+getFleetList()
 getTreeList()
 </script>
 

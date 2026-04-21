@@ -14,10 +14,12 @@
       </el-form-item>
       <el-form-item label="订单状态" prop="orderStatus">
         <el-select v-model="queryParams.orderStatus" placeholder="订单状态" clearable style="width: 150px">
-          <el-option label="待运输" value="pending" />
-          <el-option label="运输中" value="transporting" />
-          <el-option label="已完成" value="completed" />
-          <el-option label="已取消" value="cancelled" />
+          <el-option
+            v-for="dict in logistics_order_status"
+            :key="dict.value"
+            :label="dict.label"
+            :value="dict.value"
+          />
         </el-select>
       </el-form-item>
       <el-form-item>
@@ -57,8 +59,12 @@
           <el-col :span="12">
             <el-form-item label="发票类型" prop="invoiceType">
               <el-select v-model="invoiceForm.invoiceType" placeholder="请选择发票类型" style="width: 100%">
-                <el-option label="普通发票" value="ordinary" />
-                <el-option label="增值税发票" value="vat" />
+                <el-option
+                  v-for="dict in logistics_invoice_type"
+                  :key="dict.value"
+                  :label="dict.label"
+                  :value="dict.value"
+                />
               </el-select>
             </el-form-item>
           </el-col>
@@ -127,23 +133,17 @@
       <el-table-column label="车牌号" align="center" prop="vehiclePlate" width="100" />
       <el-table-column label="订单状态" align="center" prop="orderStatus" width="90">
         <template #default="scope">
-          <el-tag v-if="scope.row.orderStatus === 'pending'" type="info">待运输</el-tag>
-          <el-tag v-else-if="scope.row.orderStatus === 'transporting'" type="primary">运输中</el-tag>
-          <el-tag v-else-if="scope.row.orderStatus === 'completed'" type="success">已完成</el-tag>
-          <el-tag v-else-if="scope.row.orderStatus === 'cancelled'" type="danger">已取消</el-tag>
+          <dict-tag :options="logistics_order_status" :value="scope.row.orderStatus" />
         </template>
       </el-table-column>
       <el-table-column label="结算状态" align="center" prop="settlementStatus" width="90">
         <template #default="scope">
-          <el-tag v-if="scope.row.settlementStatus === 'unsettled'" type="warning">未结算</el-tag>
-          <el-tag v-else-if="scope.row.settlementStatus === 'partial'" type="primary">部分结算</el-tag>
-          <el-tag v-else-if="scope.row.settlementStatus === 'settled'" type="success">已结算</el-tag>
+          <dict-tag :options="logistics_settlement_status" :value="scope.row.settlementStatus" />
         </template>
       </el-table-column>
       <el-table-column label="开票状态" align="center" prop="invoiceStatus" width="90">
         <template #default="scope">
-          <el-tag v-if="scope.row.invoiceStatus === 'not_invoiced'" type="info">未开票</el-tag>
-          <el-tag v-else-if="scope.row.invoiceStatus === 'invoiced'" type="success">已开票</el-tag>
+          <dict-tag :options="logistics_invoice_status" :value="scope.row.invoiceStatus" />
         </template>
       </el-table-column>
       <el-table-column label="操作" align="center" width="220" class-name="small-padding fixed-width">
@@ -180,6 +180,7 @@
 import { listOrder, delOrder, exportOrder, changeOrderStatus } from "@/api/logistics/order"
 import { listCustomer } from "@/api/logistics/customer"
 import { mergeInvoice } from "@/api/logistics/invoice"
+import { useDict } from '@/utils/dict'
 import ExcelImportDialog from "@/components/ExcelImportDialog"
 import ReceiptDialog from "@/components/ReceiptDialog/index.vue"
 import { useRouter } from 'vue-router'
@@ -187,6 +188,7 @@ import { onMounted, computed } from 'vue'
 
 const router = useRouter()
 const { proxy } = getCurrentInstance()
+const { logistics_order_status, logistics_settlement_status, logistics_invoice_status, logistics_invoice_type } = useDict('logistics_order_status', 'logistics_settlement_status', 'logistics_invoice_status', 'logistics_invoice_type')
 
 const orderList = ref([])
 const loading = ref(true)
