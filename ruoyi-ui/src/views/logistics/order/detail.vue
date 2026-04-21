@@ -148,70 +148,51 @@
       <div class="remark-content">{{ orderDetail.remark }}</div>
     </el-card>
 
-    <el-card style="margin-top: 20px;">
+    <el-card style="margin-top: 20px;" v-loading="loading">
       <template #header>
         <span>操作记录</span>
       </template>
 
-      <el-timeline>
+      <el-timeline v-if="operationLogs.length > 0">
         <el-timeline-item
-          v-if="orderDetail.orderDate"
-          :timestamp="orderDetail.orderDate"
+          v-for="log in operationLogs"
+          :key="log.logId"
+          :timestamp="log.operationTime"
           placement="top"
+          :icon="getOperationIcon(log.operationType)"
+          :color="getOperationColor(log.operationType)"
         >
           <el-card>
-            <h4>订单创建</h4>
-            <p>订单编号：{{ orderDetail.orderNo }}</p>
-          </el-card>
-        </el-timeline-item>
-        <el-timeline-item
-          v-if="orderDetail.orderStatus === 'transporting'"
-          timestamp="运输中"
-          placement="top"
-          icon="el-icon-truck"
-          color="#409EFF"
-        >
-          <el-card>
-            <h4>订单开始运输</h4>
-            <p>司机：{{ orderDetail.driverName }}（{{ orderDetail.vehiclePlate }}）</p>
-          </el-card>
-        </el-timeline-item>
-        <el-timeline-item
-          v-if="orderDetail.orderStatus === 'completed'"
-          timestamp="已完成"
-          placement="top"
-          icon="el-icon-circle-check"
-          color="#67C23A"
-        >
-          <el-card>
-            <h4>订单已完成</h4>
-            <p>订单金额：{{ totalAmount }} 元</p>
-          </el-card>
-        </el-timeline-item>
-        <el-timeline-item
-          v-if="orderDetail.orderStatus === 'cancelled'"
-          timestamp="已取消"
-          placement="top"
-          icon="el-icon-circle-close"
-          color="#F56C6C"
-        >
-          <el-card>
-            <h4>订单已取消</h4>
+            <h4>{{ getOperationTypeName(log.operationType) }}</h4>
+            <p v-if="log.operationContent">{{ log.operationContent }}</p>
+            <p v-if="log.beforeValue || log.afterValue" class="operation-change">
+              <span v-if="log.beforeValue" class="before-value">{{ log.beforeValue }}</span>
+              <el-icon v-if="log.beforeValue && log.afterValue" class="change-arrow"><Right /></el-icon>
+              <span v-if="log.afterValue" class="after-value">{{ log.afterValue }}</span>
+            </p>
+            <p class="operator-info">
+              操作人：{{ log.operatorName || '系统' }}
+            </p>
           </el-card>
         </el-timeline-item>
       </el-timeline>
+      <el-empty v-else description="暂无操作记录" />
     </el-card>
   </div>
 </template>
 
 <script setup name="OrderDetail" lang="ts">
 import { getOrder } from "@/api/logistics/order"
+import { getOrderLogByOrderId } from "@/api/logistics/orderLog"
 import { useRoute, useRouter } from 'vue-router'
-import { User } from '@element-plus/icons-vue'
+import { User, Right, Plus, Edit, Delete, CircleCheck, CircleClose, Truck, Document } from '@element-plus/icons-vue'
 import { ref, computed, onMounted } from 'vue'
 
 const route = useRoute()
 const router = useRouter()
+
+const loading = ref(false)
+const operationLogs = ref([])
 
 const orderId = ref(route.params.id || route.query.orderId)
 const orderDetail = ref({
@@ -261,10 +242,17 @@ const totalAmount = computed(() => {
 
 function loadOrderData() {
   if (orderId.value) {
+    loading.value = true
     getOrder(orderId.value).then(response => {
       orderDetail.value = response.data
+      // 加载操作日志
+      return getOrderLogByOrderId(orderId.value)
+    }).then(logResponse => {
+      operationLogs.value = logResponse.data || []
     }).catch(() => {
       router.back()
+    }).finally(() => {
+      loading.value = false
     })
   }
 }
@@ -278,6 +266,45 @@ function handleEdit() {
 
 function goBack() {
   router.back()
+}
+
+// 获取操作类型图标
+function getOperationIcon(operationType) {
+  const iconMap = {
+    'create': Plus,
+    'update': Edit,
+    'delete': Delete,
+    'status_change': CircleCheck,
+    'invoice': Document,
+    'settlement': Document
+  }
+  return iconMap[operationType] || Edit
+}
+
+// 获取操作类型颜色
+function getOperationColor(operationType) {
+  const colorMap = {
+    'create': '#67C23A',
+    'update': '#409EFF',
+    'delete': '#F56C6C',
+    'status_change': '#E6A23C',
+    'invoice': '#909399',
+    'settlement': '#909399'
+  }
+  return colorMap[operationType] || '#409EFF'
+}
+
+// 获取操作类型名称
+function getOperationTypeName(operationType) {
+  const nameMap = {
+    'create': '创建订单',
+    'update': '修改订单',
+    'delete': '删除订单',
+    'status_change': '状态变更',
+    'invoice': '开票',
+    'settlement': '结算'
+  }
+  return nameMap[operationType] || '操作'
 }
 
 onMounted(() => {
@@ -339,5 +366,32 @@ onMounted(() => {
   margin: 0;
   font-size: 13px;
   color: #606266;
+}
+
+.operation-change {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 8px 0;
+}
+
+.before-value {
+  color: #909399;
+  text-decoration: line-through;
+}
+
+.after-value {
+  color: #67C23A;
+  font-weight: 500;
+}
+
+.change-arrow {
+  color: #409EFF;
+}
+
+.operator-info {
+  color: #909399;
+  font-size: 12px;
+  margin-top: 8px;
 }
 </style>

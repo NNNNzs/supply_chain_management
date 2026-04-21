@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.scm.logistics.mapper.LogisticsOrderLogMapper">
+
+    <resultMap type="LogisticsOrderLog" id="LogisticsOrderLogResult">
+        <id     property="logId"             column="log_id"             />
+        <result property="orderId"           column="order_id"           />
+        <result property="orderNo"           column="order_no"           />
+        <result property="operationType"     column="operation_type"     />
+        <result property="operationContent"  column="operation_content"  />
+        <result property="beforeValue"       column="before_value"       />
+        <result property="afterValue"        column="after_value"        />
+        <result property="operatorId"        column="operator_id"        />
+        <result property="operatorName"      column="operator_name"      />
+        <result property="operationTime"     column="operation_time"     />
+        <result property="remark"            column="remark"             />
+    </resultMap>
+
+    <sql id="selectLogisticsOrderLogVo">
+        select log_id, order_id, order_no, operation_type, operation_content,
+               before_value, after_value, operator_id, operator_name, operation_time, remark
+        from logistics_order_log
+    </sql>
+
+    <select id="selectOrderLogById" parameterType="Long" resultMap="LogisticsOrderLogResult">
+        <include refid="selectLogisticsOrderLogVo"/>
+        where log_id = #{logId}
+    </select>
+
+    <select id="selectOrderLogList" parameterType="LogisticsOrderLog" resultMap="LogisticsOrderLogResult">
+        <include refid="selectLogisticsOrderLogVo"/>
+        <where>
+            <if test="orderId != null">
+                AND order_id = #{orderId}
+            </if>
+            <if test="orderNo != null and orderNo != ''">
+                AND order_no = #{orderNo}
+            </if>
+            <if test="operationType != null and operationType != ''">
+                AND operation_type = #{operationType}
+            </if>
+            <if test="operatorName != null and operatorName != ''">
+                AND operator_name like concat('%', #{operatorName}, '%')
+            </if>
+            <if test="params.beginOperationTime != null and params.beginOperationTime != ''">
+                AND operation_time &gt;= #{params.beginOperationTime}
+            </if>
+            <if test="params.endOperationTime != null and params.endOperationTime != ''">
+                AND operation_time &lt;= #{params.endOperationTime}
+            </if>
+        </where>
+        order by operation_time desc
+    </select>
+
+    <select id="selectOrderLogByOrderId" parameterType="Long" resultMap="LogisticsOrderLogResult">
+        <include refid="selectLogisticsOrderLogVo"/>
+        where order_id = #{orderId}
+        order by operation_time desc
+    </select>
+
+    <insert id="insertOrderLog" parameterType="LogisticsOrderLog" useGeneratedKeys="true" keyProperty="logId">
+        insert into logistics_order_log
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="orderId != null">order_id,</if>
+            <if test="orderNo != null and orderNo != ''">order_no,</if>
+            <if test="operationType != null and operationType != ''">operation_type,</if>
+            <if test="operationContent != null and operationContent != ''">operation_content,</if>
+            <if test="beforeValue != null">before_value,</if>
+            <if test="afterValue != null">after_value,</if>
+            <if test="operatorId != null">operator_id,</if>
+            <if test="operatorName != null and operatorName != ''">operator_name,</if>
+            <if test="operationTime != null">operation_time,</if>
+            <if test="remark != null">remark,</if>
+         </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="orderId != null">#{orderId},</if>
+            <if test="orderNo != null and orderNo != ''">#{orderNo},</if>
+            <if test="operationType != null and operationType != ''">#{operationType},</if>
+            <if test="operationContent != null and operationContent != ''">#{operationContent},</if>
+            <if test="beforeValue != null">#{beforeValue},</if>
+            <if test="afterValue != null">#{afterValue},</if>
+            <if test="operatorId != null">#{operatorId},</if>
+            <if test="operatorName != null and operatorName != ''">#{operatorName},</if>
+            <if test="operationTime != null">#{operationTime},</if>
+            <if test="remark != null">#{remark},</if>
+         </trim>
+    </insert>
+
+    <insert id="batchInsertOrderLog" parameterType="java.util.List">
+        insert into logistics_order_log (order_id, order_no, operation_type, operation_content,
+                                         before_value, after_value, operator_id, operator_name, operation_time, remark)
+        values
+        <foreach collection="list" item="item" separator=",">
+            (#{item.orderId}, #{item.orderNo}, #{item.operationType}, #{item.operationContent},
+             #{item.beforeValue}, #{item.afterValue}, #{item.operatorId}, #{item.operatorName}, #{item.operationTime}, #{item.remark})
+        </foreach>
+    </insert>
+
+    <delete id="deleteOrderLogById" parameterType="Long">
+        delete from logistics_order_log where log_id = #{logId}
+    </delete>
+
+    <delete id="deleteOrderLogByIds" parameterType="Long">
+        delete from logistics_order_log where log_id in
+        <foreach item="logId" collection="array" open="(" separator="," close=")">
+            #{logId}
+        </foreach>
+    </delete>
+
+</mapper>

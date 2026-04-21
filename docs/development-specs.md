@@ -99,7 +99,40 @@ public String generateOrderNo(String orderType, String customerCode) {
 }
 ```
 
-#### 2.1.3 BaseEntity 字段填充规范 ⚠️ 重要
+#### 2.1.3 依赖包规范 ⚠️ 重要
+
+**Spring Boot 3.x 迁移注意事项**
+
+项目已升级到 Spring Boot 3.x，Java EE API 迁移到 Jakarta EE：
+
+```java
+// ❌ 错误：使用旧的 javax.servlet 包
+import javax.servlet.http.HttpServletResponse;
+import javax.servlet.http.HttpServletRequest;
+
+// ✅ 正确：使用新的 jakarta.servlet 包
+import jakarta.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpServletRequest;
+```
+
+**常见迁移点**：
+- `javax.servlet.*` → `jakarta.servlet.*`
+- `javax.persistence.*` → `jakarta.persistence.*`
+- `javax.validation.*` → `jakarta.validation.*`
+
+**创建新 Controller 时的标准导入**：
+
+```java
+import java.util.List;
+import jakarta.servlet.http.HttpServletResponse;  // 注意是 jakarta 不是 javax
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.*;
+import com.scm.common.annotation.Log;
+import com.scm.common.core.controller.BaseController;
+import com.scm.common.core.domain.AjaxResult;
+```
+
+#### 2.1.4 BaseEntity 字段填充规范 ⚠️ 重要
 
 所有继承 `BaseEntity` 的实体类，在插入和更新操作时必须使用 `BaseEntityUtils` 工具类自动填充审计字段。
 
@@ -405,3 +438,4 @@ describe('Order API', () => {
 |------|------|----------|--------|
 | 2026-04-14 | v1.0 | 初始版本，定义开发规范 | - |
 | 2026-04-16 | v1.1 | 新增数据库版本管理规范（增量迁移脚本） | System |
+| 2026-04-21 | v1.2 | 新增 Spring Boot 3.x 依赖包规范（javax → jakarta） | System |

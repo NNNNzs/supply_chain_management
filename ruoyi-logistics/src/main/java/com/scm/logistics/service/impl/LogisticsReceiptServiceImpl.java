@@ -6,13 +6,16 @@ import java.util.List;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import com.scm.common.exception.ServiceException;
 import com.scm.common.utils.BaseEntityUtils;
+import com.scm.common.utils.SecurityUtils;
 import com.scm.common.utils.StringUtils;
 import com.scm.logistics.mapper.LogisticsReceiptMapper;
 import com.scm.logistics.mapper.LogisticsOrderMapper;
 import com.scm.logistics.domain.LogisticsReceipt;
 import com.scm.logistics.domain.LogisticsOrder;
 import com.scm.logistics.service.ILogisticsReceiptService;
+import com.scm.logistics.service.ILogisticsOrderLogService;
 
 /**
  * 回单信息Service业务层处理
@@ -28,6 +31,9 @@ public class LogisticsReceiptServiceImpl implements ILogisticsReceiptService
 
     @Autowired
     private LogisticsOrderMapper logisticsOrderMapper;
+
+    @Autowired
+    private ILogisticsOrderLogService orderLogService;
 
     /**
      * 查询回单信息
@@ -60,8 +66,16 @@ public class LogisticsReceiptServiceImpl implements ILogisticsReceiptService
      * @return 结果
      */
     @Override
+    @Transactional
     public int insertLogisticsReceipt(LogisticsReceipt logisticsReceipt)
     {
+        // 获取订单信息用于状态联动
+        LogisticsOrder order = null;
+        if (logisticsReceipt.getOrderId() != null)
+        {
+            order = logisticsOrderMapper.selectOrderById(logisticsReceipt.getOrderId());
+        }
+
         // 自动生成回单编号
         if (StringUtils.isEmpty(logisticsReceipt.getReceiptNo()))
         {
@@ -73,7 +87,25 @@ public class LogisticsReceiptServiceImpl implements ILogisticsReceiptService
             logisticsReceipt.setReceiptStatus("not_received");
         }
         BaseEntityUtils.fillCreateInfo(logisticsReceipt);
-        return logisticsReceiptMapper.insertLogisticsReceipt(logisticsReceipt);
+        int result = logisticsReceiptMapper.insertLogisticsReceipt(logisticsReceipt);
+
+        // 记录回单创建日志
+        if (result > 0)
+        {
+            try
+            {
+                String operatorName = SecurityUtils.getUsername();
+                Long operatorId = SecurityUtils.getUserId();
+                orderLogService.logOrderUpdate(logisticsReceipt.getOrderId(), order != null ? order.getOrderNo() : null,
+                    operatorId, operatorName, "创建回单：" + logisticsReceipt.getReceiptNo());
+            }
+            catch (Exception e)
+            {
+                // 日志记录失败不影响主流程
+            }
+        }
+
+        return result;
     }
 
     /**
@@ -83,10 +115,54 @@ public class LogisticsReceiptServiceImpl implements ILogisticsReceiptService
      * @return 结果
      */
     @Override
+    @Transactional
     public int updateLogisticsReceipt(LogisticsReceipt logisticsReceipt)
     {
+        // 获取原回单信息
+        LogisticsReceipt oldReceipt = logisticsReceiptMapper.selectLogisticsReceiptByReceiptId(logisticsReceipt.getReceiptId());
+        if (oldReceipt == null)
+        {
+            throw new ServiceException("回单信息不存在");
+        }
+
+        // 获取订单信息
+        LogisticsOrder order = null;
+        if (logisticsReceipt.getOrderId() != null)
+        {
+            order = logisticsOrderMapper.selectOrderById(logisticsReceipt.getOrderId());
+        }
+
         BaseEntityUtils.fillUpdateInfo(logisticsReceipt);
-        return logisticsReceiptMapper.updateLogisticsReceipt(logisticsReceipt);
+        int result = logisticsReceiptMapper.updateLogisticsReceipt(logisticsReceipt);
+
+        // 如果回单状态从未收到变为已收到，更新订单状态为已完成
+        if (result > 0 && "not_received".equals(oldReceipt.getReceiptStatus())
+            && "received".equals(logisticsReceipt.getReceiptStatus()))
+        {
+            if (order != null)
+            {
+                LogisticsOrder updateOrder = new LogisticsOrder();
+                updateOrder.setOrderId(order.getOrderId());
+                updateOrder.setOrderStatus("completed");
+                BaseEntityUtils.fillUpdateInfo(updateOrder);
+                logisticsOrderMapper.updateOrder(updateOrder);
+
+                // 记录订单状态变更日志
+                try
+                {
+                    String operatorName = SecurityUtils.getUsername();
+                    Long operatorId = SecurityUtils.getUserId();
+                    orderLogService.logOrderStatusChange(order.getOrderId(), order.getOrderNo(),
+                        order.getOrderStatus(), "completed", operatorId, operatorName);
+                }
+                catch (Exception e)
+                {
+                    // 日志记录失败不影响主流程
+                }
+            }
+        }
+
+        return result;
     }
 
     /**
@@ -96,9 +172,15 @@ public class LogisticsReceiptServiceImpl implements ILogisticsReceiptService
      * @return 结果
      */
     @Override
+    @Transactional
     public int deleteLogisticsReceiptByReceiptIds(Long[] receiptIds)
     {
-        return logisticsReceiptMapper.deleteLogisticsReceiptByReceiptIds(receiptIds);
+        int count = 0;
+        for (Long receiptId : receiptIds)
+        {
+            count += deleteLogisticsReceiptByReceiptId(receiptId);
+        }
+        return count;
     }
 
     /**
@@ -108,9 +190,66 @@ public class LogisticsReceiptServiceImpl implements ILogisticsReceiptService
      * @return 结果
      */
     @Override
+    @Transactional
     public int deleteLogisticsReceiptByReceiptId(Long receiptId)
     {
-        return logisticsReceiptMapper.deleteLogisticsReceiptByReceiptId(receiptId);
+        // 获取回单信息
+        LogisticsReceipt receipt = logisticsReceiptMapper.selectLogisticsReceiptByReceiptId(receiptId);
+        if (receipt == null)
+        {
+            throw new ServiceException("回单信息不存在");
+        }
+
+        // 获取订单信息
+        LogisticsOrder order = null;
+        if (receipt.getOrderId() != null)
+        {
+            order = logisticsOrderMapper.selectOrderById(receipt.getOrderId());
+        }
+
+        // 删除回单
+        int result = logisticsReceiptMapper.deleteLogisticsReceiptByReceiptId(receiptId);
+
+        // 如果订单状态是已完成，恢复为运输中
+        if (result > 0 && order != null && "completed".equals(order.getOrderStatus()))
+        {
+            LogisticsOrder updateOrder = new LogisticsOrder();
+            updateOrder.setOrderId(order.getOrderId());
+            updateOrder.setOrderStatus("transporting");
+            BaseEntityUtils.fillUpdateInfo(updateOrder);
+            logisticsOrderMapper.updateOrder(updateOrder);
+
+            // 记录订单状态变更日志
+            try
+            {
+                String operatorName = SecurityUtils.getUsername();
+                Long operatorId = SecurityUtils.getUserId();
+                orderLogService.logOrderStatusChange(order.getOrderId(), order.getOrderNo(),
+                    "completed", "transporting", operatorId, operatorName);
+            }
+            catch (Exception e)
+            {
+                // 日志记录失败不影响主流程
+            }
+        }
+
+        // 记录删除日志
+        if (result > 0)
+        {
+            try
+            {
+                String operatorName = SecurityUtils.getUsername();
+                Long operatorId = SecurityUtils.getUserId();
+                orderLogService.logOrderUpdate(receipt.getOrderId(), order != null ? order.getOrderNo() : null,
+                    operatorId, operatorName, "删除回单：" + receipt.getReceiptNo());
+            }
+            catch (Exception e)
+            {
+                // 日志记录失败不影响主流程
+            }
+        }
+
+        return result;
     }
 
     /**
@@ -149,20 +288,53 @@ public class LogisticsReceiptServiceImpl implements ILogisticsReceiptService
         // 1. 查询回单信息
         LogisticsReceipt receipt = logisticsReceiptMapper.selectLogisticsReceiptByReceiptId(receiptId);
         if (receipt == null) {
-            throw new RuntimeException("回单信息不存在");
+            throw new ServiceException("回单信息不存在");
+        }
+
+        // 获取订单信息用于日志记录
+        LogisticsOrder order = null;
+        String oldOrderStatus = null;
+        if (receipt.getOrderId() != null)
+        {
+            order = logisticsOrderMapper.selectOrderById(receipt.getOrderId());
+            if (order != null)
+            {
+                oldOrderStatus = order.getOrderStatus();
+            }
         }
 
         // 2. 更新回单状态
         receipt.setReceiptStatus("received");
         receipt.setReceiver(receiver);
+        BaseEntityUtils.fillUpdateInfo(receipt);
         int result = logisticsReceiptMapper.updateLogisticsReceipt(receipt);
 
         // 3. 更新订单状态为"已完成"
-        if (receipt.getOrderId() != null) {
-            LogisticsOrder order = new LogisticsOrder();
-            order.setOrderId(receipt.getOrderId());
-            order.setOrderStatus("completed");
-            logisticsOrderMapper.updateOrder(order);
+        if (receipt.getOrderId() != null && order != null)
+        {
+            LogisticsOrder updateOrder = new LogisticsOrder();
+            updateOrder.setOrderId(receipt.getOrderId());
+            updateOrder.setOrderStatus("completed");
+            BaseEntityUtils.fillUpdateInfo(updateOrder);
+            logisticsOrderMapper.updateOrder(updateOrder);
+
+            // 记录订单状态变更日志
+            if (!"completed".equals(oldOrderStatus))
+            {
+                try
+                {
+                    String operatorName = SecurityUtils.getUsername();
+                    Long operatorId = SecurityUtils.getUserId();
+                    orderLogService.logOrderStatusChange(order.getOrderId(), order.getOrderNo(),
+                        oldOrderStatus, "completed", operatorId, operatorName);
+                    orderLogService.logOrderUpdate(order.getOrderId(), order.getOrderNo(),
+                        operatorId, operatorName, "确认回单：" + receipt.getReceiptNo());
+                }
+                catch (Exception e)
+                {
+                    // 日志记录失败不影响主流程
+                }
+            }
         }
 
         return result;

@@ -110,6 +110,7 @@ ruoyi-ui/src/
 │   ├── bill.js            # 提单管理
 │   ├── allocation.js      # 配载管理
 │   ├── order.js
+│   ├── orderLog.js        # 订单操作日志（v3.2新增）
 │   ├── receipt.js
 │   └── invoice.js
 └── views/logistics/
@@ -121,6 +122,7 @@ ruoyi-ui/src/
     ├── allocation/index.vue  # 配载管理（三栏布局）
     ├── order/index.vue       # 运单管理（列表页）
     ├── order/form.vue        # 运单管理（独立表单页）
+    ├── order/detail.vue      # 运单详情页（v3.2新增）
     ├── receipt/index.vue     # 回单管理
     ├── invoice/index.vue     # 发票管理
     └── settlement/           # 财务结算管理
@@ -138,7 +140,9 @@ ruoyi-ui/src/
 - **提单管理**：多货物明细支持、提单号自动生成、货物明细级联操作、状态自动更新
 - **配载管理**：智能推荐货物、货物明细级别分配、一键创建运单并派车、载重利用率计算
 - **运单管理**：运单创建（独立表单页或配载生成）、运单号自动生成、司机车辆联动、Excel 导入导出
-- **回单管理**：回单上传、确认、图片预览、回单编号自动生成
+- **订单详情**：独立详情页、完整操作日志时间线展示（v3.2新增）
+- **操作日志**：字段级变更追踪、回单状态联动（v3.2新增）
+- **回单管理**：回单上传、确认、图片预览、回单编号自动生成、确认回单自动完成订单
 - **发票管理**：合并开票、发票开具/作废、取消合并
 - **财务结算**：应收/应付结算、结算单生成
 
@@ -189,6 +193,7 @@ ruoyi-ui/src/
 - logistics_bill_order_detail - 提单运单明细表（已废弃）
 - logistics_order - 运单表（货运单/派车单）
 - logistics_order_goods - 订单货物明细表（v3.0新增）
+- logistics_order_log - 订单操作日志表（v3.2新增）
 - logistics_receipt - 回单信息表
 
 **财务结算表**：
@@ -201,10 +206,11 @@ ruoyi-ui/src/
 - `sql/logistics.sql` - 完整初始化脚本（仅用于新环境）
 - `sql/migrations/` - 增量迁移脚本目录（生产环境使用）
 - `sql/migrations/v3.1.0_init_version_tracker.sql` - 版本追踪表初始化（已执行）
+- `sql/migrations/v3.2.0_add_order_operation_log.sql` - 订单操作日志表（新增）
 
 **⚠️ 生产环境数据库变更规范**：
 - 已创建 `db_version` 表记录所有迁移历史
 - 以后所有变更必须使用增量迁移脚本
 - 详细规范请参考：[数据库脚本管理](sql/README.md)
 
-**当前数据库版本**：v3.1.0（司机/车队重构、订单多货物支持）
+**当前数据库版本**：v3.2.0（订单操作日志、回单状态联动）

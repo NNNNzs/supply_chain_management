@@ -9,14 +9,17 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import com.scm.common.exception.ServiceException;
 import com.scm.common.utils.BaseEntityUtils;
+import com.scm.common.utils.SecurityUtils;
 import com.scm.common.utils.StringUtils;
 import com.scm.logistics.domain.LogisticsBill;
 import com.scm.logistics.domain.LogisticsCustomer;
 import com.scm.logistics.domain.LogisticsOrder;
+import com.scm.logistics.domain.LogisticsOrderLog;
 import com.scm.logistics.mapper.LogisticsBillMapper;
 import com.scm.logistics.mapper.LogisticsCustomerMapper;
 import com.scm.logistics.mapper.LogisticsOrderMapper;
 import com.scm.logistics.service.ILogisticsOrderGoodsService;
+import com.scm.logistics.service.ILogisticsOrderLogService;
 import com.scm.logistics.service.ILogisticsOrderService;
 
 /**
@@ -36,6 +39,9 @@ public class LogisticsOrderServiceImpl implements ILogisticsOrderService
 
     @Autowired
     private ILogisticsOrderGoodsService orderGoodsService;
+
+    @Autowired
+    private ILogisticsOrderLogService orderLogService;
 
     /**
      * 查询运输订单
@@ -96,6 +102,15 @@ public class LogisticsOrderServiceImpl implements ILogisticsOrderService
             }
             orderGoodsService.batchSaveOrderGoods(logisticsOrder.getOrderId(), logisticsOrder.getGoodsList());
         }
+        // 记录操作日志
+        try {
+            String operatorName = SecurityUtils.getUsername();
+            Long operatorId = SecurityUtils.getUserId();
+            orderLogService.logOrderCreate(logisticsOrder.getOrderId(), logisticsOrder.getOrderNo(),
+                operatorId, operatorName);
+        } catch (Exception e) {
+            // 日志记录失败不影响主流程
+        }
         return result;
     }
 
@@ -109,6 +124,9 @@ public class LogisticsOrderServiceImpl implements ILogisticsOrderService
     @Transactional
     public int updateOrder(LogisticsOrder logisticsOrder)
     {
+        // 获取原订单信息用于日志记录
+        LogisticsOrder oldOrder = orderMapper.selectOrderById(logisticsOrder.getOrderId());
+
         // 如果订单号为空，生成订单号
         if (StringUtils.isEmpty(logisticsOrder.getOrderNo()))
         {
@@ -138,7 +156,186 @@ public class LogisticsOrderServiceImpl implements ILogisticsOrderService
             }
             orderGoodsService.batchSaveOrderGoods(logisticsOrder.getOrderId(), logisticsOrder.getGoodsList());
         }
+        // 记录详细的字段变更日志
+        if (result > 0) {
+            try {
+                String operatorName = SecurityUtils.getUsername();
+                Long operatorId = SecurityUtils.getUserId();
+                recordFieldChanges(oldOrder, logisticsOrder, operatorId, operatorName);
+            } catch (Exception e) {
+                // 日志记录失败不影响主流程
+            }
+        }
         return result;
+    }
+
+    /**
+     * 记录订单字段变更
+     *
+     * @param oldOrder 修改前订单
+     * @param newOrder 修改后订单
+     * @param operatorId 操作人ID
+     * @param operatorName 操作人姓名
+     */
+    private void recordFieldChanges(LogisticsOrder oldOrder, LogisticsOrder newOrder, Long operatorId, String operatorName)
+    {
+        if (oldOrder == null || newOrder == null) return;
+
+        String orderNo = newOrder.getOrderNo();
+        Long orderId = newOrder.getOrderId();
+        java.util.List<LogisticsOrderLog> logs = new java.util.ArrayList<>();
+
+        // 订单日期
+        if (newOrder.getOrderDate() != null && !newOrder.getOrderDate().equals(oldOrder.getOrderDate()))
+        {
+            SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
+            String beforeDate = oldOrder.getOrderDate() != null ? sdf.format(oldOrder.getOrderDate()) : "";
+            String afterDate = sdf.format(newOrder.getOrderDate());
+            logs.add(createFieldChangeLog(orderId, orderNo, "订单日期", beforeDate, afterDate, operatorId, operatorName));
+        }
+
+        // 客户
+        if (newOrder.getCustomerId() != null && !newOrder.getCustomerId().equals(oldOrder.getCustomerId()))
+        {
+            logs.add(createFieldChangeLog(orderId, orderNo, "客户", oldOrder.getCustomerName(), newOrder.getCustomerName(), operatorId, operatorName));
+        }
+
+        // 装货地址
+        if (newOrder.getLoadingAddress() != null && !newOrder.getLoadingAddress().equals(oldOrder.getLoadingAddress()))
+        {
+            logs.add(createFieldChangeLog(orderId, orderNo, "装货地址",
+                StringUtils.isEmpty(oldOrder.getLoadingAddress()) ? "" : oldOrder.getLoadingAddress(),
+                newOrder.getLoadingAddress(), operatorId, operatorName));
+        }
+
+        // 卸货地址
+        if (newOrder.getUnloadingAddress() != null && !newOrder.getUnloadingAddress().equals(oldOrder.getUnloadingAddress()))
+        {
+            logs.add(createFieldChangeLog(orderId, orderNo, "卸货地址",
+                StringUtils.isEmpty(oldOrder.getUnloadingAddress()) ? "" : oldOrder.getUnloadingAddress(),
+                newOrder.getUnloadingAddress(), operatorId, operatorName));
+        }
+
+        // 司机
+        if (newOrder.getDriverId() != null && !newOrder.getDriverId().equals(oldOrder.getDriverId()))
+        {
+            String beforeDriver = oldOrder.getDriverName() != null ? oldOrder.getDriverName() : "未分配";
+            String afterDriver = newOrder.getDriverName() != null ? newOrder.getDriverName() : "未分配";
+            logs.add(createFieldChangeLog(orderId, orderNo, "司机", beforeDriver, afterDriver, operatorId, operatorName));
+        }
+
+        // 车牌号
+        if (newOrder.getVehiclePlate() != null && !newOrder.getVehiclePlate().equals(oldOrder.getVehiclePlate()))
+        {
+            String beforePlate = StringUtils.isEmpty(oldOrder.getVehiclePlate()) ? "未分配" : oldOrder.getVehiclePlate();
+            String afterPlate = StringUtils.isEmpty(newOrder.getVehiclePlate()) ? "未分配" : newOrder.getVehiclePlate();
+            logs.add(createFieldChangeLog(orderId, orderNo, "车牌号", beforePlate, afterPlate, operatorId, operatorName));
+        }
+
+        // 司机电话
+        if (newOrder.getDriverPhone() != null && !newOrder.getDriverPhone().equals(oldOrder.getDriverPhone()))
+        {
+            logs.add(createFieldChangeLog(orderId, orderNo, "司机电话",
+                StringUtils.isEmpty(oldOrder.getDriverPhone()) ? "" : oldOrder.getDriverPhone(),
+                newOrder.getDriverPhone(), operatorId, operatorName));
+        }
+
+        // 配载单价（使用 compareTo 比较 BigDecimal）
+        if (newOrder.getLoadingUnitPrice() != null &&
+            (oldOrder.getLoadingUnitPrice() == null || newOrder.getLoadingUnitPrice().compareTo(oldOrder.getLoadingUnitPrice()) != 0))
+        {
+            logs.add(createFieldChangeLog(orderId, orderNo, "配载单价",
+                oldOrder.getLoadingUnitPrice() != null ? oldOrder.getLoadingUnitPrice().toString() : "0",
+                newOrder.getLoadingUnitPrice().toString(), operatorId, operatorName));
+        }
+
+        // 运费支出
+        if (newOrder.getFreightCost() != null &&
+            (oldOrder.getFreightCost() == null || newOrder.getFreightCost().compareTo(oldOrder.getFreightCost()) != 0))
+        {
+            logs.add(createFieldChangeLog(orderId, orderNo, "运费支出",
+                oldOrder.getFreightCost() != null ? oldOrder.getFreightCost().toString() : "0",
+                newOrder.getFreightCost().toString(), operatorId, operatorName));
+        }
+
+        // 代垫付金额
+        if (newOrder.getAdvancePayment() != null &&
+            (oldOrder.getAdvancePayment() == null || newOrder.getAdvancePayment().compareTo(oldOrder.getAdvancePayment()) != 0))
+        {
+            logs.add(createFieldChangeLog(orderId, orderNo, "代垫付金额",
+                oldOrder.getAdvancePayment() != null ? oldOrder.getAdvancePayment().toString() : "0",
+                newOrder.getAdvancePayment().toString(), operatorId, operatorName));
+        }
+
+        // 结算状态
+        if (newOrder.getSettlementStatus() != null && !newOrder.getSettlementStatus().equals(oldOrder.getSettlementStatus()))
+        {
+            logs.add(createFieldChangeLog(orderId, orderNo, "结算状态",
+                getStatusName(oldOrder.getSettlementStatus()),
+                getStatusName(newOrder.getSettlementStatus()), operatorId, operatorName));
+        }
+
+        // 付款方式
+        if (newOrder.getPaymentMethod() != null && !newOrder.getPaymentMethod().equals(oldOrder.getPaymentMethod()))
+        {
+            logs.add(createFieldChangeLog(orderId, orderNo, "付款方式",
+                StringUtils.isEmpty(oldOrder.getPaymentMethod()) ? "未设置" : oldOrder.getPaymentMethod(),
+                newOrder.getPaymentMethod(), operatorId, operatorName));
+        }
+
+        // 收款人
+        if (newOrder.getPayee() != null && !newOrder.getPayee().equals(oldOrder.getPayee()))
+        {
+            logs.add(createFieldChangeLog(orderId, orderNo, "收款人",
+                StringUtils.isEmpty(oldOrder.getPayee()) ? "未设置" : oldOrder.getPayee(),
+                newOrder.getPayee(), operatorId, operatorName));
+        }
+
+        // 备注
+        if (newOrder.getRemark() != null && !newOrder.getRemark().equals(oldOrder.getRemark()))
+        {
+            logs.add(createFieldChangeLog(orderId, orderNo, "备注",
+                StringUtils.isEmpty(oldOrder.getRemark()) ? "无" : oldOrder.getRemark(),
+                StringUtils.isEmpty(newOrder.getRemark()) ? "无" : newOrder.getRemark(), operatorId, operatorName));
+        }
+
+        // 批量插入变更日志
+        if (!logs.isEmpty())
+        {
+            orderLogService.batchInsertOrderLog(logs);
+        }
+    }
+
+    /**
+     * 获取结算状态名称
+     */
+    private String getStatusName(String status)
+    {
+        if (status == null) return "未结算";
+        switch (status) {
+            case "unsettled": return "未结算";
+            case "partial": return "部分结算";
+            case "settled": return "已结算";
+            default: return status;
+        }
+    }
+
+    /**
+     * 创建字段变更日志
+     */
+    private LogisticsOrderLog createFieldChangeLog(Long orderId, String orderNo, String fieldName, String beforeValue, String afterValue, Long operatorId, String operatorName)
+    {
+        LogisticsOrderLog log = new LogisticsOrderLog();
+        log.setOrderId(orderId);
+        log.setOrderNo(orderNo);
+        log.setOperationType("update");
+        log.setOperationContent("修改" + fieldName);
+        log.setBeforeValue(beforeValue);
+        log.setAfterValue(afterValue);
+        log.setOperatorId(operatorId);
+        log.setOperatorName(operatorName);
+        log.setOperationTime(new Date());
+        return log;
     }
 
     /**
@@ -187,7 +384,20 @@ public class LogisticsOrderServiceImpl implements ILogisticsOrderService
         orderGoodsService.deleteLogisticsOrderGoodsByOrderId(orderId);
 
         // 逻辑删除订单
-        return orderMapper.deleteOrderById(orderId);
+        int result = orderMapper.deleteOrderById(orderId);
+
+        // 记录操作日志
+        if (result > 0) {
+            try {
+                String operatorName = SecurityUtils.getUsername();
+                Long operatorId = SecurityUtils.getUserId();
+                orderLogService.logOrderDelete(orderId, order.getOrderNo(), operatorId, operatorName);
+            } catch (Exception e) {
+                // 日志记录失败不影响主流程
+            }
+        }
+
+        return result;
     }
 
     /**
@@ -318,10 +528,33 @@ public class LogisticsOrderServiceImpl implements ILogisticsOrderService
     @Override
     public int changeOrderStatus(Long orderId, String orderStatus)
     {
+        // 获取原订单信息
+        LogisticsOrder oldOrder = orderMapper.selectOrderById(orderId);
+        if (oldOrder == null)
+        {
+            throw new ServiceException("订单不存在");
+        }
+
         LogisticsOrder order = new LogisticsOrder();
         order.setOrderId(orderId);
         order.setOrderStatus(orderStatus);
-        return orderMapper.updateOrder(order);
+        BaseEntityUtils.fillUpdateInfo(order);
+        int result = orderMapper.updateOrder(order);
+
+        // 记录状态变更日志
+        if (result > 0 && !orderStatus.equals(oldOrder.getOrderStatus()))
+        {
+            try {
+                String operatorName = SecurityUtils.getUsername();
+                Long operatorId = SecurityUtils.getUserId();
+                orderLogService.logOrderStatusChange(orderId, oldOrder.getOrderNo(),
+                    oldOrder.getOrderStatus(), orderStatus, operatorId, operatorName);
+            } catch (Exception e) {
+                // 日志记录失败不影响主流程
+            }
+        }
+
+        return result;
     }
 
     /**

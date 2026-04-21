@@ -27,7 +27,8 @@
       "Bash(grep -E \"\\\\.sql$|^d\")",
       "Bash(python3:*)",
       "Bash(ls:*)",
-      "Bash(mvn dependency:resolve -pl ruoyi-common -q)"
+      "Bash(mvn dependency:resolve -pl ruoyi-common -q)",
+      "Bash(git commit *)"
     ]
   }
 }
