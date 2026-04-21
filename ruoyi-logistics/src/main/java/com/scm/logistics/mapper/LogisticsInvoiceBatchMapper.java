@@ -58,4 +58,12 @@ public interface LogisticsInvoiceBatchMapper
      * @return 结果
      */
     public int deleteLogisticsInvoiceBatchByBatchIds(Long[] batchIds);
+
+    /**
+     * 根据批次号前缀查询最大序号
+     *
+     * @param prefix 批次号前缀
+     * @return 最大序号
+     */
+    public Integer selectMaxSeqByBatchNoPrefix(String prefix);
 }

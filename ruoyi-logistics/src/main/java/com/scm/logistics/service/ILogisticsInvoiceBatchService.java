@@ -1,7 +1,9 @@
 package com.scm.logistics.service;
 
 import java.util.List;
+import com.scm.common.core.domain.AjaxResult;
 import com.scm.logistics.domain.LogisticsInvoiceBatch;
+import com.scm.logistics.domain.LogisticsOrder;
 
 /**
  * 发票批次Service接口
@@ -58,4 +60,32 @@ public interface ILogisticsInvoiceBatchService
      * @return 结果
      */
     public int deleteLogisticsInvoiceBatchByBatchId(Long batchId);
+
+    /**
+     * 查询可开票订单列表
+     *
+     * @param logisticsOrder 订单查询条件
+     * @return 订单集合
+     */
+    public List<LogisticsOrder> selectInvoiceableOrderList(LogisticsOrder logisticsOrder);
+
+    /**
+     * 合并开票
+     *
+     * @param customerId 客户ID
+     * @param invoiceDate 开票日期
+     * @param invoiceType 发票类型
+     * @param taxRate 税率
+     * @param orderIds 订单ID列表
+     * @return 结果
+     */
+    public AjaxResult mergeInvoice(Long customerId, String invoiceDate, String invoiceType, Double taxRate, List<Long> orderIds);
+
+    /**
+     * 取消合并（恢复订单为未开票状态）
+     *
+     * @param batchId 批次ID
+     * @return 结果
+     */
+    public int cancelMerge(Long batchId);
 }

@@ -24,7 +24,7 @@
 
     <el-row :gutter="10" class="mb8">
       <el-col :span="1.5">
-        <el-button type="primary" plain icon="Plus" @click="handleMerge" v-hasPermi="['logistics:invoice:merge']">合并开票</el-button>
+        <el-button type="primary" plain icon="Plus" @click="handleMerge" v-hasPermi="['logistics:invoice:merge']">新增</el-button>
       </el-col>
       <el-col :span="1.5">
         <el-button type="success" plain icon="Check" :disabled="single" @click="handleIssue" v-hasPermi="['logistics:invoice:issue']">开具</el-button>
@@ -78,8 +78,8 @@
 
     <pagination v-show="total > 0" :total="total" v-model:page="queryParams.pageNum" v-model:limit="queryParams.pageSize" @pagination="getList" />
 
-    <!-- 合并开票对话框 -->
-    <el-dialog title="合并开票" v-model="mergeOpen" width="900px" append-to-body>
+    <!-- 新增发票对话框 -->
+    <el-dialog title="新增发票" v-model="mergeOpen" width="900px" append-to-body>
       <el-form :model="mergeForm" ref="mergeRef" :rules="mergeRules" label-width="100px">
         <el-row>
           <el-col :span="12">
@@ -106,7 +106,7 @@
           </el-col>
           <el-col :span="12">
             <el-form-item label="税率(%)" prop="taxRate">
-              <el-input-number v-model="mergeForm.taxRate" :min="0" :max="100" :precision="2" :controls="false" style="width: 100%" @change="calculateTax" />
+              <el-input-number v-model="mergeForm.taxRate" :min="0" :max="100" :precision="2" :controls="false" style="width: 100%" />
             </el-form-item>
           </el-col>
         </el-row>
@@ -221,6 +221,7 @@ const single = ref(true)
 const multiple = ref(true)
 const total = ref(0)
 const invoiceDetail = ref({})
+const route = useRoute()
 
 const selectedTotalAmount = computed(() => {
   return selectedOrders.value.reduce((sum, item) => sum + (item.totalAmount || 0), 0)

@@ -8,6 +8,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         <result property="batchId"    column="batch_id"    />
         <result property="batchNo"    column="batch_no"    />
         <result property="customerId"    column="customer_id"    />
+        <result property="customerName"    column="customer_name"    />
         <result property="invoiceDate"    column="invoice_date"    />
         <result property="totalAmount"    column="total_amount"    />
         <result property="orderCount"    column="order_count"    />
@@ -24,22 +25,28 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
     </resultMap>
 
     <sql id="selectLogisticsInvoiceBatchVo">
-        select batch_id, batch_no, customer_id, invoice_date, total_amount, order_count, invoice_status, invoice_type, tax_rate, tax_amount, del_flag, create_by, create_time, update_by, update_time, remark from logistics_invoice_batch
+        select b.batch_id, b.batch_no, b.customer_id, c.customer_name, b.invoice_date, b.total_amount, b.order_count, b.invoice_status, b.invoice_type, b.tax_rate, b.tax_amount, b.del_flag, b.create_by, b.create_time, b.update_by, b.update_time, b.remark
+        from logistics_invoice_batch b
+        left join logistics_customer c on b.customer_id = c.customer_id
     </sql>
 
     <select id="selectLogisticsInvoiceBatchList" parameterType="LogisticsInvoiceBatch" resultMap="LogisticsInvoiceBatchResult">
         <include refid="selectLogisticsInvoiceBatchVo"/>
         <where>
-            <if test="batchNo != null  and batchNo != ''"> and batch_no like concat('%', #{batchNo}, '%')</if>
-            <if test="customerId != null "> and customer_id = #{customerId}</if>
-            <if test="invoiceStatus != null  and invoiceStatus != ''"> and invoice_status = #{invoiceStatus}</if>
+            <if test="batchNo != null  and batchNo != ''"> and b.batch_no like concat('%', #{batchNo}, '%')</if>
+            <if test="customerId != null "> and b.customer_id = #{customerId}</if>
+            <if test="invoiceStatus != null  and invoiceStatus != ''"> and b.invoice_status = #{invoiceStatus}</if>
         </where>
-        order by batch_id desc
+        order by b.batch_id desc
     </select>
 
     <select id="selectLogisticsInvoiceBatchByBatchId" parameterType="Long" resultMap="LogisticsInvoiceBatchResult">
         <include refid="selectLogisticsInvoiceBatchVo"/>
-        where batch_id = #{batchId}
+        where b.batch_id = #{batchId}
+    </select>
+
+    <select id="selectMaxSeqByBatchNoPrefix" parameterType="String" resultType="Integer">
+        select max(cast(substr(batch_no, 11) as signed)) from logistics_invoice_batch where batch_no like concat(#{prefix}, '%')
     </select>
 
     <insert id="insertLogisticsInvoiceBatch" parameterType="LogisticsInvoiceBatch" useGeneratedKeys="true" keyProperty="batchId">

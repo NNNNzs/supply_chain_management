@@ -42,8 +42,66 @@
       <el-col :span="1.5">
         <el-button type="warning" plain icon="Download" @click="handleExport" v-hasPermi="['logistics:order:export']">导出</el-button>
       </el-col>
+      <el-col :span="1.5">
+        <el-button type="success" plain icon="Document" :disabled="multiple" @click="handleMergeInvoice" v-hasPermi="['logistics:invoice:merge']">合并开票</el-button>
+      </el-col>
       <right-toolbar v-model:showSearch="showSearch" @queryTable="getList"></right-toolbar>
     </el-row>
+
+    <!-- 合并开票对话框 -->
+    <el-dialog title="合并开票" v-model="invoiceOpen" width="900px" append-to-body>
+      <el-form :model="invoiceForm" ref="invoiceRef" :rules="invoiceRules" label-width="100px">
+        <el-row>
+          <el-col :span="12">
+            <el-form-item label="开票日期" prop="invoiceDate">
+              <el-date-picker v-model="invoiceForm.invoiceDate" type="date" placeholder="选择日期" value-format="YYYY-MM-DD" style="width: 100%" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="发票类型" prop="invoiceType">
+              <el-select v-model="invoiceForm.invoiceType" placeholder="请选择发票类型" style="width: 100%">
+                <el-option label="普通发票" value="ordinary" />
+                <el-option label="增值税发票" value="vat" />
+              </el-select>
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row>
+          <el-col :span="12">
+            <el-form-item label="税率(%)" prop="taxRate">
+              <el-input-number v-model="invoiceForm.taxRate" :min="0" :max="100" :precision="2" :controls="false" style="width: 100%" />
+            </el-form-item>
+          </el-col>
+        </el-row>
+      </el-form>
+
+      <el-divider content-position="left">已选订单</el-divider>
+
+      <el-table :data="selectedOrders" max-height="300">
+        <el-table-column label="订单号" align="center" prop="orderNo" width="180" :show-overflow-tooltip="true" />
+        <el-table-column label="订单日期" align="center" prop="orderDate" width="110" />
+        <el-table-column label="客户" align="center" prop="customerName" width="120" />
+        <el-table-column label="货物" align="center" prop="goodsName" width="120" />
+        <el-table-column label="金额(元)" align="center" prop="totalAmount" width="100">
+          <template #default="scope">
+            {{ scope.row.totalAmount ? scope.row.totalAmount.toFixed(2) : '0.00' }}
+          </template>
+        </el-table-column>
+      </el-table>
+
+      <el-descriptions :column="3" border style="margin-top: 20px">
+        <el-descriptions-item label="已选订单数">{{ selectedOrders.length }}</el-descriptions-item>
+        <el-descriptions-item label="开票金额(元)">{{ invoiceTotalAmount.toFixed(2) }}</el-descriptions-item>
+        <el-descriptions-item label="税额(元)">{{ invoiceTaxAmount.toFixed(2) }}</el-descriptions-item>
+      </el-descriptions>
+
+      <template #footer>
+        <div class="dialog-footer">
+          <el-button @click="invoiceOpen = false">取 消</el-button>
+          <el-button type="primary" @click="submitMergeInvoice">确 定</el-button>
+        </div>
+      </template>
+    </el-dialog>
 
     <el-table v-loading="loading" :data="orderList" @selection-change="handleSelectionChange">
       <el-table-column type="selection" width="55" align="center" />
@@ -121,9 +179,10 @@
 <script setup name="Order">
 import { listOrder, delOrder, exportOrder, changeOrderStatus } from "@/api/logistics/order"
 import { listCustomer } from "@/api/logistics/customer"
+import { mergeInvoice } from "@/api/logistics/invoice"
 import ExcelImportDialog from "@/components/ExcelImportDialog"
 import { useRouter } from 'vue-router'
-import { onMounted } from 'vue'
+import { onMounted, computed } from 'vue'
 
 const router = useRouter()
 const { proxy } = getCurrentInstance()
@@ -137,6 +196,16 @@ const multiple = ref(true)
 const total = ref(0)
 const dateRange = ref([])
 const customerOptions = ref([])
+const selectedOrders = ref([])
+const invoiceOpen = ref(false)
+
+const invoiceTotalAmount = computed(() => {
+  return selectedOrders.value.reduce((sum, item) => sum + (item.totalAmount || 0), 0)
+})
+
+const invoiceTaxAmount = computed(() => {
+  return invoiceTotalAmount.value * (invoiceForm.taxRate / 100)
+})
 
 const data = reactive({
   queryParams: {
@@ -145,10 +214,24 @@ const data = reactive({
     orderNo: null,
     customerId: null,
     orderStatus: null
+  },
+  invoiceForm: {
+    customerId: null,
+    invoiceDate: new Date().toISOString().split('T')[0],
+    invoiceType: 'ordinary',
+    taxRate: 0
+  },
+  invoiceRules: {
+    invoiceDate: [
+      { required: true, message: "请选择开票日期", trigger: "change" }
+    ],
+    invoiceType: [
+      { required: true, message: "请选择发票类型", trigger: "change" }
+    ]
   }
 })
 
-const { queryParams } = toRefs(data)
+const { queryParams, invoiceForm, invoiceRules } = toRefs(data)
 
 function getList() {
   loading.value = true
@@ -226,8 +309,59 @@ function handleChangeStatus(row, status) {
 
 function handleSelectionChange(selection) {
   ids.value = selection.map(item => item.orderId)
+  selectedOrders.value = selection
   single.value = selection.length !== 1
   multiple.value = !selection.length
+}
+
+// 合并开票
+function handleMergeInvoice() {
+  if (selectedOrders.value.length === 0) {
+    proxy.$modal.msgWarning("请选择要开票的订单")
+    return
+  }
+
+  // 验证订单状态
+  const invalidOrders = selectedOrders.value.filter(order => order.orderStatus !== 'completed')
+  if (invalidOrders.length > 0) {
+    proxy.$modal.msgWarning("只有已完成的订单才能开票")
+    return
+  }
+
+  const alreadyInvoiced = selectedOrders.value.filter(order => order.invoiceStatus === 'invoiced')
+  if (alreadyInvoiced.length > 0) {
+    proxy.$modal.msgWarning("所选订单中存在已开票的订单")
+    return
+  }
+
+  // 检查是否是同一客户
+  const customers = [...new Set(selectedOrders.value.map(order => order.customerId))]
+  if (customers.length > 1) {
+    proxy.$modal.msgWarning("所选订单必须属于同一客户")
+    return
+  }
+
+  // 设置客户ID并打开弹窗
+  invoiceForm.value.customerId = customers[0]
+  invoiceOpen.value = true
+}
+
+// 提交合并开票
+function submitMergeInvoice() {
+  proxy.$refs.invoiceRef.validate(valid => {
+    if (valid) {
+      const orderIds = selectedOrders.value.map(item => item.orderId)
+      const data = {
+        ...invoiceForm.value,
+        orderIds: orderIds
+      }
+      mergeInvoice(data).then(response => {
+        proxy.$modal.msgSuccess("合并开票成功")
+        invoiceOpen.value = false
+        getList()
+      })
+    }
+  })
 }
 
 // 查看订单详情

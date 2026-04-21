@@ -8,6 +8,7 @@ import com.scm.common.core.domain.BaseEntity;
 
 import java.math.BigDecimal;
 import java.util.Date;
+import java.util.List;
 
 /**
  * 发票批次对象 logistics_invoice_batch
@@ -28,6 +29,9 @@ public class LogisticsInvoiceBatch extends BaseEntity
 
     /** 客户ID */
     private Long customerId;
+
+    /** 客户名称（非数据库字段） */
+    private String customerName;
 
     /** 开票日期 */
     @JsonFormat(pattern = "yyyy-MM-dd")
@@ -61,6 +65,9 @@ public class LogisticsInvoiceBatch extends BaseEntity
     /** 删除标志（0存在 2删除） */
     private String delFlag;
 
+    /** 订单明细列表（非数据库字段） */
+    private List<LogisticsInvoiceDetail> orderList;
+
     public void setBatchId(Long batchId)
     {
         this.batchId = batchId;
@@ -89,6 +96,14 @@ public class LogisticsInvoiceBatch extends BaseEntity
     public Long getCustomerId()
     {
         return customerId;
+    }
+
+    public String getCustomerName() {
+        return customerName;
+    }
+
+    public void setCustomerName(String customerName) {
+        this.customerName = customerName;
     }
 
     public void setInvoiceDate(Date invoiceDate)
@@ -169,6 +184,14 @@ public class LogisticsInvoiceBatch extends BaseEntity
     public String getDelFlag()
     {
         return delFlag;
+    }
+
+    public List<LogisticsInvoiceDetail> getOrderList() {
+        return orderList;
+    }
+
+    public void setOrderList(List<LogisticsInvoiceDetail> orderList) {
+        this.orderList = orderList;
     }
 
     @Override
