@@ -280,13 +280,21 @@ public class LogisticsDriverController extends BaseController
         // 添加车队及其司机
         for (LogisticsFleet fleet : fleetList)
         {
-            // 查找该车队的司机
-            List<LogisticsDriver> fleetDrivers = new java.util.ArrayList<>();
+            // 查找该车队的司机，转换为 Map 格式并添加 value 属性
+            List<java.util.Map<String, Object>> fleetDrivers = new java.util.ArrayList<>();
             for (LogisticsDriver driver : driverList)
             {
                 if ("fleet".equals(driver.getDriverType()) && fleet.getFleetId().equals(driver.getFleetId()))
                 {
-                    fleetDrivers.add(driver);
+                    java.util.Map<String, Object> driverNode = new java.util.HashMap<>();
+                    driverNode.put("id", "D" + driver.getDriverId());
+                    driverNode.put("value", driver.getDriverId());  // 司机ID作为value
+                    driverNode.put("driverId", driver.getDriverId());
+                    driverNode.put("driverName", driver.getDriverName());
+                    driverNode.put("driverPhone", driver.getDriverPhone());
+                    driverNode.put("vehiclePlate", driver.getVehiclePlate());
+                    driverNode.put("type", "driver");
+                    fleetDrivers.add(driverNode);
                 }
             }
 
@@ -305,12 +313,20 @@ public class LogisticsDriverController extends BaseController
         }
 
         // 添加个人司机分组
-        List<LogisticsDriver> individualDrivers = new java.util.ArrayList<>();
+        List<java.util.Map<String, Object>> individualDrivers = new java.util.ArrayList<>();
         for (LogisticsDriver driver : driverList)
         {
             if ("individual".equals(driver.getDriverType()))
             {
-                individualDrivers.add(driver);
+                java.util.Map<String, Object> driverNode = new java.util.HashMap<>();
+                driverNode.put("id", "D" + driver.getDriverId());
+                driverNode.put("value", driver.getDriverId());  // 司机ID作为value
+                driverNode.put("driverId", driver.getDriverId());
+                driverNode.put("driverName", driver.getDriverName());
+                driverNode.put("driverPhone", driver.getDriverPhone());
+                driverNode.put("vehiclePlate", driver.getVehiclePlate());
+                driverNode.put("type", "driver");
+                individualDrivers.add(driverNode);
             }
         }
 

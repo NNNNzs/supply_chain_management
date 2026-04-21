@@ -7,9 +7,10 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build:prod": "vite build",
-    "build:stage": "vite build --mode staging",
-    "preview": "vite preview"
+    "build:prod": "vue-tsc && vite build",
+    "build:stage": "vue-tsc && vite build --mode staging",
+    "preview": "vite preview",
+    "type-check": "vue-tsc --noEmit"
   },
   "repository": {
     "type": "git",
@@ -37,13 +38,16 @@
     "vuedraggable": "4.1.0"
   },
   "devDependencies": {
+    "@types/node": "^25.6.0",
     "@vitejs/plugin-vue": "5.2.4",
     "sass-embedded": "1.97.2",
+    "typescript": "^6.0.3",
     "unplugin-auto-import": "0.18.6",
     "unplugin-vue-setup-extend-plus": "1.0.1",
     "vite": "6.4.1",
     "vite-plugin-compression": "0.5.1",
-    "vite-plugin-svg-icons": "2.0.1"
+    "vite-plugin-svg-icons": "2.0.1",
+    "vue-tsc": "^3.2.7"
   },
   "overrides": {
     "quill": "2.0.2"

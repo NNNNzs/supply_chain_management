@@ -24,7 +24,10 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         <result property="vehiclePlate"       column="vehicle_plate"      />
         <result property="loadCapacity"       column="load_capacity"      />
         <result property="driverId"           column="driver_id"          />
+        <result property="driverName"         column="driver_name"        />
         <result property="driverPhone"        column="driver_phone"       />
+        <result property="driverType"         column="driver_type"        />
+        <result property="fleetName"          column="fleet_name"         />
         <result property="loadingUnitPrice"   column="loading_unit_price" />
         <result property="freightCost"        column="freight_cost"       />
         <result property="settlementStatus"   column="settlement_status"  />
@@ -51,9 +54,12 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
                o.loading_unit_price, o.freight_cost,
                o.settlement_status, o.payment_method, o.payee, o.receipt_status, o.invoice_status,
                o.invoice_date, o.invoice_batch_no, o.order_status, o.dispatch_date, o.remark,
-               c.customer_name
+               c.customer_name,
+               d.driver_name, d.driver_type, f.fleet_name
         from logistics_order o
         left join logistics_customer c on o.customer_id = c.customer_id
+        left join logistics_driver d on o.driver_id = d.driver_id
+        left join logistics_fleet f on d.fleet_id = f.fleet_id
     </sql>
 
     <select id="selectOrderList" parameterType="LogisticsOrder" resultMap="LogisticsOrderResult">

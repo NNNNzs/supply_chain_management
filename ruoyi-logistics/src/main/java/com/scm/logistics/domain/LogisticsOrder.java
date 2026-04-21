@@ -96,8 +96,17 @@ public class LogisticsOrder extends BaseEntity
     /** 司机ID */
     private Long driverId;
 
+    /** 司机姓名（非数据库字段，用于查询展示） */
+    private String driverName;
+
     /** 司机电话 */
     private String driverPhone;
+
+    /** 司机类型（非数据库字段，用于查询展示） */
+    private String driverType;
+
+    /** 车队名称（非数据库字段，用于查询展示） */
+    private String fleetName;
 
     /** 配载单价 */
     private BigDecimal loadingUnitPrice;
@@ -391,6 +400,16 @@ public class LogisticsOrder extends BaseEntity
         this.driverId = driverId;
     }
 
+    public String getDriverName()
+    {
+        return driverName;
+    }
+
+    public void setDriverName(String driverName)
+    {
+        this.driverName = driverName;
+    }
+
     @Size(min = 0, max = 20, message = "司机电话长度不能超过20个字符")
     public String getDriverPhone()
     {
@@ -400,6 +419,26 @@ public class LogisticsOrder extends BaseEntity
     public void setDriverPhone(String driverPhone)
     {
         this.driverPhone = driverPhone;
+    }
+
+    public String getDriverType()
+    {
+        return driverType;
+    }
+
+    public void setDriverType(String driverType)
+    {
+        this.driverType = driverType;
+    }
+
+    public String getFleetName()
+    {
+        return fleetName;
+    }
+
+    public void setFleetName(String fleetName)
+    {
+        this.fleetName = fleetName;
     }
 
     public BigDecimal getLoadingUnitPrice()

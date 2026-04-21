@@ -95,6 +95,12 @@ export const constantRoutes = [
     component: () => import('@/views/logistics/order/form'),
     hidden: true,
     meta: { title: '订单表单' }
+  },
+  {
+    path: '/logistics/order/detail',
+    component: () => import('@/views/logistics/order/detail'),
+    hidden: true,
+    meta: { title: '订单详情' }
   }
 ]
 
