@@ -219,7 +219,7 @@
 </template>
 
 <script setup name="Invoice">
-import { listInvoiceBatch, getInvoiceBatch, mergeInvoice, issueInvoice, cancelInvoice, cancelMerge, listInvoiceableOrders } from "@/api/logistics/invoice"
+import { listInvoiceBatch, getInvoiceBatch, mergeInvoice, issueInvoice, cancelInvoice, cancelMerge, listInvoiceableOrders, delInvoiceBatch } from "@/api/logistics/invoice"
 import { listCustomer } from "@/api/logistics/customer"
 
 const { proxy } = getCurrentInstance()
