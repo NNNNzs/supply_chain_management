@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import com.scm.common.annotation.Log;
 import com.scm.common.constant.UserConstants;
 import com.scm.common.core.controller.BaseController;
@@ -30,6 +31,7 @@ import com.scm.system.service.ISysDeptService;
  */
 @RestController
 @RequestMapping("/system/dept")
+@Tag(name = "部门管理")
 public class SysDeptController extends BaseController
 {
     @Autowired

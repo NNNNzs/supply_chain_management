@@ -4,6 +4,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import com.scm.common.core.controller.BaseController;
 import com.scm.common.core.domain.AjaxResult;
 import com.scm.common.core.domain.model.RegisterBody;
@@ -17,6 +18,7 @@ import com.scm.system.service.ISysConfigService;
  * @author scm
  */
 @RestController
+@Tag(name = "认证管理")
 public class SysRegisterController extends BaseController
 {
     @Autowired

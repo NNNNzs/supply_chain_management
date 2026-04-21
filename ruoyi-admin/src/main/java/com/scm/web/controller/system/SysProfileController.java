@@ -9,9 +9,12 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.web.multipart.MultipartFile;
 import com.scm.common.annotation.Log;
 import com.scm.common.config.RuoYiConfig;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import com.scm.common.core.controller.BaseController;
 import com.scm.common.core.domain.AjaxResult;
 import com.scm.common.core.domain.entity.SysUser;
@@ -20,6 +23,7 @@ import com.scm.common.enums.BusinessType;
 import com.scm.common.utils.DateUtils;
 import com.scm.common.utils.SecurityUtils;
 import com.scm.common.utils.StringUtils;
+import com.scm.common.utils.cos.CosFileUploadUtils;
 import com.scm.common.utils.file.FileUploadUtils;
 import com.scm.common.utils.file.FileUtils;
 import com.scm.common.utils.file.MimeTypeUtils;
@@ -33,13 +37,19 @@ import com.scm.system.service.ISysUserService;
  */
 @RestController
 @RequestMapping("/system/user/profile")
+@Tag(name = "个人信息")
 public class SysProfileController extends BaseController
 {
+    private static final Logger log = LoggerFactory.getLogger(SysProfileController.class);
+
     @Autowired
     private ISysUserService userService;
 
     @Autowired
     private TokenService tokenService;
+
+    @Autowired
+    private CosFileUploadUtils cosFileUploadUtils;
 
     /**
      * 个人信息
@@ -128,14 +138,34 @@ public class SysProfileController extends BaseController
         if (!file.isEmpty())
         {
             LoginUser loginUser = getLoginUser();
-            String avatar = FileUploadUtils.upload(RuoYiConfig.getAvatarPath(), file, MimeTypeUtils.IMAGE_EXTENSION, true);
+            String avatar;
+            String oldAvatar = loginUser.getUser().getAvatar();
+
+            // 优先使用COS上传
+            if (cosFileUploadUtils.isEnabled())
+            {
+                log.info("使用腾讯云COS上传头像：{}", file.getOriginalFilename());
+                avatar = cosFileUploadUtils.upload(file, "avatar");
+            }
+            else
+            {
+                log.info("使用本地文件系统上传头像：{}", file.getOriginalFilename());
+                avatar = FileUploadUtils.upload(RuoYiConfig.getAvatarPath(), file, MimeTypeUtils.IMAGE_EXTENSION, true);
+            }
+
             if (userService.updateUserAvatar(loginUser.getUserId(), avatar))
             {
-                String oldAvatar = loginUser.getUser().getAvatar();
-                if (StringUtils.isNotEmpty(oldAvatar))
+                // 如果使用本地存储，删除旧头像
+                if (StringUtils.isNotEmpty(oldAvatar) && !cosFileUploadUtils.isEnabled())
                 {
                     FileUtils.deleteFile(RuoYiConfig.getProfile() + FileUtils.stripPrefix(oldAvatar));
                 }
+                // 如果使用COS，可以删除COS上的旧文件（可选）
+                else if (StringUtils.isNotEmpty(oldAvatar) && cosFileUploadUtils.isEnabled())
+                {
+                    cosFileUploadUtils.deleteFile(oldAvatar);
+                }
+
                 AjaxResult ajax = AjaxResult.success();
                 ajax.put("imgUrl", avatar);
                 // 更新缓存用户头像

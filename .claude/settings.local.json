@@ -26,7 +26,8 @@
       "Bash(wc -l /Users/nnnnzs/project/supply_chain_management/sql/*.sql)",
       "Bash(grep -E \"\\\\.sql$|^d\")",
       "Bash(python3:*)",
-      "Bash(ls:*)"
+      "Bash(ls:*)",
+      "Bash(mvn dependency:resolve -pl ruoyi-common -q)"
     ]
   }
 }

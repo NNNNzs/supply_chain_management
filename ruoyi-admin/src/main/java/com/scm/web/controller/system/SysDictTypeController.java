@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import com.scm.common.annotation.Log;
 import com.scm.common.core.controller.BaseController;
 import com.scm.common.core.domain.AjaxResult;
@@ -29,6 +30,7 @@ import com.scm.system.service.ISysDictTypeService;
  */
 @RestController
 @RequestMapping("/system/dict/type")
+@Tag(name = "字典类型")
 public class SysDictTypeController extends BaseController
 {
     @Autowired

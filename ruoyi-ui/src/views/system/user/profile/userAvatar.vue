@@ -133,7 +133,15 @@ function uploadImg() {
     formData.append("avatarfile", data, options.filename)
     uploadAvatar(formData).then(response => {
       open.value = false
-      options.img = import.meta.env.VITE_APP_BASE_API + response.imgUrl
+      // 判断返回的URL是否是完整URL（包含http://或https://）
+      const imgUrl = response.imgUrl
+      if (imgUrl && (imgUrl.startsWith('http://') || imgUrl.startsWith('https://'))) {
+        // 使用COS上传，返回的是完整URL
+        options.img = imgUrl
+      } else {
+        // 使用本地存储，需要拼接API前缀
+        options.img = import.meta.env.VITE_APP_BASE_API + imgUrl
+      }
       userStore.avatar = options.img
       proxy.$modal.msgSuccess("修改成功")
       visible.value = false

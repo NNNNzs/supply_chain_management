@@ -8,6 +8,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import com.scm.common.constant.Constants;
 import com.scm.common.core.domain.AjaxResult;
 import com.scm.common.core.domain.entity.SysMenu;
@@ -30,6 +31,7 @@ import com.scm.system.service.ISysMenuService;
  * @author scm
  */
 @RestController
+@Tag(name = "认证管理")
 public class SysLoginController
 {
     @Autowired

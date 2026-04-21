@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.web.multipart.MultipartFile;
 import com.scm.common.annotation.Log;
 import com.scm.common.core.controller.BaseController;
@@ -39,6 +40,7 @@ import com.scm.system.service.ISysUserService;
  */
 @RestController
 @RequestMapping("/system/user")
+@Tag(name = "用户管理")
 public class SysUserController extends BaseController
 {
     @Autowired

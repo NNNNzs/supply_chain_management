@@ -129,6 +129,10 @@ springdoc:
       display-name: '测试模块'
       paths-to-match: '/**'
       packages-to-scan: com.scm.web.controller.tool
+    - group: 'system'
+      display-name: '系统内置接口'
+      paths-to-match: '/system/**'
+      packages-to-scan: com.scm.web.controller.system
 
 # 防盗链配置
 referer:
