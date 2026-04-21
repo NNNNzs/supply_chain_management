@@ -24,19 +24,12 @@
         <el-button type="primary" plain icon="Plus" @click="handleAdd" v-hasPermi="['logistics:receipt:add']">新增</el-button>
       </el-col>
       <el-col :span="1.5">
-        <el-button type="success" plain icon="Edit" :disabled="single" @click="handleUpdate" v-hasPermi="['logistics:receipt:edit']">修改</el-button>
-      </el-col>
-      <el-col :span="1.5">
-        <el-button type="danger" plain icon="Delete" :disabled="multiple" @click="handleDelete" v-hasPermi="['logistics:receipt:remove']">删除</el-button>
-      </el-col>
-      <el-col :span="1.5">
         <el-button type="warning" plain icon="Download" @click="handleExport" v-hasPermi="['logistics:receipt:export']">导出</el-button>
       </el-col>
       <right-toolbar v-model:showSearch="showSearch" @queryTable="getList"></right-toolbar>
     </el-row>
 
-    <el-table v-loading="loading" :data="receiptList" @selection-change="handleSelectionChange">
-      <el-table-column type="selection" width="55" align="center" />
+    <el-table v-loading="loading" :data="receiptList">
       <el-table-column label="回单编号" align="center" prop="receiptNo" width="180" />
       <el-table-column label="订单号" align="center" prop="orderNo" width="180" :show-overflow-tooltip="true" />
       <el-table-column label="回单日期" align="center" prop="receiptDate" width="110" />
@@ -67,48 +60,8 @@
 
     <pagination v-show="total > 0" :total="total" v-model:page="queryParams.pageNum" v-model:limit="queryParams.pageSize" @pagination="getList" />
 
-    <!-- 添加或修改回单信息对话框 -->
-    <el-dialog :title="title" v-model="open" width="600px" append-to-body>
-      <el-form ref="receiptRef" :model="form" :rules="rules" label-width="100px">
-        <el-form-item label="订单号" prop="orderId">
-          <el-select v-model="form.orderId" placeholder="请选择订单" clearable filterable style="width: 100%">
-            <el-option v-for="item in orderOptions" :key="item.orderId" :label="item.orderNo" :value="item.orderId">
-              <span>{{ item.orderNo }}</span>
-              <span style="float: right; color: #8492a6; font-size: 12px">{{ item.customerName }}</span>
-            </el-option>
-          </el-select>
-        </el-form-item>
-        <el-form-item label="回单日期" prop="receiptDate">
-          <el-date-picker v-model="form.receiptDate" type="date" placeholder="选择回单日期" value-format="YYYY-MM-DD" style="width: 100%" />
-        </el-form-item>
-        <el-form-item label="回单图片" prop="receiptImage">
-          <image-upload
-            v-model="form.receiptImage"
-            :limit="5"
-            :file-size="10"
-            :file-type="['jpg', 'jpeg', 'png', 'gif']"
-          />
-        </el-form-item>
-        <el-form-item label="回单状态" prop="receiptStatus">
-          <el-radio-group v-model="form.receiptStatus">
-            <el-radio label="not_received">未收到</el-radio>
-            <el-radio label="received">已收到</el-radio>
-          </el-radio-group>
-        </el-form-item>
-        <el-form-item label="接收人" prop="receiver">
-          <el-input v-model="form.receiver" placeholder="请输入接收人" />
-        </el-form-item>
-        <el-form-item label="备注" prop="remark">
-          <el-input v-model="form.remark" type="textarea" placeholder="请输入内容" />
-        </el-form-item>
-      </el-form>
-      <template #footer>
-        <div class="dialog-footer">
-          <el-button type="primary" @click="submitForm">确 定</el-button>
-          <el-button @click="cancel">取 消</el-button>
-        </div>
-      </template>
-    </el-dialog>
+    <!-- 回单表单对话框 -->
+    <receipt-dialog v-model="open" :receipt-id="receiptId" @success="handleDialogSuccess" />
 
     <!-- 回单图片预览对话框 -->
     <el-dialog title="回单图片" v-model="imagePreviewOpen" width="800px" append-to-body>
@@ -133,39 +86,28 @@
 </template>
 
 <script setup name="Receipt">
-import { listReceipt, getReceipt, delReceipt, addReceipt, updateReceipt, confirmReceipt, exportReceipt } from "@/api/logistics/receipt"
-import { listOrder } from "@/api/logistics/order"
-import { getToken } from "@/utils/auth"
+import { listReceipt, getReceipt, delReceipt, confirmReceipt, exportReceipt } from "@/api/logistics/receipt"
+import ReceiptDialog from "@/components/ReceiptDialog/index.vue"
 
 const { proxy } = getCurrentInstance()
 
 const receiptList = ref([])
-const orderOptions = ref([])
 const loading = ref(true)
 const showSearch = ref(true)
-const ids = ref([])
-const single = ref(true)
-const multiple = ref(true)
 const total = ref(0)
-const title = ref("")
 const open = ref(false)
 const imagePreviewOpen = ref(false)
 const confirmOpen = ref(false)
 const previewImage = ref("")
+const receiptId = ref(null)
 
 const data = reactive({
-  form: {},
   queryParams: {
     pageNum: 1,
     pageSize: 10,
     receiptNo: null,
     orderNo: null,
     receiptStatus: null
-  },
-  rules: {
-    orderId: [
-      { required: true, message: "订单不能为空", trigger: "change" }
-    ]
   },
   confirmForm: {
     receiptId: null,
@@ -178,7 +120,7 @@ const data = reactive({
   }
 })
 
-const { queryParams, form, rules, confirmForm, confirmRules } = toRefs(data)
+const { queryParams, confirmForm, confirmRules } = toRefs(data)
 
 function getList() {
   loading.value = true
@@ -187,32 +129,6 @@ function getList() {
     total.value = response.total
     loading.value = false
   })
-}
-
-function getOrderList() {
-  // 只显示运输中的订单，因为只有运输中的订单才需要创建回单
-  listOrder({ pageNum: 1, pageSize: 1000, orderStatus: "transporting" }).then(response => {
-    orderOptions.value = response.rows
-  })
-}
-
-function cancel() {
-  open.value = false
-  reset()
-}
-
-function reset() {
-  form.value = {
-    receiptId: null,
-    receiptNo: null,
-    orderId: null,
-    receiptDate: null,
-    receiptImage: null,
-    receiptStatus: "not_received",
-    receiver: null,
-    remark: null
-  }
-  proxy.resetForm("receiptRef")
 }
 
 function handleQuery() {
@@ -225,28 +141,14 @@ function resetQuery() {
   handleQuery()
 }
 
-function handleSelectionChange(selection) {
-  ids.value = selection.map(item => item.receiptId)
-  single.value = selection.length != 1
-  multiple.value = !selection.length
-}
-
 function handleAdd() {
-  reset()
+  receiptId.value = null
   open.value = true
-  title.value = "添加回单信息"
-  getOrderList()
 }
 
 function handleUpdate(row) {
-  reset()
-  getOrderList()
-  const _receiptId = row.receiptId || ids.value[0]
-  getReceipt(_receiptId).then(response => {
-    form.value = response.data
-    open.value = true
-    title.value = "修改回单信息"
-  })
+  receiptId.value = row.receiptId
+  open.value = true
 }
 
 function handleView(row) {
@@ -258,24 +160,8 @@ function handleView(row) {
   }
 }
 
-function submitForm() {
-  proxy.$refs["receiptRef"].validate(valid => {
-    if (valid) {
-      if (form.value.receiptId != null) {
-        updateReceipt(form.value).then(response => {
-          proxy.$modal.msgSuccess("修改成功")
-          open.value = false
-          getList()
-        })
-      } else {
-        addReceipt(form.value).then(response => {
-          proxy.$modal.msgSuccess("新增成功")
-          open.value = false
-          getList()
-        })
-      }
-    }
-  })
+function handleDialogSuccess() {
+  getList()
 }
 
 function handleDelete(row) {

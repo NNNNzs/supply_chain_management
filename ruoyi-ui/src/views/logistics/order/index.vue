@@ -31,12 +31,6 @@
         <el-button type="primary" plain icon="Plus" @click="handleAdd" v-hasPermi="['logistics:order:add']">新增</el-button>
       </el-col>
       <el-col :span="1.5">
-        <el-button type="success" plain icon="Edit" :disabled="single" @click="handleUpdate" v-hasPermi="['logistics:order:edit']">修改</el-button>
-      </el-col>
-      <el-col :span="1.5">
-        <el-button type="danger" plain icon="Delete" :disabled="multiple" @click="handleDelete" v-hasPermi="['logistics:order:remove']">删除</el-button>
-      </el-col>
-      <el-col :span="1.5">
         <el-button type="info" plain icon="Upload" @click="handleImport" v-hasPermi="['logistics:order:import']">导入</el-button>
       </el-col>
       <el-col :span="1.5">
@@ -44,6 +38,9 @@
       </el-col>
       <el-col :span="1.5">
         <el-button type="success" plain icon="Document" :disabled="multiple" @click="handleMergeInvoice" v-hasPermi="['logistics:invoice:merge']">合并开票</el-button>
+      </el-col>
+      <el-col :span="1.5">
+        <el-button type="primary" plain icon="DocumentAdd" :disabled="multiple" @click="handleAddReceipt" v-hasPermi="['logistics:receipt:add']">新增回单</el-button>
       </el-col>
       <right-toolbar v-model:showSearch="showSearch" @queryTable="getList"></right-toolbar>
     </el-row>
@@ -104,8 +101,8 @@
     </el-dialog>
 
     <el-table v-loading="loading" :data="orderList" @selection-change="handleSelectionChange">
-      <el-table-column type="selection" width="55" align="center" />
-      <el-table-column label="订单号" align="center" prop="orderNo" width="180">
+      <el-table-column type="selection" width="55" align="center" fixed />
+      <el-table-column label="订单号" align="center" prop="orderNo" width="180" fixed>
         <template #default="scope">
           <el-link type="primary" @click="handleViewDetail(scope.row)" :underline="false">
             {{ scope.row.orderNo }}
@@ -173,6 +170,9 @@
 
     <!-- 订单导入对话框 -->
     <excel-import-dialog ref="importRef" title="订单导入" action="/logistics/order/importData" template-action="/logistics/order/importTemplate" template-file-name="order_template" update-support-label="是否更新已经存在的订单数据" @success="getList" />
+
+    <!-- 新增回单对话框 -->
+    <receipt-dialog v-model="receiptDialogVisible" :order-id="selectedOrderId" @success="handleReceiptSuccess" />
   </div>
 </template>
 
@@ -181,6 +181,7 @@ import { listOrder, delOrder, exportOrder, changeOrderStatus } from "@/api/logis
 import { listCustomer } from "@/api/logistics/customer"
 import { mergeInvoice } from "@/api/logistics/invoice"
 import ExcelImportDialog from "@/components/ExcelImportDialog"
+import ReceiptDialog from "@/components/ReceiptDialog/index.vue"
 import { useRouter } from 'vue-router'
 import { onMounted, computed } from 'vue'
 
@@ -198,6 +199,8 @@ const dateRange = ref([])
 const customerOptions = ref([])
 const selectedOrders = ref([])
 const invoiceOpen = ref(false)
+const receiptDialogVisible = ref(false)
+const selectedOrderId = ref(null)
 
 const invoiceTotalAmount = computed(() => {
   return selectedOrders.value.reduce((sum, item) => sum + (item.totalAmount || 0), 0)
@@ -370,6 +373,28 @@ function handleViewDetail(row) {
     path: '/logistics/order/detail',
     query: { orderId: row.orderId }
   })
+}
+
+// 新增回单
+function handleAddReceipt() {
+  if (selectedOrders.value.length !== 1) {
+    proxy.$modal.msgWarning("请选择一个订单")
+    return
+  }
+
+  const order = selectedOrders.value[0]
+  if (order.orderStatus !== 'transporting') {
+    proxy.$modal.msgWarning("只有运输中的订单才能新增回单")
+    return
+  }
+
+  selectedOrderId.value = order.orderId
+  receiptDialogVisible.value = true
+}
+
+// 回单操作成功回调
+function handleReceiptSuccess() {
+  getList()
 }
 
 onMounted(() => {

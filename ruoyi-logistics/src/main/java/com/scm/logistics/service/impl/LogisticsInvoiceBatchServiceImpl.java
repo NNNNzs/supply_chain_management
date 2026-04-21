@@ -10,13 +10,14 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import com.scm.common.core.domain.AjaxResult;
 import com.scm.common.utils.BaseEntityUtils;
-import com.scm.logistics.domain.LogisticsInvoiceBatch;
+import com.scm.common.utils.SecurityUtils;
 import com.scm.logistics.domain.LogisticsInvoiceDetail;
 import com.scm.logistics.domain.LogisticsOrder;
 import com.scm.logistics.mapper.LogisticsInvoiceBatchMapper;
 import com.scm.logistics.mapper.LogisticsInvoiceDetailMapper;
 import com.scm.logistics.mapper.LogisticsOrderMapper;
 import com.scm.logistics.service.ILogisticsInvoiceBatchService;
+import com.scm.logistics.service.ILogisticsOrderLogService;
 
 /**
  * 发票批次Service业务层处理
@@ -35,6 +36,9 @@ public class LogisticsInvoiceBatchServiceImpl implements ILogisticsInvoiceBatchS
 
     @Autowired
     private LogisticsOrderMapper logisticsOrderMapper;
+
+    @Autowired
+    private ILogisticsOrderLogService logisticsOrderLogService;
 
     /**
      * 查询发票批次
@@ -121,6 +125,15 @@ public class LogisticsInvoiceBatchServiceImpl implements ILogisticsInvoiceBatchS
             order.setInvoiceStatus("not_invoiced");
             BaseEntityUtils.fillUpdateInfo(order);
             logisticsOrderMapper.updateOrder(order);
+
+            // 记录订单取消开票日志
+            logisticsOrderLogService.logOrderUpdate(
+                detail.getOrderId(),
+                detail.getOrderNo(),
+                SecurityUtils.getUserId(),
+                SecurityUtils.getUsername(),
+                "删除发票批次，恢复为未开票状态"
+            );
         }
 
         // 删除明细
@@ -226,6 +239,15 @@ public class LogisticsInvoiceBatchServiceImpl implements ILogisticsInvoiceBatchS
             order.setInvoiceStatus("invoiced");
             BaseEntityUtils.fillUpdateInfo(order);
             logisticsOrderMapper.updateOrder(order);
+
+            // 记录订单开票日志
+            logisticsOrderLogService.logOrderInvoice(
+                order.getOrderId(),
+                order.getOrderNo(),
+                SecurityUtils.getUserId(),
+                SecurityUtils.getUsername(),
+                batchNo
+            );
         }
 
         return AjaxResult.success("合并开票成功", batch);
@@ -249,6 +271,15 @@ public class LogisticsInvoiceBatchServiceImpl implements ILogisticsInvoiceBatchS
             order.setInvoiceStatus("not_invoiced");
             BaseEntityUtils.fillUpdateInfo(order);
             logisticsOrderMapper.updateOrder(order);
+
+            // 记录订单取消开票日志
+            logisticsOrderLogService.logOrderUpdate(
+                detail.getOrderId(),
+                detail.getOrderNo(),
+                SecurityUtils.getUserId(),
+                SecurityUtils.getUsername(),
+                "取消开票，恢复为未开票状态"
+            );
         }
 
         // 删除明细

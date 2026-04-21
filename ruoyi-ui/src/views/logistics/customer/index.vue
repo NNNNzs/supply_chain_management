@@ -24,19 +24,12 @@
         <el-button type="primary" plain icon="Plus" @click="handleAdd" v-hasPermi="['logistics:customer:add']">新增</el-button>
       </el-col>
       <el-col :span="1.5">
-        <el-button type="success" plain icon="Edit" :disabled="single" @click="handleUpdate" v-hasPermi="['logistics:customer:edit']">修改</el-button>
-      </el-col>
-      <el-col :span="1.5">
-        <el-button type="danger" plain icon="Delete" :disabled="multiple" @click="handleDelete" v-hasPermi="['logistics:customer:remove']">删除</el-button>
-      </el-col>
-      <el-col :span="1.5">
         <el-button type="warning" plain icon="Download" @click="handleExport" v-hasPermi="['logistics:customer:export']">导出</el-button>
       </el-col>
       <right-toolbar v-model:showSearch="showSearch" @queryTable="getList"></right-toolbar>
     </el-row>
 
-    <el-table v-loading="loading" :data="customerList" @selection-change="handleSelectionChange">
-      <el-table-column type="selection" width="55" align="center" />
+    <el-table v-loading="loading" :data="customerList">
       <el-table-column label="客户编码" align="center" prop="customerCode" width="120" />
       <el-table-column label="客户名称" align="center" prop="customerName" :show-overflow-tooltip="true" />
       <el-table-column label="联系人" align="center" prop="contactPerson" width="100" />
