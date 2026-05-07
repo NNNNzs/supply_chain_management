@@ -204,6 +204,16 @@ public class LogisticsOrderServiceImpl implements ILogisticsOrderService
             logs.add(createFieldChangeLog(orderId, orderNo, "客户", oldOrder.getCustomerName(), newOrder.getCustomerName(), operatorId, operatorName));
         }
 
+        // 计价方式
+        if (newOrder.getPricingMode() != null && !newOrder.getPricingMode().equals(oldOrder.getPricingMode()))
+        {
+            String beforeMode = "weight".equals(oldOrder.getPricingMode()) ? "按重量" :
+                ("charter".equals(oldOrder.getPricingMode()) ? "包车" : "按重量");
+            String afterMode = "weight".equals(newOrder.getPricingMode()) ? "按重量" :
+                ("charter".equals(newOrder.getPricingMode()) ? "包车" : newOrder.getPricingMode());
+            logs.add(createFieldChangeLog(orderId, orderNo, "计价方式", beforeMode, afterMode, operatorId, operatorName));
+        }
+
         // 装货地址
         if (newOrder.getLoadingAddress() != null && !newOrder.getLoadingAddress().equals(oldOrder.getLoadingAddress()))
         {
@@ -466,10 +476,22 @@ public class LogisticsOrderServiceImpl implements ILogisticsOrderService
     @Override
     public void calculateAmount(LogisticsOrder logisticsOrder)
     {
-        if (logisticsOrder.getWeight() != null && logisticsOrder.getUnitPrice() != null)
+        if ("charter".equals(logisticsOrder.getPricingMode()))
         {
-            BigDecimal totalAmount = logisticsOrder.getWeight().multiply(logisticsOrder.getUnitPrice());
-            logisticsOrder.setTotalAmount(totalAmount);
+            // 包车模式：直接使用包车价作为总金额
+            if (logisticsOrder.getUnitPrice() != null)
+            {
+                logisticsOrder.setTotalAmount(logisticsOrder.getUnitPrice());
+            }
+        }
+        else
+        {
+            // 按重量模式：重量 × 单价
+            if (logisticsOrder.getWeight() != null && logisticsOrder.getUnitPrice() != null)
+            {
+                BigDecimal totalAmount = logisticsOrder.getWeight().multiply(logisticsOrder.getUnitPrice());
+                logisticsOrder.setTotalAmount(totalAmount);
+            }
         }
     }
 

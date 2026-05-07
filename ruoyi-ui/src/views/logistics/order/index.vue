@@ -22,6 +22,16 @@
           />
         </el-select>
       </el-form-item>
+      <el-form-item label="计价方式" prop="pricingMode">
+        <el-select v-model="queryParams.pricingMode" placeholder="计价方式" clearable style="width: 130px">
+          <el-option
+            v-for="dict in logistics_pricing_mode"
+            :key="dict.value"
+            :label="dict.label"
+            :value="dict.value"
+          />
+        </el-select>
+      </el-form-item>
       <el-form-item>
         <el-button type="primary" icon="Search" @click="handleQuery">搜索</el-button>
         <el-button icon="Refresh" @click="resetQuery">重置</el-button>
@@ -90,6 +100,11 @@
             {{ scope.row.totalAmount ? scope.row.totalAmount.toFixed(2) : '0.00' }}
           </template>
         </el-table-column>
+        <el-table-column label="计价" align="center" prop="pricingMode" width="80">
+          <template #default="scope">
+            <dict-tag :options="logistics_pricing_mode" :value="scope.row.pricingMode" />
+          </template>
+        </el-table-column>
       </el-table>
 
       <el-descriptions :column="3" border style="margin-top: 20px">
@@ -128,6 +143,11 @@
       <el-table-column label="金额(元)" align="center" prop="totalAmount" width="100">
         <template #default="scope">
           {{ scope.row.totalAmount ? scope.row.totalAmount.toFixed(2) : '0.00' }}
+        </template>
+      </el-table-column>
+      <el-table-column label="计价" align="center" prop="pricingMode" width="80">
+        <template #default="scope">
+          <dict-tag :options="logistics_pricing_mode" :value="scope.row.pricingMode" />
         </template>
       </el-table-column>
       <el-table-column label="车牌号" align="center" prop="vehiclePlate" width="100" />
@@ -188,7 +208,7 @@ import { onMounted, computed } from 'vue'
 
 const router = useRouter()
 const { proxy } = getCurrentInstance()
-const { logistics_order_status, logistics_settlement_status, logistics_invoice_status, logistics_invoice_type } = useDict('logistics_order_status', 'logistics_settlement_status', 'logistics_invoice_status', 'logistics_invoice_type')
+const { logistics_order_status, logistics_settlement_status, logistics_invoice_status, logistics_invoice_type, logistics_pricing_mode } = useDict('logistics_order_status', 'logistics_settlement_status', 'logistics_invoice_status', 'logistics_invoice_type', 'logistics_pricing_mode')
 
 const orderList = ref([])
 const loading = ref(true)
@@ -218,7 +238,8 @@ const data = reactive({
     pageSize: 10,
     orderNo: null,
     customerId: null,
-    orderStatus: null
+    orderStatus: null,
+    pricingMode: null
   },
   invoiceForm: {
     customerId: null,

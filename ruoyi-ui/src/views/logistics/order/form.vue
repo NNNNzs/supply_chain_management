@@ -29,6 +29,20 @@
         <el-divider content-position="left">地址信息</el-divider>
 
         <el-row>
+          <el-col :span="12">
+            <el-form-item label="计价方式" prop="pricingMode">
+              <el-radio-group v-model="form.pricingMode">
+                <el-radio
+                  v-for="dict in logistics_pricing_mode"
+                  :key="dict.value"
+                  :value="dict.value"
+                >{{ dict.label }}</el-radio>
+              </el-radio-group>
+            </el-form-item>
+          </el-col>
+        </el-row>
+
+        <el-row>
           <el-col :span="24">
             <el-form-item label="装货地址" prop="loadingAddress">
               <el-autocomplete v-model="form.loadingAddress" :fetch-suggestions="queryAddresses" placeholder="请输入装货地址"
@@ -98,7 +112,7 @@
                 @change="calculateGoodsItemAmount(scope.$index)" />
             </template>
           </el-table-column>
-          <el-table-column label="单价(元/吨)" width="140">
+          <el-table-column :label="form.pricingMode === 'charter' ? '包车价(元)' : '单价(元/吨)'" width="140">
             <template #default="scope">
               <el-input-number v-model="scope.row.unitPrice" :min="0" :precision="2" :controls="false"
                 style="width: 100%" @change="calculateGoodsItemAmount(scope.$index)" />
@@ -177,7 +191,7 @@
             </el-form-item>
           </el-col>
           <el-col :span="12">
-            <el-form-item label="配载单价">
+            <el-form-item :label="form.pricingMode === 'charter' ? '包车配载价' : '配载单价'">
               <el-input-number v-model="form.loadingUnitPrice" :min="0" :precision="2" :controls="false"
                 style="width: 100%" />
             </el-form-item>
@@ -218,12 +232,14 @@ import { useRoute, useRouter } from 'vue-router'
 import GoodsFormDialog from "@/views/logistics/goods/components/GoodsFormDialog.vue"
 import { OfficeBuilding, User } from '@element-plus/icons-vue'
 import type { TreeSelectInstance } from 'element-plus'
-import { ref, reactive, computed, onMounted, getCurrentInstance } from 'vue'
+import { ref, reactive, computed, onMounted, getCurrentInstance, watch } from 'vue'
 import type { FormInstance } from 'element-plus'
+import { useDict } from '@/utils/dict'
 
 const route = useRoute()
 const router = useRouter()
 const { proxy } = getCurrentInstance() as any
+const { logistics_pricing_mode } = useDict('logistics_pricing_mode')
 
 const orderId = ref(route.params.id || route.query.orderId)
 const orderRef = ref<FormInstance>()
@@ -269,6 +285,7 @@ const totalAmount = computed(() => {
 const form = reactive({
   orderId: null,
   orderDate: new Date().toISOString().split('T')[0],
+  pricingMode: 'weight',
   customerId: null,
   loadingAddress: null,
   unloadingAddress: null,
@@ -411,11 +428,16 @@ function handleGoodsItemChange(index, goodsId) {
 
 function calculateGoodsItemAmount(index) {
   const item = form.goodsList[index]
-  if (item.weight && item.unitPrice) {
-    // 保留2位小数，避免浮点数精度问题
-    item.amount = Math.round(item.weight * item.unitPrice * 100) / 100
+  if (form.pricingMode === 'charter') {
+    // 包车模式：金额 = 包车价，不乘重量
+    item.amount = item.unitPrice || 0
   } else {
-    item.amount = 0
+    // 按重量模式：金额 = 重量 × 单价
+    if (item.weight && item.unitPrice) {
+      item.amount = Math.round(item.weight * item.unitPrice * 100) / 100
+    } else {
+      item.amount = 0
+    }
   }
 }
 
@@ -469,6 +491,10 @@ function loadOrderData() {
   if (orderId.value) {
     getOrder(orderId.value).then(response => {
       const data = response.data
+      // 兼容旧数据：pricingMode 为空默认按重量
+      if (!data.pricingMode) {
+        data.pricingMode = 'weight'
+      }
       // 确保货物明细列表存在
       if (!data.goodsList || data.goodsList.length === 0) {
         data.goodsList = [
@@ -484,11 +510,20 @@ function loadOrderData() {
 function submitForm() {
   orderRef.value?.validate(valid => {
     if (valid) {
-      // 验证货物明细
-      const hasValidGoods = form.goodsList.some(item => item.goodsId && item.weight && item.unitPrice)
-      if (!hasValidGoods) {
-        proxy.$modal.msgWarning("请至少添加一个有效的货物明细")
-        return
+      // 验证货物明细（根据计价方式不同）
+      let hasValidGoods
+      if (form.pricingMode === 'charter') {
+        hasValidGoods = form.goodsList.some(item => item.goodsId && item.unitPrice)
+        if (!hasValidGoods) {
+          proxy.$modal.msgWarning("请至少添加一个有效的货物明细（需填写包车价）")
+          return
+        }
+      } else {
+        hasValidGoods = form.goodsList.some(item => item.goodsId && item.weight && item.unitPrice)
+        if (!hasValidGoods) {
+          proxy.$modal.msgWarning("请至少添加一个有效的货物明细")
+          return
+        }
       }
 
       // 计算总重量和总金额
@@ -507,6 +542,13 @@ function submitForm() {
 function goBack() {
   router.back()
 }
+
+// 切换计价方式时重新计算所有货物金额
+watch(() => form.pricingMode, () => {
+  form.goodsList.forEach((_, index) => {
+    calculateGoodsItemAmount(index)
+  })
+})
 
 onMounted(() => {
   getCustomerList()

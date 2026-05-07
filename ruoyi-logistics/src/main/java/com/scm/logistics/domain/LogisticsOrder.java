@@ -9,6 +9,7 @@ import jakarta.validation.constraints.Size;
 import org.apache.commons.lang3.builder.ToStringBuilder;
 import org.apache.commons.lang3.builder.ToStringStyle;
 import com.fasterxml.jackson.annotation.JsonFormat;
+import com.scm.common.annotation.Excel;
 import com.scm.common.core.domain.BaseEntity;
 import com.scm.common.xss.Xss;
 
@@ -30,6 +31,10 @@ public class LogisticsOrder extends BaseEntity
 
     /** 订单类型（transport运输，shuttle短驳） */
     private String orderType;
+
+    /** 计价方式（weight按重量，charter包车） */
+    @Excel(name = "计价方式", readConverterExp = "weight=按重量,charter=包车")
+    private String pricingMode;
 
     /** 来源类型（manual手工创建，bill提单生成） */
     private String sourceType;
@@ -175,6 +180,16 @@ public class LogisticsOrder extends BaseEntity
     public void setOrderType(String orderType)
     {
         this.orderType = orderType;
+    }
+
+    public String getPricingMode()
+    {
+        return pricingMode;
+    }
+
+    public void setPricingMode(String pricingMode)
+    {
+        this.pricingMode = pricingMode;
     }
 
     public String getSourceType()
@@ -570,6 +585,8 @@ public class LogisticsOrder extends BaseEntity
         return new ToStringBuilder(this,ToStringStyle.MULTI_LINE_STYLE)
             .append("orderId", getOrderId())
             .append("orderNo", getOrderNo())
+            .append("orderType", getOrderType())
+            .append("pricingMode", getPricingMode())
             .append("orderDate", getOrderDate())
             .append("customerId", getCustomerId())
             .append("loadingAddress", getLoadingAddress())

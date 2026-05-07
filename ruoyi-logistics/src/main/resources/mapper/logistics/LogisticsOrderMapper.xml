@@ -8,6 +8,8 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         <id     property="orderId"            column="order_id"           />
         <result property="orderNo"            column="order_no"           />
         <result property="orderDate"          column="order_date"         />
+        <result property="orderType"          column="order_type"         />
+        <result property="pricingMode"        column="pricing_mode"       />
         <result property="customerId"         column="customer_id"        />
         <result property="customerName"       column="customer_name"      />
         <result property="loadingAddress"     column="loading_address"    />
@@ -48,7 +50,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
     </resultMap>
 
     <sql id="selectLogisticsOrderVo">
-        select o.order_id, o.order_no, o.order_date, o.customer_id, o.loading_address, o.unloading_address,
+        select o.order_id, o.order_no, o.order_type, o.pricing_mode, o.order_date, o.customer_id, o.loading_address, o.unloading_address,
                o.goods_id, o.goods_name, o.goods_model, o.weight, o.actual_weight, o.unit_price, o.total_amount, o.advance_payment,
                o.vehicle_id, o.vehicle_plate, o.load_capacity, o.driver_id, o.driver_phone,
                o.loading_unit_price, o.freight_cost,
@@ -86,6 +88,9 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             <if test="invoiceStatus != null and invoiceStatus != ''">
                 AND o.invoice_status = #{invoiceStatus}
             </if>
+            <if test="pricingMode != null and pricingMode != ''">
+                AND o.pricing_mode = #{pricingMode}
+            </if>
             AND o.del_flag = '0'
         </where>
         order by o.order_id desc
@@ -116,6 +121,8 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         insert into logistics_order
         <trim prefix="(" suffix=")" suffixOverrides=",">
             <if test="orderNo != null and orderNo != ''">order_no,</if>
+            <if test="orderType != null and orderType != ''">order_type,</if>
+            <if test="pricingMode != null and pricingMode != ''">pricing_mode,</if>
             <if test="orderDate != null">order_date,</if>
             <if test="customerId != null">customer_id,</if>
             <if test="loadingAddress != null and loadingAddress != ''">loading_address,</if>
@@ -150,6 +157,8 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
          </trim>
         <trim prefix="values (" suffix=")" suffixOverrides=",">
             <if test="orderNo != null and orderNo != ''">#{orderNo},</if>
+            <if test="orderType != null and orderType != ''">#{orderType},</if>
+            <if test="pricingMode != null and pricingMode != ''">#{pricingMode},</if>
             <if test="orderDate != null">#{orderDate},</if>
             <if test="customerId != null">#{customerId},</if>
             <if test="loadingAddress != null and loadingAddress != ''">#{loadingAddress},</if>
@@ -188,6 +197,8 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         update logistics_order
         <trim prefix="SET" suffixOverrides=",">
             <if test="orderNo != null and orderNo != ''">order_no = #{orderNo},</if>
+            <if test="orderType != null and orderType != ''">order_type = #{orderType},</if>
+            <if test="pricingMode != null and pricingMode != ''">pricing_mode = #{pricingMode},</if>
             <if test="orderDate != null">order_date = #{orderDate},</if>
             <if test="customerId != null">customer_id = #{customerId},</if>
             <if test="loadingAddress != null and loadingAddress != ''">loading_address = #{loadingAddress},</if>

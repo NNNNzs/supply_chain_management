@@ -21,6 +21,10 @@
       <el-descriptions :column="3" border>
         <el-descriptions-item label="订单号">{{ orderDetail.orderNo }}</el-descriptions-item>
         <el-descriptions-item label="订单日期">{{ orderDetail.orderDate }}</el-descriptions-item>
+        <el-descriptions-item label="计价方式">
+          <el-tag v-if="orderDetail.pricingMode === 'charter'" type="success">包车</el-tag>
+          <el-tag v-else>按重量</el-tag>
+        </el-descriptions-item>
         <el-descriptions-item label="客户">{{ orderDetail.customerName }}</el-descriptions-item>
         <el-descriptions-item label="装货地址" :span="3">{{ orderDetail.loadingAddress }}</el-descriptions-item>
         <el-descriptions-item label="卸货地址" :span="3">{{ orderDetail.unloadingAddress }}</el-descriptions-item>
@@ -42,7 +46,7 @@
             {{ scope.row.weight ? scope.row.weight.toFixed(3) : '0.000' }}
           </template>
         </el-table-column>
-        <el-table-column label="单价(元/吨)" prop="unitPrice" width="110" align="center">
+        <el-table-column :label="orderDetail.pricingMode === 'charter' ? '包车价(元)' : '单价(元/吨)'" prop="unitPrice" width="110" align="center">
           <template #default="scope">
             {{ scope.row.unitPrice ? scope.row.unitPrice.toFixed(2) : '0.00' }}
           </template>
@@ -103,7 +107,7 @@
           </template>
           <span v-else class="text-placeholder">未分配</span>
         </el-descriptions-item>
-        <el-descriptions-item label="配载单价">
+        <el-descriptions-item :label="orderDetail.pricingMode === 'charter' ? '包车配载价' : '配载单价'">
           {{ orderDetail.loadingUnitPrice ? orderDetail.loadingUnitPrice.toFixed(2) : '0.00' }} 元
         </el-descriptions-item>
         <el-descriptions-item label="运费支出">
@@ -185,7 +189,7 @@
 import { getOrder } from "@/api/logistics/order"
 import { getOrderLogByOrderId } from "@/api/logistics/orderLog"
 import { useRoute, useRouter } from 'vue-router'
-import { User, Right, Plus, Edit, Delete, CircleCheck, CircleClose, Truck, Document } from '@element-plus/icons-vue'
+import { User, Right, Plus, Edit, Delete, CircleCheck, CircleClose, Document } from '@element-plus/icons-vue'
 import { ref, computed, onMounted } from 'vue'
 
 const route = useRoute()
@@ -198,6 +202,7 @@ const orderId = ref(route.params.id || route.query.orderId)
 const orderDetail = ref({
   orderNo: '',
   orderDate: '',
+  pricingMode: 'weight',
   customerId: null,
   customerName: '',
   loadingAddress: '',
