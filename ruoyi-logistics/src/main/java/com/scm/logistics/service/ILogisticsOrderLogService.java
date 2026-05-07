@@ -137,4 +137,16 @@ public interface ILogisticsOrderLogService
      * @return 结果
      */
     public int logOrderDelete(Long orderId, String orderNo, Long operatorId, String operatorName);
+
+    /**
+     * 记录订单删除操作（带自定义内容）
+     *
+     * @param orderId 订单ID
+     * @param orderNo 订单号
+     * @param operatorId 操作人ID
+     * @param operatorName 操作人姓名
+     * @param content 操作内容
+     * @return 结果
+     */
+    public int logOrderDelete(Long orderId, String orderNo, Long operatorId, String operatorName, String content);
 }

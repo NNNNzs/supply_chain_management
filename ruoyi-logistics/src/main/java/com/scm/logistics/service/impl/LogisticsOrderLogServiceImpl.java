@@ -240,11 +240,27 @@ public class LogisticsOrderLogServiceImpl implements ILogisticsOrderLogService
     @Override
     public int logOrderDelete(Long orderId, String orderNo, Long operatorId, String operatorName)
     {
+        return logOrderDelete(orderId, orderNo, operatorId, operatorName, "删除订单");
+    }
+
+    /**
+     * 记录订单删除操作（带自定义内容）
+     *
+     * @param orderId 订单ID
+     * @param orderNo 订单号
+     * @param operatorId 操作人ID
+     * @param operatorName 操作人姓名
+     * @param content 操作内容
+     * @return 结果
+     */
+    @Override
+    public int logOrderDelete(Long orderId, String orderNo, Long operatorId, String operatorName, String content)
+    {
         LogisticsOrderLog log = new LogisticsOrderLog();
         log.setOrderId(orderId);
         log.setOrderNo(orderNo);
         log.setOperationType("delete");
-        log.setOperationContent("删除订单");
+        log.setOperationContent(content);
         log.setOperatorId(operatorId);
         log.setOperatorName(operatorName);
         log.setOperationTime(new Date());

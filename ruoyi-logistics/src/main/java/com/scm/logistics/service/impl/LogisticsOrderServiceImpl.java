@@ -21,6 +21,7 @@ import com.scm.logistics.mapper.LogisticsOrderMapper;
 import com.scm.logistics.service.ILogisticsOrderGoodsService;
 import com.scm.logistics.service.ILogisticsOrderLogService;
 import com.scm.logistics.service.ILogisticsOrderService;
+import com.scm.system.service.ISysConfigService;
 
 /**
  * 运输订单Service业务层处理
@@ -42,6 +43,9 @@ public class LogisticsOrderServiceImpl implements ILogisticsOrderService
 
     @Autowired
     private ILogisticsOrderLogService orderLogService;
+
+    @Autowired
+    private ISysConfigService configService;
 
     /**
      * 查询运输订单
@@ -365,19 +369,27 @@ public class LogisticsOrderServiceImpl implements ILogisticsOrderService
     @Transactional
     public int deleteOrderById(Long orderId)
     {
-        // 检查订单状态，已完成的订单不能删除
+        // 检查是否开启开发者模式
+        String developerMode = configService.selectConfigByKey("sys.developer.mode");
+        boolean isDeveloperMode = "true".equals(developerMode);
+
         LogisticsOrder order = orderMapper.selectOrderById(orderId);
         if (order == null)
         {
             throw new ServiceException("订单不存在");
         }
-        if ("completed".equals(order.getOrderStatus()))
+
+        // 非开发者模式下，检查订单状态
+        if (!isDeveloperMode)
         {
-            throw new ServiceException("已完成的订单不能删除");
-        }
-        if ("settled".equals(order.getSettlementStatus()))
-        {
-            throw new ServiceException("已结算的订单不能删除");
+            if ("completed".equals(order.getOrderStatus()))
+            {
+                throw new ServiceException("已完成的订单不能删除");
+            }
+            if ("settled".equals(order.getSettlementStatus()))
+            {
+                throw new ServiceException("已结算的订单不能删除");
+            }
         }
 
         // 删除订单货物明细
@@ -391,7 +403,8 @@ public class LogisticsOrderServiceImpl implements ILogisticsOrderService
             try {
                 String operatorName = SecurityUtils.getUsername();
                 Long operatorId = SecurityUtils.getUserId();
-                orderLogService.logOrderDelete(orderId, order.getOrderNo(), operatorId, operatorName);
+                String logContent = isDeveloperMode ? "开发者模式强制删除订单" : "删除订单";
+                orderLogService.logOrderDelete(orderId, order.getOrderNo(), operatorId, operatorName, logContent);
             } catch (Exception e) {
                 // 日志记录失败不影响主流程
             }

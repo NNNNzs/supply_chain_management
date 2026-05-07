@@ -34,6 +34,7 @@ supply_chain_management/
 | [部署文档](docs/deployment.md) | GitHub Actions 自动化部署、Docker 配置、Nginx 配置 |
 | [README.md](README.md) | 项目介绍和本地开发指南 |
 | [数据库脚本管理](sql/README.md) | **数据库脚本管理规范（生产环境增量迁移）** |
+| [开发者模式指南](docs/developer-mode-guide.md) | **开发者模式使用说明（绕过业务校验处理脏数据）** |
 
 ### 物流管理模块文档
 | 文档 | 说明 |

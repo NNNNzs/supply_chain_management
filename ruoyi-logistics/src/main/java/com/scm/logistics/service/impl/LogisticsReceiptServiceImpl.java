@@ -16,6 +16,7 @@ import com.scm.logistics.domain.LogisticsReceipt;
 import com.scm.logistics.domain.LogisticsOrder;
 import com.scm.logistics.service.ILogisticsReceiptService;
 import com.scm.logistics.service.ILogisticsOrderLogService;
+import com.scm.system.service.ISysConfigService;
 
 /**
  * 回单信息Service业务层处理
@@ -34,6 +35,9 @@ public class LogisticsReceiptServiceImpl implements ILogisticsReceiptService
 
     @Autowired
     private ILogisticsOrderLogService orderLogService;
+
+    @Autowired
+    private ISysConfigService configService;
 
     /**
      * 查询回单信息
@@ -210,12 +214,12 @@ public class LogisticsReceiptServiceImpl implements ILogisticsReceiptService
         // 删除回单
         int result = logisticsReceiptMapper.deleteLogisticsReceiptByReceiptId(receiptId);
 
-        // 如果订单状态是已完成，恢复为运输中
+        // 如果订单状态是已完成，恢复为待运输
         if (result > 0 && order != null && "completed".equals(order.getOrderStatus()))
         {
             LogisticsOrder updateOrder = new LogisticsOrder();
             updateOrder.setOrderId(order.getOrderId());
-            updateOrder.setOrderStatus("transporting");
+            updateOrder.setOrderStatus("pending");
             BaseEntityUtils.fillUpdateInfo(updateOrder);
             logisticsOrderMapper.updateOrder(updateOrder);
 
@@ -225,7 +229,7 @@ public class LogisticsReceiptServiceImpl implements ILogisticsReceiptService
                 String operatorName = SecurityUtils.getUsername();
                 Long operatorId = SecurityUtils.getUserId();
                 orderLogService.logOrderStatusChange(order.getOrderId(), order.getOrderNo(),
-                    "completed", "transporting", operatorId, operatorName);
+                    "completed", "pending", operatorId, operatorName);
             }
             catch (Exception e)
             {
