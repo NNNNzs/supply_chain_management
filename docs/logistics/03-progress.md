@@ -2,13 +2,16 @@
 
 > **文档类型**: 进度跟踪文档
 > **项目**: 供应链管理系统 - 物流管理模块
-> **版本**: v3.2
-> **最后更新**: 2026-04-21
+> **版本**: v3.3.1
+> **最后更新**: 2026-05-08
 
 ## 版本历史
 
 | 版本 | 日期 | 变更内容 |
 |------|------|----------|
+| v3.3.1 | 2026-05-08 | **订单货物规格**：在货物型号后新增"规格"字段（非必填，200字），表单和详情页同步展示 |
+| v3.3.0 | 2026-05-07 | **包车计价模式**：支持按重量和包车两种计价方式，包车模式金额=包车价不乘重量 |
+| v3.2.1 | 2026-05-07 | **开发者模式**：系统参数控制，开启后可绕过业务校验强制删除；回单删除后订单状态恢复为待运输 |
 | v3.2 | 2026-04-21 | **订单操作日志**：完整操作记录系统、字段级变更追踪、回单状态联动 |
 | v3.2 | 2026-04-16 | **订单详情页**：独立详情页展示、司机车队信息关联 |
 | v3.2 | 2026-04-16 | **订单管理优化**：调整订单号格式、装卸货地址接口合并、司机树形搜索、订单列表货物详情查看 |
@@ -198,12 +201,15 @@
 
 **文件位置**：`sql/migrations/`
 
-**最新脚本**：`v3.2.0_add_order_operation_log.sql`
+**最新脚本**：`v3.3.1_add_goods_specification.sql`
 
 **执行步骤**：
 1. v3.1.0：司机/车队重构脚本
 2. v3.2.0：订单操作日志表
-3. 按版本顺序执行
+3. v3.2.1：开发者模式参数配置
+4. v3.3.0：包车计价模式
+5. v3.3.1：订单货物规格字段
+6. 按版本顺序执行
 
 ---
 
@@ -247,3 +253,84 @@
 - 后端数据表已创建：`logistics_settlement`, `logistics_settlement_detail`
 - 后端实体类和 Mapper 已生成
 - 业务逻辑和前端页面待开发
+
+---
+
+## 七、开发者模式（v3.2.1新增）✅ 已完成
+
+### 7.1 功能概述
+
+通过系统参数控制开发者模式，开启后可绕过业务校验强制删除已完成/已结算的订单，用于处理脏数据和特殊情况。
+
+### 7.2 数据库变更
+
+**新增系统参数**：`sys.developer.mode`（默认关闭）
+
+**迁移脚本**：`sql/migrations/v3.2.1_add_developer_mode.sql`
+
+### 7.3 后端实现
+
+- `LogisticsOrderServiceImpl.java` — 删除逻辑增加开发者模式判断
+- `LogisticsOrderLogServiceImpl.java` — 开发者模式删除操作记录特殊标识
+- `LogisticsReceiptServiceImpl.java` — 回单删除后订单状态恢复为待运输（pending）
+
+### 7.4 文档
+
+- 新增开发者模式使用指南：`docs/developer-mode-guide.md`
+
+---
+
+## 八、包车计价模式（v3.3.0新增）✅ 已完成
+
+### 8.1 功能概述
+
+支持按重量和包车两种计价方式，在创建/编辑订单时可选择。
+
+### 8.2 数据库变更
+
+**修改订单表**：`logistics_order` 新增 `pricing_mode` 字段（默认 'weight'）
+
+**迁移脚本**：`sql/migrations/v3.3.0_add_pricing_mode.sql`
+
+### 8.3 计价逻辑
+
+| 计价方式 | 金额计算 | 表头显示 |
+|----------|----------|----------|
+| 按重量（默认） | 金额 = 重量 × 单价（元/吨） | 单价(元/吨)、配载单价 |
+| 包车 | 金额 = 包车价（元） | 包车价(元)、包车配载价 |
+
+### 8.4 后端实现
+
+- `LogisticsOrder.java` — 新增 pricingMode 字段
+- `LogisticsOrderMapper.xml` — 支持 pricing_mode 字段读写
+- `LogisticsOrderServiceImpl.java` — calculateAmount() 支持包车模式、recordFieldChanges() 记录计价方式变更
+
+### 8.5 前端实现
+
+- `order/form.vue` — 计价方式选择器（若依字典 logistics_pricing_mode）、动态表头切换
+- `order/detail.vue` — 显示计价方式标签、动态单价/包车价表头
+- `order/index.vue` — 列表页显示计价方式
+
+---
+
+## 九、订单货物规格（v3.3.1新增）✅ 已完成
+
+### 9.1 功能概述
+
+在订单货物的"货物型号"列后新增"规格"列，非必填输入框，最多200字。
+
+### 9.2 数据库变更
+
+**修改订单货物表**：`logistics_order_goods` 新增 `goods_specification VARCHAR(200)` 字段（位于 goods_model 之后）
+
+**迁移脚本**：`sql/migrations/v3.3.1_add_goods_specification.sql`
+
+### 9.3 后端实现
+
+- `LogisticsOrderGoods.java` — 新增 goodsSpecification 字段、getter/setter
+- `LogisticsOrderGoodsMapper.xml` — resultMap、查询、insert、batchInsert、update 全部支持
+
+### 9.4 前端实现
+
+- `order/form.vue` — 货物表格新增"规格"输入框列（el-input，maxlength=200，show-word-limit）
+- `order/detail.vue` — 货物明细表格新增"规格"列（show-overflow-tooltip）

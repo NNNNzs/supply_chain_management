@@ -101,6 +101,11 @@
               </el-select>
             </template>
           </el-table-column>
+          <el-table-column label="规格" min-width="150">
+            <template #default="scope">
+              <el-input v-model="scope.row.goodsSpecification" placeholder="请输入规格" maxlength="200" show-word-limit />
+            </template>
+          </el-table-column>
           <el-table-column label="计量单位" width="100">
             <template #default="scope">
               <el-input v-model="scope.row.goodsUnit" placeholder="单位" />
@@ -290,7 +295,7 @@ const form = reactive({
   loadingAddress: null,
   unloadingAddress: null,
   goodsList: [
-    { goodsId: null, goodsName: null, goodsModel: null, goodsUnit: null, weight: null, unitPrice: null, amount: 0 }
+    { goodsId: null, goodsName: null, goodsModel: null, goodsSpecification: null, goodsUnit: null, weight: null, unitPrice: null, amount: 0 }
   ],
   totalWeight: 0,
   totalAmount: 0,
@@ -396,6 +401,7 @@ function addGoodsItem() {
     goodsId: null,
     goodsName: null,
     goodsModel: null,
+    goodsSpecification: null,
     goodsUnit: null,
     weight: null,
     unitPrice: null,
@@ -498,7 +504,7 @@ function loadOrderData() {
       // 确保货物明细列表存在
       if (!data.goodsList || data.goodsList.length === 0) {
         data.goodsList = [
-          { goodsId: null, goodsName: null, goodsModel: null, goodsUnit: null, weight: null, unitPrice: null, amount: 0 }
+          { goodsId: null, goodsName: null, goodsModel: null, goodsSpecification: null, goodsUnit: null, weight: null, unitPrice: null, amount: 0 }
         ]
       }
       // 使用 Object.assign 更新 reactive 对象的属性

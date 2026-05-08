@@ -40,6 +40,7 @@
         <el-table-column type="index" width="50" label="序号" align="center" />
         <el-table-column label="货物名称" prop="goodsName" min-width="120" />
         <el-table-column label="货物型号" prop="goodsModel" width="120" />
+        <el-table-column label="规格" prop="goodsSpecification" min-width="150" show-overflow-tooltip />
         <el-table-column label="单位" prop="goodsUnit" width="80" align="center" />
         <el-table-column label="重量(吨)" prop="weight" width="100" align="center">
           <template #default="scope">

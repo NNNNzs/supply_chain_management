@@ -141,7 +141,7 @@ ruoyi-ui/src/
 - **车辆管理**：车辆信息、载重、默认司机关联
 - **提单管理**：多货物明细支持、提单号自动生成、货物明细级联操作、状态自动更新
 - **配载管理**：智能推荐货物、货物明细级别分配、一键创建运单并派车、载重利用率计算
-- **运单管理**：运单创建（独立表单页或配载生成）、运单号自动生成、司机车辆联动、Excel 导入导出
+- **运单管理**：运单创建（独立表单页或配载生成）、运单号自动生成、司机车辆联动、Excel 导入导出、包车/按重量计价
 - **订单详情**：独立详情页、完整操作日志时间线展示（v3.2新增）
 - **操作日志**：字段级变更追踪、回单状态联动（v3.2新增）
 - **回单管理**：回单上传、确认、图片预览、回单编号自动生成、确认回单自动完成订单
@@ -200,7 +200,7 @@ ruoyi-ui/src/
 - logistics_bill_item - 提单货物明细表（已废弃）
 - logistics_bill_order_detail - 提单运单明细表（已废弃）
 - logistics_order - 运单表（货运单/派车单）
-- logistics_order_goods - 订单货物明细表（v3.0新增）
+- logistics_order_goods - 订单货物明细表（v3.0新增，v3.3.1新增规格字段）
 - logistics_order_log - 订单操作日志表（v3.2新增）
 - logistics_receipt - 回单信息表
 
@@ -215,10 +215,13 @@ ruoyi-ui/src/
 - `sql/migrations/` - 增量迁移脚本目录（生产环境使用）
 - `sql/migrations/v3.1.0_init_version_tracker.sql` - 版本追踪表初始化（已执行）
 - `sql/migrations/v3.2.0_add_order_operation_log.sql` - 订单操作日志表（新增）
+- `sql/migrations/v3.2.1_add_developer_mode.sql` - 开发者模式参数配置
+- `sql/migrations/v3.3.0_add_pricing_mode.sql` - 包车计价模式
+- `sql/migrations/v3.3.1_add_goods_specification.sql` - 订单货物规格字段
 
 **⚠️ 生产环境数据库变更规范**：
 - 已创建 `db_version` 表记录所有迁移历史
 - 以后所有变更必须使用增量迁移脚本
 - 详细规范请参考：[数据库脚本管理](sql/README.md)
 
-**当前数据库版本**：v3.2.0（订单操作日志、回单状态联动）
+**当前数据库版本**：v3.3.1（订单货物规格字段）

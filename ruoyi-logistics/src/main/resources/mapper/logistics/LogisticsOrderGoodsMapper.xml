@@ -10,6 +10,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         <result property="goodsId"        column="goods_id"        />
         <result property="goodsName"      column="goods_name"      />
         <result property="goodsModel"     column="goods_model"     />
+        <result property="goodsSpecification" column="goods_specification" />
         <result property="goodsUnit"      column="goods_unit"      />
         <result property="weight"         column="weight"          />
         <result property="unitPrice"      column="unit_price"      />
@@ -23,7 +24,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
     </resultMap>
 
     <sql id="selectLogisticsOrderGoodsVo">
-        select detail_id, order_id, goods_id, goods_name, goods_model, goods_unit, weight, unit_price, amount, remark, del_flag, create_by, create_time, update_by, update_time
+        select detail_id, order_id, goods_id, goods_name, goods_model, goods_specification, goods_unit, weight, unit_price, amount, remark, del_flag, create_by, create_time, update_by, update_time
         from logistics_order_goods
     </sql>
 
@@ -62,6 +63,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             <if test="goodsId != null">goods_id,</if>
             <if test="goodsName != null and goodsName != ''">goods_name,</if>
             <if test="goodsModel != null">goods_model,</if>
+            <if test="goodsSpecification != null">goods_specification,</if>
             <if test="goodsUnit != null">goods_unit,</if>
             <if test="weight != null">weight,</if>
             <if test="unitPrice != null">unit_price,</if>
@@ -78,6 +80,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             <if test="goodsId != null">#{goodsId},</if>
             <if test="goodsName != null and goodsName != ''">#{goodsName},</if>
             <if test="goodsModel != null">#{goodsModel},</if>
+            <if test="goodsSpecification != null">#{goodsSpecification},</if>
             <if test="goodsUnit != null">#{goodsUnit},</if>
             <if test="weight != null">#{weight},</if>
             <if test="unitPrice != null">#{unitPrice},</if>
@@ -92,10 +95,10 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
     </insert>
 
     <insert id="batchInsertLogisticsOrderGoods" parameterType="java.util.List">
-        insert into logistics_order_goods (order_id, goods_id, goods_name, goods_model, goods_unit, weight, unit_price, amount, remark, del_flag, create_by, create_time)
+        insert into logistics_order_goods (order_id, goods_id, goods_name, goods_model, goods_specification, goods_unit, weight, unit_price, amount, remark, del_flag, create_by, create_time)
         values
         <foreach collection="list" item="item" separator=",">
-            (#{item.orderId}, #{item.goodsId}, #{item.goodsName}, #{item.goodsModel}, #{item.goodsUnit}, #{item.weight}, #{item.unitPrice}, #{item.amount}, #{item.remark}, '0', #{item.createBy}, now())
+            (#{item.orderId}, #{item.goodsId}, #{item.goodsName}, #{item.goodsModel}, #{item.goodsSpecification}, #{item.goodsUnit}, #{item.weight}, #{item.unitPrice}, #{item.amount}, #{item.remark}, '0', #{item.createBy}, now())
         </foreach>
     </insert>
 
@@ -106,6 +109,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             <if test="goodsId != null">goods_id = #{goodsId},</if>
             <if test="goodsName != null and goodsName != ''">goods_name = #{goodsName},</if>
             <if test="goodsModel != null">goods_model = #{goodsModel},</if>
+            <if test="goodsSpecification != null">goods_specification = #{goodsSpecification},</if>
             <if test="goodsUnit != null">goods_unit = #{goodsUnit},</if>
             <if test="weight != null">weight = #{weight},</if>
             <if test="unitPrice != null">unit_price = #{unitPrice},</if>

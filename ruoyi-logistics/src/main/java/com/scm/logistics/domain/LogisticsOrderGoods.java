@@ -34,6 +34,10 @@ public class LogisticsOrderGoods extends BaseEntity
     @Excel(name = "货物型号")
     private String goodsModel;
 
+    /** 货物规格 */
+    @Excel(name = "货物规格")
+    private String goodsSpecification;
+
     /** 计量单位 */
     @Excel(name = "计量单位")
     private String goodsUnit;
@@ -103,6 +107,16 @@ public class LogisticsOrderGoods extends BaseEntity
         return goodsModel;
     }
 
+    public void setGoodsSpecification(String goodsSpecification)
+    {
+        this.goodsSpecification = goodsSpecification;
+    }
+
+    public String getGoodsSpecification()
+    {
+        return goodsSpecification;
+    }
+
     public void setGoodsUnit(String goodsUnit)
     {
         this.goodsUnit = goodsUnit;
@@ -161,6 +175,7 @@ public class LogisticsOrderGoods extends BaseEntity
             .append("goodsId", getGoodsId())
             .append("goodsName", getGoodsName())
             .append("goodsModel", getGoodsModel())
+            .append("goodsSpecification", getGoodsSpecification())
             .append("goodsUnit", getGoodsUnit())
             .append("weight", getWeight())
             .append("unitPrice", getUnitPrice())
