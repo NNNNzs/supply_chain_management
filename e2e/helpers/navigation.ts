@@ -3,10 +3,10 @@ import { Page } from '@playwright/test';
 const ROUTES = {
   login: '/login',
   home: '/',
-  orderList: '/logistics/order',
+  orderList: '/business/order',
   orderForm: '/logistics/order/form',
-  receiptList: '/logistics/receipt',
-  invoiceList: '/logistics/invoice',
+  receiptList: '/business/receipt',
+  invoiceList: '/business/invoice',
 } as const;
 
 /**

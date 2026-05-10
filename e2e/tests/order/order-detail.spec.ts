@@ -40,6 +40,7 @@ test.describe('订单详情', () => {
         goodsUnit: goods.goodsUnit || '吨',
         weight: 6,
         unitPrice: 60,
+        amount: 360,
       }],
       remark: '详情测试订单备注',
     };
@@ -47,7 +48,7 @@ test.describe('订单详情', () => {
     const createResp = await client.createOrder(orderData);
     expect(createResp.code).toBe(200);
     // Backend doesn't return orderId in response, query from list
-    const listResp = await client.getOrders({ pageNum: 1, pageSize: 1, orderByColumn: 'create_time', isAsc: 'desc' });
+    const listResp = await client.getOrders({ pageNum: 1, pageSize: 1 });
     testOrderId = listResp.rows[0].orderId;
     testOrderNo = listResp.rows[0].orderNo;
     expect(testOrderId).toBeTruthy();
@@ -61,12 +62,12 @@ test.describe('订单详情', () => {
     await orderListPage.clickRowOrderNo(testOrderNo);
 
     // 等待详情页加载
-    await page.waitForURL(/\/logistics\/order\/detail\//, { timeout: 10000 });
+    await page.waitForURL(/\/logistics\/order\/detail/, { timeout: 10000 });
     await page.waitForTimeout(500);
 
     // 验证详情页显示订单基本信息
     // 检查订单号是否显示在详情页
-    const detailContent = page.locator('.app-main, .order-detail');
+    const detailContent = page.locator('.app-container');
     await expect(detailContent).toBeVisible({ timeout: 5000 });
 
     // 验证订单号显示在详情页

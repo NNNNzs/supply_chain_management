@@ -38,6 +38,7 @@ test.describe('订单搜索', () => {
         goodsUnit: goods.goodsUnit || '吨',
         weight: 8,
         unitPrice: 80,
+        amount: 640,
       }],
       remark: '搜索测试订单',
     };
@@ -45,7 +46,7 @@ test.describe('订单搜索', () => {
     const createResp = await client.createOrder(orderData);
     expect(createResp.code).toBe(200);
     // Backend doesn't return orderId in response, query from list
-    const listResp = await client.getOrders({ pageNum: 1, pageSize: 1, orderByColumn: 'create_time', isAsc: 'desc' });
+    const listResp = await client.getOrders({ pageNum: 1, pageSize: 1 });
     testOrderId = listResp.rows[0].orderId;
     testOrderNo = listResp.rows[0].orderNo;
     expect(testOrderId).toBeTruthy();

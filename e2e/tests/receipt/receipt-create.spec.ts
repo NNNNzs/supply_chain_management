@@ -33,7 +33,7 @@ test.describe('回单管理 - 新增回单', () => {
       });
       expect(orderResp.code).toBe(200);
       // Backend doesn't return orderId in response, query from list
-      const orderListResp = await apiClient.getOrders({ pageNum: 1, pageSize: 1, orderByColumn: 'create_time', isAsc: 'desc' });
+      const orderListResp = await apiClient.getOrders({ pageNum: 1, pageSize: 1 });
       orderId = orderListResp.rows[0].orderId;
 
       // 将订单状态改为运输中（回单要求订单在运输中）
@@ -51,7 +51,7 @@ test.describe('回单管理 - 新增回单', () => {
       await receiptDialog.waitForVisible();
 
       // 获取订单号用于选择
-      const orderData = await apiClient.getOrders({ pageNum: 1, pageSize: 1, orderByColumn: 'create_time', isAsc: 'desc' });
+      const orderData = await apiClient.getOrders({ pageNum: 1, pageSize: 1 });
       const orderNo = orderData.rows[0].orderNo;
 
       // 选择订单

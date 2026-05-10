@@ -16,15 +16,22 @@ export class ReceiptDialogPage {
   }
 
   async selectOrder(orderNo: string) {
-    await this.orderSelect.locator('.el-input').click();
+    await this.orderSelect.click();
+    await this.page.waitForTimeout(300);
     const dropdown = this.page.locator('.el-select-dropdown:visible').last();
     await dropdown.waitFor({ state: 'visible' });
     await dropdown.locator('.el-select-dropdown__item').filter({ hasText: orderNo }).first().click();
+    await this.page.waitForTimeout(300);
   }
 
   async selectDate(dateStr: string) {
-    await this.datePicker.locator('input').fill(dateStr);
-    await this.datePicker.locator('input').press('Enter');
+    // el-date-picker 不传递 data-testid，通过 .el-date-editor 类定位
+    const dateEditor = this.dialog.locator('.el-date-editor').first();
+    const input = dateEditor.locator('input').first();
+    await input.click();
+    await input.fill(dateStr);
+    await input.press('Enter');
+    await this.page.waitForTimeout(300);
   }
 
   async submit() {

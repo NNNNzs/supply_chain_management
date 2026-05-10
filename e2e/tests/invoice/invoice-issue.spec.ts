@@ -25,7 +25,7 @@ test.describe('发票管理 - 开具发票', () => {
     });
     expect(orderRes.code).toBe(200);
     // Backend doesn't return orderId in response, query from list
-    const orderList = await apiClient.getOrders({ pageNum: 1, pageSize: 1, orderByColumn: 'create_time', isAsc: 'desc' });
+    const orderList = await apiClient.getOrders({ pageNum: 1, pageSize: 1 });
     const orderId = orderList.rows[0].orderId;
 
     // 将订单状态改为已完成

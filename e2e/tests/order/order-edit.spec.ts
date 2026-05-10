@@ -39,6 +39,7 @@ test.describe('订单编辑', () => {
         goodsUnit: goods.goodsUnit || '吨',
         weight: 5,
         unitPrice: 50,
+        amount: 250,
       }],
       remark: '原始备注',
     };
@@ -46,7 +47,7 @@ test.describe('订单编辑', () => {
     const createResp = await client.createOrder(orderData);
     expect(createResp.code).toBe(200);
     // Backend doesn't return orderId in response, query from list
-    const listResp = await client.getOrders({ pageNum: 1, pageSize: 1, orderByColumn: 'create_time', isAsc: 'desc' });
+    const listResp = await client.getOrders({ pageNum: 1, pageSize: 1 });
     testOrderId = listResp.rows[0].orderId;
     testOrderNo = listResp.rows[0].orderNo;
     expect(testOrderId).toBeTruthy();
@@ -82,7 +83,7 @@ test.describe('订单编辑', () => {
     await waitForElMessage(page, 'success');
 
     // 验证跳转回订单列表
-    await page.waitForURL('**/logistics/order', { timeout: 10000 });
+    await page.waitForURL('**/business/order', { timeout: 10000 });
 
     // 断言无错误
     errorCollector.assertNoErrors();

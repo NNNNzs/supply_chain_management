@@ -12,9 +12,9 @@ export class LoginPage {
   constructor(page: Page) {
     this.page = page;
     this.form = page.getByTestId('login-form');
-    this.usernameInput = page.getByTestId('login-username').locator('input');
-    this.passwordInput = page.getByTestId('login-password').locator('input');
-    this.captchaInput = page.getByTestId('login-captcha').locator('input');
+    this.usernameInput = page.getByTestId('login-username');
+    this.passwordInput = page.getByTestId('login-password');
+    this.captchaInput = page.getByTestId('login-captcha');
     this.captchaImage = page.getByTestId('login-captcha-img');
     this.submitButton = page.getByTestId('login-submit');
   }

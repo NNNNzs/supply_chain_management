@@ -34,12 +34,12 @@ export class OrderFormPage {
     this.goodsTable = page.getByTestId('order-form-goods-table');
     this.addGoodsBtn = page.getByTestId('order-form-add-goods-btn');
     this.driverSelect = page.getByTestId('order-form-driver');
-    this.vehicleInput = page.getByTestId('order-form-vehicle').locator('input');
-    this.driverPhoneInput = page.getByTestId('order-form-driver-phone').locator('input');
+    this.vehicleInput = page.getByTestId('order-form-vehicle');
+    this.driverPhoneInput = page.getByTestId('order-form-driver-phone');
     this.loadingPriceInput = page.getByTestId('order-form-loading-price');
     this.freightCostInput = page.getByTestId('order-form-freight-cost');
     this.advancePaymentInput = page.getByTestId('order-form-advance-payment');
-    this.remarkInput = page.getByTestId('order-form-remark').locator('textarea');
+    this.remarkInput = page.getByTestId('order-form-remark');
   }
 
   async goto() {

@@ -16,19 +16,19 @@ export class ReceiptListPage {
   constructor(page: Page) {
     this.page = page;
     this.searchForm = page.getByTestId('receipt-search-form');
-    this.searchReceiptNo = page.getByTestId('receipt-search-receiptNo').locator('input');
-    this.searchOrderNo = page.getByTestId('receipt-search-orderNo').locator('input');
+    this.searchReceiptNo = page.getByTestId('receipt-search-receiptNo');
+    this.searchOrderNo = page.getByTestId('receipt-search-orderNo');
     this.searchStatus = page.getByTestId('receipt-search-status');
     this.searchBtn = page.getByTestId('receipt-search-btn');
     this.addBtn = page.getByTestId('receipt-add-btn');
     this.receiptTable = page.getByTestId('receipt-table');
     this.confirmDialog = page.getByTestId('receipt-confirm-dialog');
-    this.confirmReceiverInput = page.getByTestId('receipt-confirm-receiver').locator('input');
+    this.confirmReceiverInput = page.getByTestId('receipt-confirm-receiver');
     this.confirmSubmitBtn = page.getByTestId('receipt-confirm-submit-btn');
   }
 
   async goto() {
-    await this.page.goto('/logistics/receipt');
+    await this.page.goto('/business/receipt');
     await this.receiptTable.waitFor({ state: 'visible' });
   }
 

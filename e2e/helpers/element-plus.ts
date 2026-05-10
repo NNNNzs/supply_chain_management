@@ -14,7 +14,7 @@ export async function selectOption(
   testId: string,
   optionText: string,
 ): Promise<void> {
-  const trigger = page.getByTestId(testId).locator('.el-input');
+  const trigger = page.getByTestId(testId);
   await trigger.click();
 
   // 等待下拉选项出现
@@ -38,12 +38,15 @@ export async function filterableSelect(
   searchText: string,
   optionText?: string,
 ): Promise<void> {
-  const trigger = page.getByTestId(testId).locator('.el-input');
+  const trigger = page.getByTestId(testId);
   await trigger.click();
 
-  // 填写搜索文字
-  const input = page.getByTestId(testId).locator('input');
-  await input.fill(searchText);
+  // el-select 的搜索输入在下拉面板中，不在组件本身内
+  await page.waitForTimeout(300);
+  const searchInput = page.locator('.el-select-dropdown:visible input, .el-select__popper:visible input').last();
+  if (await searchInput.count() > 0) {
+    await searchInput.fill(searchText);
+  }
 
   // 等待过滤后的选项
   await page.waitForTimeout(300);
@@ -60,23 +63,29 @@ export async function filterableSelect(
 
 /**
  * el-date-picker 选择日期
+ * el-date-picker 不传递 data-testid，需要通过 form-item label 或 class 定位
  */
 export async function datePicker(
   page: Page,
   testId: string,
   dateStr: string, // 格式：YYYY-MM-DD
 ): Promise<void> {
-  const trigger = page.getByTestId(testId).locator('input');
-  await trigger.click();
+  // el-date-picker 渲染为 div.el-date-editor > input
+  // data-testid 不会传递到 DOM，通过 form-item 的 label 文本定位
+  const formItem = page.getByTestId(testId.replace(/-date$/, '-form')).locator('.el-form-item').filter({ hasText: /日期/ }).first();
+  const input = formItem.locator('.el-date-editor input').first();
 
-  // 等待日期面板出现
-  const panel = page.locator('.el-date-picker:visible, .el-date-editor:visible').last();
-  await panel.waitFor({ state: 'visible' }).catch(() => {});
-
-  // 直接在输入框中输入日期
-  const input = page.getByTestId(testId).locator('input');
-  await input.fill(dateStr);
-  await input.press('Enter');
+  if (await input.count() > 0) {
+    await input.click();
+    await input.fill(dateStr);
+    await input.press('Enter');
+  } else {
+    // 通用回退：找页面上第一个 el-date-editor 内的 input
+    const fallbackInput = page.locator('.el-date-editor input').first();
+    await fallbackInput.click();
+    await fallbackInput.fill(dateStr);
+    await fallbackInput.press('Enter');
+  }
 
   await page.waitForTimeout(200);
 }
@@ -90,10 +99,10 @@ export async function dateRangePicker(
   startDate: string,
   endDate: string,
 ): Promise<void> {
-  const trigger = page.getByTestId(testId).locator('input').first();
+  const trigger = page.getByTestId(testId);
   await trigger.click();
 
-  const inputs = page.getByTestId(testId).locator('input');
+  const inputs = page.getByTestId(testId);
   await inputs.nth(0).fill(startDate);
   await inputs.nth(1).fill(endDate);
   await inputs.nth(1).press('Enter');
@@ -109,7 +118,7 @@ export async function treeSelect(
   testId: string,
   nodeText: string,
 ): Promise<void> {
-  const trigger = page.getByTestId(testId).locator('.el-input');
+  const trigger = page.getByTestId(testId);
   await trigger.click();
 
   // 等待树形下拉出现
@@ -132,7 +141,7 @@ export async function autocomplete(
   testId: string,
   searchText: string,
 ): Promise<void> {
-  const input = page.getByTestId(testId).locator('input');
+  const input = page.getByTestId(testId);
   await input.clear();
   await input.fill(searchText);
 
@@ -228,7 +237,7 @@ export async function fillInput(
   testId: string,
   value: string,
 ): Promise<void> {
-  const input = page.getByTestId(testId).locator('input');
+  const input = page.getByTestId(testId);
   await input.clear();
   await input.fill(value);
 }
@@ -241,7 +250,7 @@ export async function fillInputNumber(
   testId: string,
   value: number,
 ): Promise<void> {
-  const input = page.getByTestId(testId).locator('input');
+  const input = page.getByTestId(testId);
   await input.clear();
   await input.fill(String(value));
   await input.press('Tab');
@@ -255,7 +264,7 @@ export async function fillTextarea(
   testId: string,
   value: string,
 ): Promise<void> {
-  const textarea = page.getByTestId(testId).locator('textarea');
+  const textarea = page.getByTestId(testId);
   await textarea.clear();
   await textarea.fill(value);
 }

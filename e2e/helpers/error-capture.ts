@@ -36,8 +36,13 @@ export function captureErrors(page: Page): ErrorCollector {
   });
 
   page.on('requestfailed', (request) => {
+    const url = request.url();
+    // 过滤掉非关键接口的网络错误（如用户信息轮询）
+    if (url.includes('/getInfo') || url.includes('/captchaImage')) {
+      return;
+    }
     networkErrors.push(
-      `[Network Error] ${request.method()} ${request.url()}: ${request.failure()?.message || 'unknown'}`,
+      `[Network Error] ${request.method()} ${url}: ${request.failure()?.message || 'unknown'}`,
     );
   });
 

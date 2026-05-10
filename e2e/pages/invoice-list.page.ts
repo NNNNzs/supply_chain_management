@@ -24,7 +24,7 @@ export class InvoiceListPage {
   constructor(page: Page) {
     this.page = page;
     this.searchForm = page.getByTestId('invoice-search-form');
-    this.searchBatchNo = page.getByTestId('invoice-search-batchNo').locator('input');
+    this.searchBatchNo = page.getByTestId('invoice-search-batchNo');
     this.searchCustomer = page.getByTestId('invoice-search-customer');
     this.searchStatus = page.getByTestId('invoice-search-status');
     this.searchBtn = page.getByTestId('invoice-search-btn');
@@ -44,7 +44,7 @@ export class InvoiceListPage {
   }
 
   async goto() {
-    await this.page.goto('/logistics/invoice');
+    await this.page.goto('/business/invoice');
     await this.invoiceTable.waitFor({ state: 'visible' });
   }
 
@@ -60,8 +60,13 @@ export class InvoiceListPage {
   }
 
   async selectMergeCustomer(customerName: string) {
-    await this.mergeCustomer.locator('.el-input').click();
-    await this.mergeCustomer.locator('input').fill(customerName);
+    await this.mergeCustomer.click();
+    await this.page.waitForTimeout(300);
+    // el-select 的搜索输入在下拉面板中
+    const searchInput = this.page.locator('.el-select-dropdown:visible input, .el-select__popper:visible input').last();
+    if (await searchInput.count() > 0) {
+      await searchInput.fill(customerName);
+    }
     await this.page.waitForTimeout(300);
     const dropdown = this.page.locator('.el-select-dropdown:visible').last();
     await dropdown.waitFor({ state: 'visible' });

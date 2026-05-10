@@ -39,6 +39,7 @@ test.describe('订单删除', () => {
         goodsUnit: goods.goodsUnit || '吨',
         weight: 3,
         unitPrice: 30,
+        amount: 90,
       }],
       remark: '删除测试订单',
     };
@@ -46,7 +47,7 @@ test.describe('订单删除', () => {
     const createResp = await client.createOrder(orderData);
     expect(createResp.code).toBe(200);
     // Backend doesn't return orderId in response, query from list
-    const listResp = await client.getOrders({ pageNum: 1, pageSize: 1, orderByColumn: 'create_time', isAsc: 'desc' });
+    const listResp = await client.getOrders({ pageNum: 1, pageSize: 1 });
     testOrderId = listResp.rows[0].orderId;
     testOrderNo = listResp.rows[0].orderNo;
     expect(testOrderId).toBeTruthy();

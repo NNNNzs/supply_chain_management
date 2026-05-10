@@ -25,7 +25,7 @@ test.describe('发票管理 - 合并发票', () => {
     });
     expect(orderRes1.code).toBe(200);
     // Backend doesn't return orderId in response, query from list
-    const orderList1 = await apiClient.getOrders({ pageNum: 1, pageSize: 1, orderByColumn: 'create_time', isAsc: 'desc' });
+    const orderList1 = await apiClient.getOrders({ pageNum: 1, pageSize: 1 });
     const orderId1 = orderList1.rows[0].orderId;
 
     // 创建订单2
@@ -41,7 +41,7 @@ test.describe('发票管理 - 合并发票', () => {
     });
     expect(orderRes2.code).toBe(200);
     // Backend doesn't return orderId in response, query from list (page size 2 to get second order)
-    const orderList2 = await apiClient.getOrders({ pageNum: 1, pageSize: 2, orderByColumn: 'create_time', isAsc: 'desc' });
+    const orderList2 = await apiClient.getOrders({ pageNum: 1, pageSize: 2 });
     const orderId2 = orderList2.rows[1].orderId;
 
     // 将两个订单状态改为已完成

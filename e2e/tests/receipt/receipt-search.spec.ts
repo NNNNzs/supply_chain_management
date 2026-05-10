@@ -31,7 +31,7 @@ test.describe('回单管理 - 搜索回单', () => {
       });
       expect(orderResp.code).toBe(200);
       // Backend doesn't return orderId in response, query from list
-      const orderListResp = await apiClient.getOrders({ pageNum: 1, pageSize: 1, orderByColumn: 'create_time', isAsc: 'desc' });
+      const orderListResp = await apiClient.getOrders({ pageNum: 1, pageSize: 1 });
       orderId = orderListResp.rows[0].orderId;
 
       // 将订单状态改为运输中
@@ -44,13 +44,13 @@ test.describe('回单管理 - 搜索回单', () => {
         receiptStatus: 'not_received',
       });
       expect(receiptResp.code).toBe(200);
-      receiptId = receiptResp.data.receiptId || receiptResp.data;
 
-      // 获取回单号和订单号
-      const receiptListResp = await apiClient.getReceipts({ receiptId });
+      // 通过 orderId 查询回单列表获取回单信息
+      const receiptListResp = await apiClient.getReceipts({ orderId });
+      receiptId = receiptListResp.rows[0].receiptId;
       const receiptNo = receiptListResp.rows[0].receiptNo;
 
-      const orderData = await apiClient.getOrders({ pageNum: 1, pageSize: 1, orderByColumn: 'create_time', isAsc: 'desc' });
+      const orderData = await apiClient.getOrders({ pageNum: 1, pageSize: 1 });
       const orderNo = orderData.rows[0].orderNo;
 
       // 进入回单列表页

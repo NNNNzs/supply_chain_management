@@ -20,7 +20,7 @@ export class OrderListPage {
   constructor(page: Page) {
     this.page = page;
     this.searchForm = page.getByTestId('order-search-form');
-    this.searchOrderNo = page.getByTestId('order-search-orderNo').locator('input');
+    this.searchOrderNo = page.getByTestId('order-search-orderNo');
     this.searchCustomer = page.getByTestId('order-search-customer');
     this.searchDate = page.getByTestId('order-search-date');
     this.searchStatus = page.getByTestId('order-search-status');
@@ -36,7 +36,7 @@ export class OrderListPage {
   }
 
   async goto() {
-    await this.page.goto('/logistics/order');
+    await this.page.goto('/business/order');
     await this.orderTable.waitFor({ state: 'visible' });
   }
 

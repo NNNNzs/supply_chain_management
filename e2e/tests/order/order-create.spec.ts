@@ -23,7 +23,7 @@ test.describe('订单创建', () => {
     await orderFormPage.selectDate(today);
 
     // 选择第一个可用客户
-    const customerTrigger = page.getByTestId('order-form-customer').locator('.el-input');
+    const customerTrigger = page.getByTestId('order-form-customer');
     await customerTrigger.click();
     const customerDropdown = page.locator('.el-select-dropdown:visible').last();
     await customerDropdown.waitFor({ state: 'visible' });
@@ -55,13 +55,13 @@ test.describe('订单创建', () => {
     await orderFormPage.fillGoodsUnitPrice(0, 100);
 
     // 选择第一个司机（树形选择器）
-    const driverTrigger = page.getByTestId('order-form-driver').locator('.el-input');
+    const driverTrigger = page.getByTestId('order-form').getByTestId('order-form-driver');
     await driverTrigger.click();
     const driverDropdown = page.locator('.el-tree-select__popper:visible, .el-popper:visible').last();
     await driverDropdown.waitFor({ state: 'visible' }).catch(() => {});
     await page.waitForTimeout(300);
-    const firstDriverNode = driverDropdown.locator('.el-tree-node').first();
-    await firstDriverNode.locator('.el-tree-node__content').click();
+    const firstDriverContent = driverDropdown.locator('.el-tree-node__content').first();
+    await firstDriverContent.click();
     await page.waitForTimeout(200);
 
     // 点击保存
@@ -71,8 +71,8 @@ test.describe('订单创建', () => {
     await waitForElMessage(page, 'success');
 
     // 验证跳转回订单列表页
-    await page.waitForURL('**/logistics/order', { timeout: 10000 });
-    await expect(page).toHaveURL(/\/logistics\/order$/);
+    await page.waitForURL('**/business/order', { timeout: 10000 });
+    await expect(page).toHaveURL(/\/business\/order$/);
 
     // 断言无错误
     errorCollector.assertNoErrors();
