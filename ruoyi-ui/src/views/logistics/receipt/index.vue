@@ -1,14 +1,14 @@
 <template>
   <div class="app-container">
-    <el-form :model="queryParams" ref="queryRef" :inline="true" v-show="showSearch" label-width="68px">
+    <el-form :model="queryParams" ref="queryRef" :inline="true" v-show="showSearch" label-width="68px" data-testid="receipt-search-form">
       <el-form-item label="回单编号" prop="receiptNo">
-        <el-input v-model="queryParams.receiptNo" placeholder="请输入回单编号" clearable style="width: 200px" @keyup.enter="handleQuery" />
+        <el-input v-model="queryParams.receiptNo" placeholder="请输入回单编号" clearable style="width: 200px" @keyup.enter="handleQuery" data-testid="receipt-search-receiptNo" />
       </el-form-item>
       <el-form-item label="订单号" prop="orderNo">
-        <el-input v-model="queryParams.orderNo" placeholder="请输入订单号" clearable style="width: 200px" @keyup.enter="handleQuery" />
+        <el-input v-model="queryParams.orderNo" placeholder="请输入订单号" clearable style="width: 200px" @keyup.enter="handleQuery" data-testid="receipt-search-orderNo" />
       </el-form-item>
       <el-form-item label="回单状态" prop="receiptStatus">
-        <el-select v-model="queryParams.receiptStatus" placeholder="回单状态" clearable style="width: 150px">
+        <el-select v-model="queryParams.receiptStatus" placeholder="回单状态" clearable style="width: 150px" data-testid="receipt-search-status">
           <el-option
             v-for="dict in logistics_receipt_status"
             :key="dict.value"
@@ -18,14 +18,14 @@
         </el-select>
       </el-form-item>
       <el-form-item>
-        <el-button type="primary" icon="Search" @click="handleQuery">搜索</el-button>
+        <el-button type="primary" icon="Search" @click="handleQuery" data-testid="receipt-search-btn">搜索</el-button>
         <el-button icon="Refresh" @click="resetQuery">重置</el-button>
       </el-form-item>
     </el-form>
 
     <el-row :gutter="10" class="mb8">
       <el-col :span="1.5">
-        <el-button type="primary" plain icon="Plus" @click="handleAdd" v-hasPermi="['logistics:receipt:add']">新增</el-button>
+        <el-button type="primary" plain icon="Plus" @click="handleAdd" v-hasPermi="['logistics:receipt:add']" data-testid="receipt-add-btn">新增</el-button>
       </el-col>
       <el-col :span="1.5">
         <el-button type="warning" plain icon="Download" @click="handleExport" v-hasPermi="['logistics:receipt:export']">导出</el-button>
@@ -33,7 +33,7 @@
       <right-toolbar v-model:showSearch="showSearch" @queryTable="getList"></right-toolbar>
     </el-row>
 
-    <el-table v-loading="loading" :data="receiptList">
+    <el-table v-loading="loading" :data="receiptList" data-testid="receipt-table">
       <el-table-column label="回单编号" align="center" prop="receiptNo" width="180" />
       <el-table-column label="订单号" align="center" prop="orderNo" width="180" :show-overflow-tooltip="true" />
       <el-table-column label="回单日期" align="center" prop="receiptDate" width="110" />
@@ -72,15 +72,15 @@
     </el-dialog>
 
     <!-- 确认回单对话框 -->
-    <el-dialog title="确认回单" v-model="confirmOpen" width="400px" append-to-body>
+    <el-dialog title="确认回单" v-model="confirmOpen" width="400px" append-to-body data-testid="receipt-confirm-dialog">
       <el-form ref="confirmRef" :model="confirmForm" :rules="confirmRules" label-width="80px">
         <el-form-item label="接收人" prop="receiver">
-          <el-input v-model="confirmForm.receiver" placeholder="请输入接收人" />
+          <el-input v-model="confirmForm.receiver" placeholder="请输入接收人" data-testid="receipt-confirm-receiver" />
         </el-form-item>
       </el-form>
       <template #footer>
         <div class="dialog-footer">
-          <el-button type="primary" @click="submitConfirm">确 定</el-button>
+          <el-button type="primary" @click="submitConfirm" data-testid="receipt-confirm-submit-btn">确 定</el-button>
           <el-button @click="confirmOpen = false">取 消</el-button>
         </div>
       </template>

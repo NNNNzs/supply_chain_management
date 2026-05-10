@@ -1,0 +1,21 @@
+{
+  "name": "scm-e2e-tests",
+  "version": "1.0.0",
+  "description": "供应链管理系统 E2E 自动化测试",
+  "scripts": {
+    "test": "npx playwright test",
+    "test:headed": "npx playwright test --headed",
+    "test:ui": "npx playwright test --ui",
+    "test:order": "npx playwright test tests/order/",
+    "test:receipt": "npx playwright test tests/receipt/",
+    "test:invoice": "npx playwright test tests/invoice/",
+    "test:auth": "npx playwright test tests/auth/",
+    "report": "npx playwright show-report",
+    "install:browsers": "npx playwright install chromium"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.52.0",
+    "dotenv": "^16.5.0",
+    "typescript": "^5.8.3"
+  }
+}

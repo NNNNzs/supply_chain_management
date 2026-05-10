@@ -2,8 +2,8 @@
   <div class="app-container" style="padding: 20px;">
     <el-page-header @back="goBack" content="订单详情">
       <template #extra>
-        <el-button type="primary" icon="Edit" @click="handleEdit" v-hasPermi="['logistics:order:edit']">编辑</el-button>
-        <el-button @click="goBack">返回</el-button>
+        <el-button type="primary" icon="Edit" @click="handleEdit" v-hasPermi="['logistics:order:edit']" data-testid="order-detail-edit-btn">编辑</el-button>
+        <el-button @click="goBack" data-testid="order-detail-back-btn">返回</el-button>
       </template>
     </el-page-header>
 

@@ -1,8 +1,8 @@
 <template>
-  <el-dialog :title="title" v-model="visible" width="600px" append-to-body :before-close="handleClose">
+  <el-dialog :title="title" v-model="visible" width="600px" append-to-body :before-close="handleClose" data-testid="receipt-dialog">
     <el-form ref="receiptRef" :model="form" :rules="rules" label-width="100px">
       <el-form-item label="订单号" prop="orderId">
-        <el-select v-model="form.orderId" placeholder="请选择订单" clearable filterable style="width: 100%">
+        <el-select v-model="form.orderId" placeholder="请选择订单" clearable filterable style="width: 100%" data-testid="receipt-dialog-order">
           <el-option v-for="item in orderOptions" :key="item.orderId" :label="item.orderNo" :value="item.orderId">
             <span>{{ item.orderNo }}</span>
             <span style="float: right; color: #8492a6; font-size: 12px">{{ item.customerName }}</span>
@@ -10,7 +10,7 @@
         </el-select>
       </el-form-item>
       <el-form-item label="回单日期" prop="receiptDate">
-        <el-date-picker v-model="form.receiptDate" type="date" placeholder="选择回单日期" value-format="YYYY-MM-DD" style="width: 100%" />
+        <el-date-picker v-model="form.receiptDate" type="date" placeholder="选择回单日期" value-format="YYYY-MM-DD" style="width: 100%" data-testid="receipt-dialog-date" />
       </el-form-item>
       <el-form-item label="回单图片" prop="receiptImage">
         <image-upload
@@ -35,7 +35,7 @@
     </el-form>
     <template #footer>
       <div class="dialog-footer">
-        <el-button type="primary" @click="submitForm">确 定</el-button>
+        <el-button type="primary" @click="submitForm" data-testid="receipt-dialog-submit-btn">确 定</el-button>
         <el-button @click="handleClose">取 消</el-button>
       </div>
     </template>

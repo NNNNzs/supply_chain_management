@@ -1,18 +1,18 @@
 <template>
   <div class="app-container">
-    <el-form :model="queryParams" ref="queryRef" :inline="true" v-show="showSearch" label-width="68px">
+    <el-form :model="queryParams" ref="queryRef" :inline="true" v-show="showSearch" label-width="68px" data-testid="invoice-search-form">
       <el-form-item label="批次号" prop="batchNo">
-        <el-input v-model="queryParams.batchNo" placeholder="请输入批次号" clearable style="width: 200px"
+        <el-input v-model="queryParams.batchNo" placeholder="请输入批次号" clearable style="width: 200px" data-testid="invoice-search-batchNo"
           @keyup.enter="handleQuery" />
       </el-form-item>
       <el-form-item label="客户" prop="customerId">
-        <el-select v-model="queryParams.customerId" placeholder="请选择客户" clearable style="width: 200px">
+        <el-select v-model="queryParams.customerId" placeholder="请选择客户" clearable style="width: 200px" data-testid="invoice-search-customer">
           <el-option v-for="item in customerOptions" :key="item.customerId" :label="item.customerName"
             :value="item.customerId" />
         </el-select>
       </el-form-item>
       <el-form-item label="发票状态" prop="invoiceStatus">
-        <el-select v-model="queryParams.invoiceStatus" placeholder="发票状态" clearable style="width: 150px">
+        <el-select v-model="queryParams.invoiceStatus" placeholder="发票状态" clearable style="width: 150px" data-testid="invoice-search-status">
           <el-option
             v-for="dict in logistics_batch_status"
             :key="dict.value"
@@ -22,7 +22,7 @@
         </el-select>
       </el-form-item>
       <el-form-item>
-        <el-button type="primary" icon="Search" @click="handleQuery">搜索</el-button>
+        <el-button type="primary" icon="Search" @click="handleQuery" data-testid="invoice-search-btn">搜索</el-button>
         <el-button icon="Refresh" @click="resetQuery">重置</el-button>
       </el-form-item>
     </el-form>
@@ -30,24 +30,24 @@
     <el-row :gutter="10" class="mb8">
       <el-col :span="1.5">
         <el-button type="primary" plain icon="Plus" @click="handleMerge"
-          v-hasPermi="['logistics:invoice:merge']">新增</el-button>
+          v-hasPermi="['logistics:invoice:merge']" data-testid="invoice-add-btn">新增</el-button>
       </el-col>
       <el-col :span="1.5">
         <el-button type="success" plain icon="Check" :disabled="single" @click="handleIssue"
-          v-hasPermi="['logistics:invoice:issue']">开具</el-button>
+          v-hasPermi="['logistics:invoice:issue']" data-testid="invoice-issue-btn">开具</el-button>
       </el-col>
       <el-col :span="1.5">
         <el-button type="danger" plain icon="Close" :disabled="single" @click="handleCancel"
-          v-hasPermi="['logistics:invoice:cancel']">作废</el-button>
+          v-hasPermi="['logistics:invoice:cancel']" data-testid="invoice-cancel-btn">作废</el-button>
       </el-col>
       <el-col :span="1.5">
         <el-button type="warning" plain icon="RefreshLeft" :disabled="single" @click="handleCancelMerge"
-          v-hasPermi="['logistics:invoice:merge']">取消合并</el-button>
+          v-hasPermi="['logistics:invoice:merge']" data-testid="invoice-cancel-merge-btn">取消合并</el-button>
       </el-col>
       <right-toolbar v-model:showSearch="showSearch" @queryTable="getList"></right-toolbar>
     </el-row>
 
-    <el-table v-loading="loading" :data="invoiceList" @selection-change="handleSelectionChange">
+    <el-table v-loading="loading" :data="invoiceList" @selection-change="handleSelectionChange" data-testid="invoice-table">
       <el-table-column type="selection" width="55" align="center" />
       <el-table-column label="批次号" align="center" prop="batchNo" min-width="180" />
       <el-table-column label="客户" align="center" prop="customerName" min-width="150" :show-overflow-tooltip="true" />
@@ -87,13 +87,13 @@
       v-model:limit="queryParams.pageSize" @pagination="getList" />
 
     <!-- 新增发票对话框 -->
-    <el-dialog title="新增发票" v-model="mergeOpen" width="900px" append-to-body>
+    <el-dialog title="新增发票" v-model="mergeOpen" width="900px" append-to-body data-testid="invoice-merge-dialog">
       <el-form :model="mergeForm" ref="mergeRef" :rules="mergeRules" label-width="100px">
         <el-row>
           <el-col :span="12">
             <el-form-item label="客户" prop="customerId">
               <el-select v-model="mergeForm.customerId" placeholder="请选择客户" filterable style="width: 100%"
-                @change="handleCustomerChange">
+                @change="handleCustomerChange" data-testid="invoice-merge-customer">
                 <el-option v-for="item in customerOptions" :key="item.customerId" :label="item.customerName"
                   :value="item.customerId" />
               </el-select>
@@ -102,14 +102,14 @@
           <el-col :span="12">
             <el-form-item label="开票日期" prop="invoiceDate">
               <el-date-picker v-model="mergeForm.invoiceDate" type="date" placeholder="选择日期" value-format="YYYY-MM-DD"
-                style="width: 100%" />
+                style="width: 100%" data-testid="invoice-merge-date" />
             </el-form-item>
           </el-col>
         </el-row>
         <el-row>
           <el-col :span="12">
             <el-form-item label="发票类型" prop="invoiceType">
-              <el-select v-model="mergeForm.invoiceType" placeholder="请选择发票类型" style="width: 100%">
+              <el-select v-model="mergeForm.invoiceType" placeholder="请选择发票类型" style="width: 100%" data-testid="invoice-merge-type">
                 <el-option
                   v-for="dict in logistics_invoice_type"
                   :key="dict.value"
@@ -122,7 +122,7 @@
           <el-col :span="12">
             <el-form-item label="税率(%)" prop="taxRate">
               <el-input-number v-model="mergeForm.taxRate" :min="0" :max="100" :precision="2" :controls="false"
-                style="width: 100%" />
+                style="width: 100%" data-testid="invoice-merge-tax-rate" />
             </el-form-item>
           </el-col>
         </el-row>
@@ -131,7 +131,7 @@
       <el-divider content-position="left">选择订单</el-divider>
 
       <el-table ref="orderTableRef" :data="orderListForMerge" @selection-change="handleOrderSelectionChange"
-        max-height="300">
+        max-height="300" data-testid="invoice-merge-orders-table">
         <el-table-column type="selection" width="55" align="center" :selectable="checkSelectable" />
         <el-table-column label="订单号" align="center" prop="orderNo" width="180" :show-overflow-tooltip="true" />
         <el-table-column label="订单日期" align="center" prop="orderDate" width="110" />
@@ -162,13 +162,13 @@
       <template #footer>
         <div class="dialog-footer">
           <el-button @click="mergeOpen = false">取 消</el-button>
-          <el-button type="primary" @click="submitMerge" :disabled="selectedOrders.length === 0">确 定</el-button>
+          <el-button type="primary" @click="submitMerge" :disabled="selectedOrders.length === 0" data-testid="invoice-merge-submit-btn">确 定</el-button>
         </div>
       </template>
     </el-dialog>
 
     <!-- 发票详情对话框 -->
-    <el-dialog title="发票详情" v-model="detailOpen" width="900px" append-to-body>
+    <el-dialog title="发票详情" v-model="detailOpen" width="900px" append-to-body data-testid="invoice-detail-dialog">
       <el-descriptions :column="2" border>
         <el-descriptions-item label="批次号">{{ invoiceDetail.batchNo }}</el-descriptions-item>
         <el-descriptions-item label="客户">{{ invoiceDetail.customerName }}</el-descriptions-item>

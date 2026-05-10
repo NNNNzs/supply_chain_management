@@ -368,7 +368,123 @@ Closes #123
 
 ## 四、测试规范
 
-### 4.1 单元测试
+### 4.1 E2E 自动化测试 ⚠️ 重要
+
+项目使用 Playwright 进行端到端（E2E）自动化测试，覆盖核心业务流程。
+
+详细文档：[E2E 测试文档](../e2e/README.md)
+
+#### 4.1.1 测试覆盖要求
+
+**每个业务功能必须编写对应的 E2E 测试**，包括但不限于：
+
+| 操作类型 | 必须覆盖的测试 |
+|----------|---------------|
+| 新增功能 | 创建成功测试 |
+| 编辑功能 | 编辑保存测试 |
+| 删除功能 | 删除确认测试 |
+| 搜索功能 | 搜索过滤测试 |
+| 状态变更 | 状态流转测试 |
+| 对话框/弹窗 | 打开、填写、提交测试 |
+
+#### 4.1.2 新增功能开发流程
+
+```
+需求分析
+    ↓
+编写 E2E 测试用例（tests/ 目录）
+    ↓
+前端添加 data-testid（视图组件）
+    ↓
+实现后端 API
+    ↓
+实现前端页面
+    ↓
+运行 E2E 测试验证
+    ↓
+确认无错误后提交代码
+```
+
+#### 4.1.3 文件结构规范
+
+```
+新增一个业务模块时，需要创建以下文件：
+
+1. e2e/tests/{模块}/
+   ├── {模块}-create.spec.ts    # 创建测试
+   ├── {模块}-edit.spec.ts      # 编辑测试
+   ├── {模块}-search.spec.ts    # 搜索测试
+   ├── {模块}-delete.spec.ts    # 删除测试
+   └── ...（根据业务需要添加状态变更等测试）
+
+2. e2e/pages/{模块}.page.ts     # Page Object 页面对象
+
+3. 前端视图添加 data-testid 属性
+```
+
+#### 4.1.4 data-testid 命名规范
+
+格式：`{模块}-{类型}-{名称}`
+
+```
+模块名：order, receipt, invoice, settlement, customer...
+类型名：search, form, table, dialog, btn, detail
+名称：功能描述
+
+示例：
+- order-search-orderNo     订单搜索-订单号输入框
+- order-form-customer      订单表单-客户选择器
+- order-table              订单表格
+- receipt-confirm-dialog   回单确认对话框
+- invoice-merge-submit-btn 发票合并-提交按钮
+```
+
+#### 4.1.5 测试编写规范
+
+```typescript
+// 1. 从 fixtures 导入（不是 @playwright/test）
+import { test, expect } from '../../fixtures';
+
+// 2. 使用 fixtures 提供的认证、错误捕获和 API 客户端
+test('描述', async ({ page, authenticatedPage, errorCollector, apiClient }) => {
+
+  // 3. 通过 API 准备测试数据，不依赖生产数据
+  const res = await apiClient.createXxx({ ... });
+
+  try {
+    // 4. 使用 Page Object 执行 UI 操作
+    // 5. 验证结果
+  } finally {
+    // 6. 清理测试数据
+    await apiClient.deleteXxx(id).catch(() => {});
+  }
+
+  // 7. 断言无错误
+  errorCollector.assertNoErrors();
+});
+```
+
+#### 4.1.6 运行测试
+
+```bash
+cd e2e
+
+# 运行全部测试
+pnpm test
+
+# 按模块运行
+pnpm run test:order
+pnpm run test:receipt
+pnpm run test:invoice
+
+# 有头模式调试
+pnpm run test:headed
+
+# 查看报告
+pnpm run report
+```
+
+### 4.2 单元测试
 
 ```java
 @Test
@@ -439,3 +555,4 @@ describe('Order API', () => {
 | 2026-04-14 | v1.0 | 初始版本，定义开发规范 | - |
 | 2026-04-16 | v1.1 | 新增数据库版本管理规范（增量迁移脚本） | System |
 | 2026-04-21 | v1.2 | 新增 Spring Boot 3.x 依赖包规范（javax → jakarta） | System |
+| 2026-05-10 | v1.3 | 新增 E2E 自动化测试规范（Playwright） | System |

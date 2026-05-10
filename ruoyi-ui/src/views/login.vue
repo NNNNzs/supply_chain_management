@@ -1,6 +1,6 @@
 <template>
   <div class="login">
-    <el-form ref="loginRef" :model="loginForm" :rules="loginRules" class="login-form">
+    <el-form ref="loginRef" :model="loginForm" :rules="loginRules" class="login-form" data-testid="login-form">
       <h3 class="title">{{ title }}</h3>
       <el-form-item prop="username">
         <el-input
@@ -9,6 +9,7 @@
           size="large"
           auto-complete="off"
           placeholder="账号"
+          data-testid="login-username"
         >
           <template #prefix><svg-icon icon-class="user" class="el-input__icon input-icon" /></template>
         </el-input>
@@ -21,6 +22,7 @@
           auto-complete="off"
           placeholder="密码"
           @keyup.enter="handleLogin"
+          data-testid="login-password"
         >
           <template #prefix><svg-icon icon-class="password" class="el-input__icon input-icon" /></template>
         </el-input>
@@ -33,11 +35,12 @@
           placeholder="验证码"
           style="width: 63%"
           @keyup.enter="handleLogin"
+          data-testid="login-captcha"
         >
           <template #prefix><svg-icon icon-class="validCode" class="el-input__icon input-icon" /></template>
         </el-input>
         <div class="login-code">
-          <img :src="codeUrl" @click="getCode" class="login-code-img"/>
+          <img :src="codeUrl" @click="getCode" class="login-code-img" data-testid="login-captcha-img"/>
         </div>
       </el-form-item>
       <el-checkbox v-model="loginForm.rememberMe" style="margin:0px 0px 25px 0px;">记住密码</el-checkbox>
@@ -48,6 +51,7 @@
           type="primary"
           style="width:100%;"
           @click.prevent="handleLogin"
+          data-testid="login-submit"
         >
           <span v-if="!loading">登 录</span>
           <span v-else>登 录 中...</span>

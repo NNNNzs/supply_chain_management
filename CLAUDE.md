@@ -8,6 +8,7 @@
 
 - **后端**: Spring Boot 4.0.3 + MySQL + Redis
 - **前端**: Vue 3 + Element Plus + Vite
+- **E2E 测试**: Playwright + TypeScript
 - **部署**: GitHub Actions + Docker Compose
 
 ## 项目结构
@@ -20,6 +21,7 @@ supply_chain_management/
 ├── ruoyi-logistics/      # 物流管理模块
 ├── ruoyi-generator/      # 代码生成
 ├── ruoyi-ui/            # 前端项目
+├── e2e/                 # E2E 自动化测试（Playwright）
 ├── docs/                # 项目文档
 ├── .github/             # GitHub Actions 配置
 └── docker-compose.yml   # Docker 部署配置
@@ -30,11 +32,12 @@ supply_chain_management/
 ### 项目文档
 | 文档 | 说明 |
 |------|------|
-| [开发规范](docs/development-specs.md) | **开发规范文档（含文档管理、代码规范、Git 工作流、数据库版本管理）** |
+| [开发规范](docs/development-specs.md) | **开发规范文档（含文档管理、代码规范、Git 工作流、数据库版本管理、E2E 测试规范）** |
 | [部署文档](docs/deployment.md) | GitHub Actions 自动化部署、Docker 配置、Nginx 配置 |
 | [README.md](README.md) | 项目介绍和本地开发指南 |
 | [数据库脚本管理](sql/README.md) | **数据库脚本管理规范（生产环境增量迁移）** |
 | [开发者模式指南](docs/developer-mode-guide.md) | **开发者模式使用说明（绕过业务校验处理脏数据）** |
+| [E2E 测试文档](e2e/README.md) | **E2E 自动化测试框架使用说明（Playwright）** |
 
 ### 物流管理模块文档
 | 文档 | 说明 |
@@ -225,3 +228,60 @@ ruoyi-ui/src/
 - 详细规范请参考：[数据库脚本管理](sql/README.md)
 
 **当前数据库版本**：v3.3.1（订单货物规格字段）
+
+## E2E 自动化测试规范
+
+### 开发要求
+
+**新增或修改业务功能时，必须同步编写/更新对应的 E2E 测试脚本。**
+
+- 测试脚本目录：`e2e/tests/{模块}/`
+- 页面对象目录：`e2e/pages/`
+- 测试框架：Playwright + TypeScript
+- 详细文档：[E2E 测试文档](e2e/README.md)
+- 开发规范中的测试要求：[开发规范 - E2E 测试](docs/development-specs.md)
+
+### 前端 data-testid 要求
+
+所有新增的 Vue 视图组件中，关键交互元素必须添加 `data-testid` 属性：
+
+```vue
+<!-- 必须添加 data-testid 的元素 -->
+<el-form data-testid="模块-search-form">         <!-- 搜索表单 -->
+<el-table data-testid="模块-table">              <!-- 数据表格 -->
+<el-dialog data-testid="模块-dialog">            <!-- 对话框 -->
+<el-button @click="submit" data-testid="模块-submit-btn">  <!-- 提交按钮 -->
+
+<!-- 搜索字段 -->
+<el-input data-testid="模块-search-fieldName" />
+<el-select data-testid="模块-search-fieldName" />
+
+<!-- 表单字段 -->
+<el-input data-testid="模块-form-fieldName" />
+<el-select data-testid="模块-form-fieldName" />
+<el-date-picker data-testid="模块-form-fieldName" />
+```
+
+命名格式：`{模块}-{类型}-{名称}`，类型包括 search/form/table/dialog/btn/detail。
+
+### 测试脚本命名规范
+
+```
+e2e/tests/{模块}/
+├── {模块}-create.spec.ts     # 新增功能测试
+├── {模块}-edit.spec.ts       # 编辑功能测试
+├── {模块}-search.spec.ts     # 搜索过滤测试
+├── {模块}-delete.spec.ts     # 删除功能测试
+├── {模块}-status-change.spec.ts  # 状态变更测试（如有）
+└── {模块}-detail.spec.ts     # 详情查看测试（如有）
+```
+
+### 运行测试命令
+
+```bash
+cd e2e
+pnpm test                # 全部测试
+pnpm run test:headed     # 有头模式
+pnpm run test:{模块}     # 按模块运行
+pnpm run report          # 查看报告
+```

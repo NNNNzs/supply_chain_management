@@ -48,3 +48,4 @@ nbdist/
 
 .env
 .token
+node_modules

@@ -1,19 +1,19 @@
 <template>
   <div class="app-container">
-    <el-form :model="queryParams" ref="queryRef" :inline="true" v-show="showSearch" label-width="68px">
+    <el-form :model="queryParams" ref="queryRef" :inline="true" v-show="showSearch" label-width="68px" data-testid="order-search-form">
       <el-form-item label="订单号" prop="orderNo">
-        <el-input v-model="queryParams.orderNo" placeholder="请输入订单号" clearable style="width: 200px" @keyup.enter="handleQuery" />
+        <el-input v-model="queryParams.orderNo" placeholder="请输入订单号" clearable style="width: 200px" @keyup.enter="handleQuery" data-testid="order-search-orderNo" />
       </el-form-item>
       <el-form-item label="客户" prop="customerId">
-        <el-select v-model="queryParams.customerId" placeholder="请选择客户" clearable style="width: 200px">
+        <el-select v-model="queryParams.customerId" placeholder="请选择客户" clearable style="width: 200px" data-testid="order-search-customer">
           <el-option v-for="item in customerOptions" :key="item.customerId" :label="item.customerName" :value="item.customerId" />
         </el-select>
       </el-form-item>
       <el-form-item label="订单日期" prop="orderDate">
-        <el-date-picker v-model="dateRange" value-format="YYYY-MM-DD" type="daterange" range-separator="-" start-placeholder="开始日期" end-placeholder="结束日期" style="width: 240px"></el-date-picker>
+        <el-date-picker v-model="dateRange" value-format="YYYY-MM-DD" type="daterange" range-separator="-" start-placeholder="开始日期" end-placeholder="结束日期" style="width: 240px" data-testid="order-search-date"></el-date-picker>
       </el-form-item>
       <el-form-item label="订单状态" prop="orderStatus">
-        <el-select v-model="queryParams.orderStatus" placeholder="订单状态" clearable style="width: 150px">
+        <el-select v-model="queryParams.orderStatus" placeholder="订单状态" clearable style="width: 150px" data-testid="order-search-status">
           <el-option
             v-for="dict in logistics_order_status"
             :key="dict.value"
@@ -23,7 +23,7 @@
         </el-select>
       </el-form-item>
       <el-form-item label="计价方式" prop="pricingMode">
-        <el-select v-model="queryParams.pricingMode" placeholder="计价方式" clearable style="width: 130px">
+        <el-select v-model="queryParams.pricingMode" placeholder="计价方式" clearable style="width: 130px" data-testid="order-search-pricing">
           <el-option
             v-for="dict in logistics_pricing_mode"
             :key="dict.value"
@@ -33,14 +33,14 @@
         </el-select>
       </el-form-item>
       <el-form-item>
-        <el-button type="primary" icon="Search" @click="handleQuery">搜索</el-button>
-        <el-button icon="Refresh" @click="resetQuery">重置</el-button>
+        <el-button type="primary" icon="Search" @click="handleQuery" data-testid="order-search-btn">搜索</el-button>
+        <el-button icon="Refresh" @click="resetQuery" data-testid="order-reset-btn">重置</el-button>
       </el-form-item>
     </el-form>
 
     <el-row :gutter="10" class="mb8">
       <el-col :span="1.5">
-        <el-button type="primary" plain icon="Plus" @click="handleAdd" v-hasPermi="['logistics:order:add']">新增</el-button>
+        <el-button type="primary" plain icon="Plus" @click="handleAdd" v-hasPermi="['logistics:order:add']" data-testid="order-add-btn">新增</el-button>
       </el-col>
       <el-col :span="1.5">
         <el-button type="info" plain icon="Upload" @click="handleImport" v-hasPermi="['logistics:order:import']">导入</el-button>
@@ -49,16 +49,16 @@
         <el-button type="warning" plain icon="Download" @click="handleExport" v-hasPermi="['logistics:order:export']">导出</el-button>
       </el-col>
       <el-col :span="1.5">
-        <el-button type="success" plain icon="Document" :disabled="multiple" @click="handleMergeInvoice" v-hasPermi="['logistics:invoice:merge']">合并开票</el-button>
+        <el-button type="success" plain icon="Document" :disabled="multiple" @click="handleMergeInvoice" v-hasPermi="['logistics:invoice:merge']" data-testid="order-merge-invoice-btn">合并开票</el-button>
       </el-col>
       <el-col :span="1.5">
-        <el-button type="primary" plain icon="DocumentAdd" :disabled="multiple" @click="handleAddReceipt" v-hasPermi="['logistics:receipt:add']">新增回单</el-button>
+        <el-button type="primary" plain icon="DocumentAdd" :disabled="multiple" @click="handleAddReceipt" v-hasPermi="['logistics:receipt:add']" data-testid="order-add-receipt-btn">新增回单</el-button>
       </el-col>
       <right-toolbar v-model:showSearch="showSearch" @queryTable="getList"></right-toolbar>
     </el-row>
 
     <!-- 合并开票对话框 -->
-    <el-dialog title="合并开票" v-model="invoiceOpen" width="900px" append-to-body>
+    <el-dialog title="合并开票" v-model="invoiceOpen" width="900px" append-to-body data-testid="order-invoice-dialog">
       <el-form :model="invoiceForm" ref="invoiceRef" :rules="invoiceRules" label-width="100px">
         <el-row>
           <el-col :span="12">
@@ -116,12 +116,12 @@
       <template #footer>
         <div class="dialog-footer">
           <el-button @click="invoiceOpen = false">取 消</el-button>
-          <el-button type="primary" @click="submitMergeInvoice">确 定</el-button>
+          <el-button type="primary" @click="submitMergeInvoice" data-testid="order-invoice-submit-btn">确 定</el-button>
         </div>
       </template>
     </el-dialog>
 
-    <el-table v-loading="loading" :data="orderList" @selection-change="handleSelectionChange">
+    <el-table v-loading="loading" :data="orderList" @selection-change="handleSelectionChange" data-testid="order-table">
       <el-table-column type="selection" width="55" align="center" fixed />
       <el-table-column label="订单号" align="center" prop="orderNo" width="180" fixed>
         <template #default="scope">
