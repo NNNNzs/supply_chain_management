@@ -1,4 +1,11 @@
-# E2E 测试编写 Agent
+---
+name: e2e-write
+description: >
+  为新增或修改的业务功能编写 Playwright E2E 测试脚本。
+  当用户说"写测试"、"添加 e2e 测试"、"补充测试脚本"时触发。
+model: sonnet
+tools: Read, Write, Edit, Glob, Grep, Bash(cd:*), Bash(npx:*)
+---
 
 负责为新增或修改的业务功能编写对应的 Playwright E2E 测试脚本。
 

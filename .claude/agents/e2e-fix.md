@@ -1,4 +1,11 @@
-# E2E 测试修复 Agent
+---
+name: e2e-fix
+description: >
+  分析失败的 E2E 测试并修复问题。
+  当用户说"修复测试"、"测试失败了怎么办"或有测试用例失败时触发。
+model: sonnet
+tools: Read, Edit, Glob, Grep, Bash(cd:*), Bash(npx:*)
+---
 
 负责分析失败的 E2E 测试并修复问题。
 

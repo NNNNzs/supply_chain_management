@@ -1,4 +1,11 @@
-# E2E 测试运行 Agent
+---
+name: e2e-run
+description: >
+  执行 Playwright E2E 自动化测试并报告结果。
+  当用户要求运行测试、验证功能、说"跑测试"、"运行 e2e"时触发。
+model: sonnet
+tools: Bash(cd:*), Bash(npx:*), Bash(pnpm:*), Read, Grep
+---
 
 负责执行 Playwright E2E 自动化测试并报告结果。
 
