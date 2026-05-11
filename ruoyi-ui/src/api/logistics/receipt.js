@@ -36,9 +36,10 @@ export function updateReceipt(data) {
 }
 
 // 删除回单信息
-export function delReceipt(receiptId) {
+export function delReceipt(receiptIds) {
+  const ids = Array.isArray(receiptIds) ? receiptIds.join(',') : receiptIds
   return request({
-    url: '/logistics/receipt/' + receiptId,
+    url: '/logistics/receipt/' + ids,
     method: 'delete'
   })
 }

@@ -6,7 +6,10 @@
     <div class="column-setting">
       <div class="column-setting__header">
         <span>表头设置</span>
-        <el-button link type="primary" size="small" @click="handleReset">重置</el-button>
+        <div class="column-setting__actions">
+          <el-button v-if="hasColumnWidth" link type="primary" size="small" @click="handleResetWidths">重置列宽</el-button>
+          <el-button link type="primary" size="small" @click="handleReset">重置</el-button>
+        </div>
       </div>
       <div class="column-setting__list">
         <draggable
@@ -32,7 +35,7 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { computed, ref, onMounted } from 'vue'
 import { Setting, Rank } from '@element-plus/icons-vue'
 import draggable from 'vuedraggable'
 
@@ -40,18 +43,43 @@ const props = defineProps({
   columns: {
     type: Array,
     required: true
+  },
+  storageKey: {
+    type: String,
+    default: ''
   }
 })
 
-const emit = defineEmits(['reset', 'update:columns'])
+const emit = defineEmits(['reset', 'update:columns', 'resetWidths'])
 
 const localColumns = computed({
   get: () => props.columns,
   set: (val) => emit('update:columns', val),
 })
 
+const hasColumnWidth = ref(false)
+
+onMounted(() => {
+  checkColumnWidth()
+})
+
+function checkColumnWidth() {
+  if (!props.storageKey) return
+  try {
+    const stored = localStorage.getItem('table_column_width:' + props.storageKey)
+    hasColumnWidth.value = !!stored
+  } catch (e) {
+    hasColumnWidth.value = false
+  }
+}
+
 function handleReset() {
   emit('reset')
+}
+
+function handleResetWidths() {
+  emit('resetWidths')
+  hasColumnWidth.value = false
 }
 
 function handleChange() {
@@ -67,6 +95,11 @@ function handleChange() {
   margin-bottom: 8px;
   font-weight: 600;
   font-size: 14px;
+}
+
+.column-setting__actions {
+  display: flex;
+  gap: 4px;
 }
 
 .column-setting__list {

@@ -28,29 +28,39 @@
         <el-button type="primary" plain icon="Plus" @click="handleAdd" v-hasPermi="['logistics:receipt:add']" data-testid="receipt-add-btn">新增</el-button>
       </el-col>
       <el-col :span="1.5">
+        <el-button type="danger" plain icon="Delete" :disabled="multiple" @click="handleBatchDelete" v-hasPermi="['logistics:receipt:remove']">批量删除</el-button>
+      </el-col>
+      <el-col :span="1.5">
         <el-button type="warning" plain icon="Download" @click="handleExport" v-hasPermi="['logistics:receipt:export']">导出</el-button>
       </el-col>
-      <right-toolbar v-model:showSearch="showSearch" @queryTable="getList"></right-toolbar>
+      <right-toolbar v-model:showSearch="showSearch" @queryTable="getList">
+        <column-setting v-model:columns="columns" @reset="resetColumns" />
+      </right-toolbar>
     </el-row>
 
-    <el-table v-loading="loading" :data="receiptList" data-testid="receipt-table">
-      <el-table-column label="回单编号" align="center" prop="receiptNo" width="180" />
-      <el-table-column label="订单号" align="center" prop="orderNo" width="180" :show-overflow-tooltip="true" />
-      <el-table-column label="回单日期" align="center" prop="receiptDate" width="110" />
-      <el-table-column label="回单图片" align="center" prop="receiptImage" width="100">
+    <el-table v-loading="loading" :data="receiptList" @selection-change="handleSelectionChange" border data-testid="receipt-table">
+      <el-table-column type="selection" width="55" align="center" fixed />
+      <el-table-column v-if="isVisible('receiptNo')" label="回单编号" align="center" prop="receiptNo" min-width="180" />
+      <el-table-column v-if="isVisible('orderNo')" label="订单号" align="center" prop="orderNo" min-width="180" :show-overflow-tooltip="true" />
+      <el-table-column v-if="isVisible('receiptDate')" label="回单日期" align="center" prop="receiptDate" width="110" />
+      <el-table-column v-if="isVisible('receiptImage')" label="回单图片" align="center" prop="receiptImage" width="100">
         <template #default="scope">
           <image-preview v-if="scope.row.receiptImage" :src="scope.row.receiptImage" :width="50" :height="50" />
           <span v-else>-</span>
         </template>
       </el-table-column>
-      <el-table-column label="回单状态" align="center" prop="receiptStatus" width="100">
+      <el-table-column v-if="isVisible('receiptStatus')" label="回单状态" align="center" prop="receiptStatus" width="100">
         <template #default="scope">
           <dict-tag :options="logistics_receipt_status" :value="scope.row.receiptStatus" />
         </template>
       </el-table-column>
-      <el-table-column label="接收人" align="center" prop="receiver" width="100" />
-      <el-table-column label="接收时间" align="center" prop="receiveTime" width="160" />
-      <el-table-column label="备注" align="center" prop="remark" :show-overflow-tooltip="true" />
+      <el-table-column v-if="isVisible('receiver')" label="接收人" align="center" prop="receiver" width="100" />
+      <el-table-column v-if="isVisible('receiveTime')" label="接收时间" align="center" prop="receiveTime" width="160" />
+      <el-table-column v-if="isVisible('createBy')" label="创建人" align="center" prop="createBy" width="100" />
+      <el-table-column v-if="isVisible('createTime')" label="创建时间" align="center" prop="createTime" width="160" />
+      <el-table-column v-if="isVisible('updateBy')" label="修改人" align="center" prop="updateBy" width="100" />
+      <el-table-column v-if="isVisible('updateTime')" label="修改时间" align="center" prop="updateTime" width="160" />
+      <el-table-column v-if="isVisible('remark')" label="备注" align="center" prop="remark" :show-overflow-tooltip="true" />
       <el-table-column label="操作" align="center" width="200" class-name="small-padding fixed-width">
         <template #default="scope">
           <el-button link type="primary" icon="View" @click="handleView(scope.row)" v-hasPermi="['logistics:receipt:query']">查看</el-button>
@@ -92,9 +102,28 @@
 import { listReceipt, getReceipt, delReceipt, confirmReceipt, exportReceipt } from "@/api/logistics/receipt"
 import { useDict } from '@/utils/dict'
 import ReceiptDialog from "@/components/ReceiptDialog/index.vue"
+import ColumnSetting from "@/components/ColumnSetting/index.vue"
+import { useColumnSetting } from "@/components/ColumnSetting/composable"
 
 const { proxy } = getCurrentInstance()
 const { logistics_receipt_status } = useDict('logistics_receipt_status')
+
+const defaultColumns = [
+  { key: 'receiptNo', label: '回单编号' },
+  { key: 'orderNo', label: '订单号' },
+  { key: 'receiptDate', label: '回单日期' },
+  { key: 'receiptImage', label: '回单图片' },
+  { key: 'receiptStatus', label: '回单状态' },
+  { key: 'receiver', label: '接收人' },
+  { key: 'receiveTime', label: '接收时间' },
+  { key: 'createBy', label: '创建人', visible: false },
+  { key: 'createTime', label: '创建时间' },
+  { key: 'updateBy', label: '修改人', visible: false },
+  { key: 'updateTime', label: '修改时间', visible: false },
+  { key: 'remark', label: '备注', visible: false },
+]
+
+const { columns, isVisible, resetColumns } = useColumnSetting('logistics_receipt', defaultColumns)
 
 const receiptList = ref([])
 const loading = ref(true)
@@ -105,6 +134,9 @@ const imagePreviewOpen = ref(false)
 const confirmOpen = ref(false)
 const previewImage = ref("")
 const receiptId = ref(null)
+const ids = ref([])
+const single = ref(true)
+const multiple = ref(true)
 
 const data = reactive({
   queryParams: {
@@ -169,14 +201,34 @@ function handleDialogSuccess() {
   getList()
 }
 
+function handleSelectionChange(selection) {
+  ids.value = selection.map(item => item.receiptId)
+  single.value = selection.length !== 1
+  multiple.value = !selection.length
+}
+
 function handleDelete(row) {
-  const _receiptIds = row.receiptId || ids.value
-  proxy.$modal.confirm('是否确认删除回单信息编号为"' + _receiptIds + '"的数据项？').then(function() {
-    return delReceipt(_receiptIds)
+  const receiptIds = row.receiptId ? [row.receiptId] : ids.value
+  proxy.$modal.confirm('是否确认删除回单信息编号为"' + receiptIds + '"的数据项？').then(function() {
+    return delReceipt(receiptIds)
   }).then(() => {
     getList()
     proxy.$modal.msgSuccess("删除成功")
   }).catch(() => {})
+}
+
+function handleBatchDelete() {
+  const receiptIds = ids.value
+  if (!receiptIds.length) return
+  proxy.$modal.confirm(`是否确认删除选中的 ${receiptIds.length} 条回单数据？`).then(function() {
+    loading.value = true
+    return delReceipt(receiptIds)
+  }).then(() => {
+    getList()
+    proxy.$modal.msgSuccess("删除成功")
+  }).catch(() => {}).finally(() => {
+    loading.value = false
+  })
 }
 
 function handleConfirm(row) {

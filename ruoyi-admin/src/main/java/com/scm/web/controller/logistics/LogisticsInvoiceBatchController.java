@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import com.scm.common.annotation.Log;
 import com.scm.common.core.controller.BaseController;
@@ -166,18 +167,27 @@ public class LogisticsInvoiceBatchController extends BaseController
      */
     @PreAuthorize("@ss.hasPermi('logistics:invoice:remove')")
     @Log(title = "发票批次", businessType = BusinessType.DELETE)
-    @DeleteMapping("/{batchId}")
-    public AjaxResult remove(@PathVariable Long batchId)
+    @DeleteMapping
+    public AjaxResult remove(@RequestParam String batchIds)
     {
-        LogisticsInvoiceBatch batch = logisticsInvoiceBatchService.selectLogisticsInvoiceBatchByBatchId(batchId);
-        if (batch == null) {
-            return error("发票批次不存在");
-        }
-        if ("issued".equals(batch.getInvoiceStatus())) {
-            return error("发票已开具，无法删除");
+        String[] idArray = batchIds.split(",");
+        Long[] ids = new Long[idArray.length];
+        for (int i = 0; i < idArray.length; i++) {
+            ids[i] = Long.parseLong(idArray[i].trim());
         }
 
-        return toAjax(logisticsInvoiceBatchService.deleteLogisticsInvoiceBatchByBatchId(batchId));
+        // 先验证所有发票是否可以删除
+        for (Long batchId : ids) {
+            LogisticsInvoiceBatch batch = logisticsInvoiceBatchService.selectLogisticsInvoiceBatchByBatchId(batchId);
+            if (batch == null) {
+                return error("发票批次不存在：" + batchId);
+            }
+            if ("issued".equals(batch.getInvoiceStatus())) {
+                return error("批次号 " + batch.getBatchNo() + " 已开具，无法删除");
+            }
+        }
+
+        return toAjax(logisticsInvoiceBatchService.deleteLogisticsInvoiceBatchByBatchIds(ids));
     }
 
     /**

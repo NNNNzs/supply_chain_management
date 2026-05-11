@@ -103,9 +103,14 @@ public class LogisticsInvoiceBatchServiceImpl implements ILogisticsInvoiceBatchS
      * @return 结果
      */
     @Override
+    @Transactional
     public int deleteLogisticsInvoiceBatchByBatchIds(Long[] batchIds)
     {
-        return logisticsInvoiceBatchMapper.deleteLogisticsInvoiceBatchByBatchIds(batchIds);
+        int count = 0;
+        for (Long batchId : batchIds) {
+            count += deleteLogisticsInvoiceBatchByBatchId(batchId);
+        }
+        return count;
     }
 
     /**

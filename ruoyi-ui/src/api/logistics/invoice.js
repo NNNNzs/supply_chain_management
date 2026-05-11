@@ -36,10 +36,12 @@ export function updateInvoiceBatch(data) {
 }
 
 // 删除发票批次
-export function delInvoiceBatch(batchId) {
+export function delInvoiceBatch(batchIds) {
+  const ids = Array.isArray(batchIds) ? batchIds.join(',') : batchIds
   return request({
-    url: '/logistics/invoice/' + batchId,
-    method: 'delete'
+    url: '/logistics/invoice',
+    method: 'delete',
+    params: { batchIds: ids }
   })
 }
 

@@ -33,47 +33,56 @@
           v-hasPermi="['logistics:invoice:merge']" data-testid="invoice-add-btn">新增</el-button>
       </el-col>
       <el-col :span="1.5">
-        <el-button type="success" plain icon="Check" :disabled="single" @click="handleIssue"
+        <el-button type="success" plain icon="Check" :disabled="multiple" @click="handleIssue"
           v-hasPermi="['logistics:invoice:issue']" data-testid="invoice-issue-btn">开具</el-button>
       </el-col>
       <el-col :span="1.5">
-        <el-button type="danger" plain icon="Close" :disabled="single" @click="handleCancel"
+        <el-button type="danger" plain icon="Close" :disabled="multiple" @click="handleCancel"
           v-hasPermi="['logistics:invoice:cancel']" data-testid="invoice-cancel-btn">作废</el-button>
       </el-col>
       <el-col :span="1.5">
-        <el-button type="warning" plain icon="RefreshLeft" :disabled="single" @click="handleCancelMerge"
+        <el-button type="warning" plain icon="RefreshLeft" :disabled="multiple" @click="handleCancelMerge"
           v-hasPermi="['logistics:invoice:merge']" data-testid="invoice-cancel-merge-btn">取消合并</el-button>
       </el-col>
-      <right-toolbar v-model:showSearch="showSearch" @queryTable="getList"></right-toolbar>
+      <el-col :span="1.5">
+        <el-button type="danger" plain icon="Delete" :disabled="multiple" @click="handleBatchDelete" v-hasPermi="['logistics:invoice:remove']">批量删除</el-button>
+      </el-col>
+      <right-toolbar v-model:showSearch="showSearch" @queryTable="getList">
+        <column-setting v-model:columns="columns" @reset="resetColumns" />
+      </right-toolbar>
     </el-row>
 
-    <el-table v-loading="loading" :data="invoiceList" @selection-change="handleSelectionChange" data-testid="invoice-table">
-      <el-table-column type="selection" width="55" align="center" />
-      <el-table-column label="批次号" align="center" prop="batchNo" min-width="180" />
-      <el-table-column label="客户" align="center" prop="customerName" min-width="150" :show-overflow-tooltip="true" />
-      <el-table-column label="开票日期" align="center" prop="invoiceDate" width="110" />
-      <el-table-column label="订单数量" align="center" prop="orderCount" width="90" />
-      <el-table-column label="开票金额(元)" align="center" prop="totalAmount" width="120">
+    <el-table v-loading="loading" :data="invoiceList" @selection-change="handleSelectionChange" border data-testid="invoice-table">
+      <el-table-column type="selection" width="55" align="center" fixed />
+      <el-table-column v-if="isVisible('batchNo')" label="批次号" align="center" prop="batchNo" min-width="180" />
+      <el-table-column v-if="isVisible('customerName')" label="客户" align="center" prop="customerName" min-width="150" :show-overflow-tooltip="true" />
+      <el-table-column v-if="isVisible('invoiceDate')" label="开票日期" align="center" prop="invoiceDate" width="110" />
+      <el-table-column v-if="isVisible('orderCount')" label="订单数量" align="center" prop="orderCount" width="90" />
+      <el-table-column v-if="isVisible('totalAmount')" label="开票金额(元)" align="center" prop="totalAmount" width="120">
         <template #default="scope">
           {{ scope.row.totalAmount ? scope.row.totalAmount.toFixed(2) : '0.00' }}
         </template>
       </el-table-column>
-      <el-table-column label="税额(元)" align="center" prop="taxAmount" width="100">
+      <el-table-column v-if="isVisible('taxAmount')" label="税额(元)" align="center" prop="taxAmount" width="100">
         <template #default="scope">
           {{ scope.row.taxAmount ? scope.row.taxAmount.toFixed(2) : '0.00' }}
         </template>
       </el-table-column>
-      <el-table-column label="发票类型" align="center" prop="invoiceType" width="100">
+      <el-table-column v-if="isVisible('invoiceType')" label="发票类型" align="center" prop="invoiceType" width="100">
         <template #default="scope">
           <dict-tag :options="logistics_invoice_type" :value="scope.row.invoiceType" />
         </template>
       </el-table-column>
-      <el-table-column label="发票状态" align="center" prop="invoiceStatus" width="90">
+      <el-table-column v-if="isVisible('invoiceStatus')" label="发票状态" align="center" prop="invoiceStatus" width="90">
         <template #default="scope">
           <dict-tag :options="logistics_batch_status" :value="scope.row.invoiceStatus" />
         </template>
       </el-table-column>
-      <el-table-column label="创建时间" align="center" prop="createTime" width="160" />
+      <el-table-column v-if="isVisible('createBy')" label="创建人" align="center" prop="createBy" width="100" />
+      <el-table-column v-if="isVisible('createTime')" label="创建时间" align="center" prop="createTime" width="160" />
+      <el-table-column v-if="isVisible('updateBy')" label="修改人" align="center" prop="updateBy" width="100" />
+      <el-table-column v-if="isVisible('updateTime')" label="修改时间" align="center" prop="updateTime" width="160" />
+      <el-table-column v-if="isVisible('remark')" label="备注" align="center" prop="remark" :show-overflow-tooltip="true" />
       <el-table-column label="操作" align="center" width="200" class-name="small-padding fixed-width">
         <template #default="scope">
           <el-button link type="primary" icon="View" @click="handleView(scope.row)">详情</el-button>
@@ -222,9 +231,29 @@
 import { listInvoiceBatch, getInvoiceBatch, mergeInvoice, issueInvoice, cancelInvoice, cancelMerge, listInvoiceableOrders, delInvoiceBatch } from "@/api/logistics/invoice"
 import { listCustomer } from "@/api/logistics/customer"
 import { useDict } from '@/utils/dict'
+import ColumnSetting from "@/components/ColumnSetting/index.vue"
+import { useColumnSetting } from "@/components/ColumnSetting/composable"
 
 const { proxy } = getCurrentInstance()
 const { logistics_batch_status, logistics_invoice_type, logistics_invoice_status } = useDict('logistics_batch_status', 'logistics_invoice_type', 'logistics_invoice_status')
+
+const defaultColumns = [
+  { key: 'batchNo', label: '批次号' },
+  { key: 'customerName', label: '客户' },
+  { key: 'invoiceDate', label: '开票日期' },
+  { key: 'orderCount', label: '订单数量' },
+  { key: 'totalAmount', label: '开票金额(元)' },
+  { key: 'taxAmount', label: '税额(元)' },
+  { key: 'invoiceType', label: '发票类型' },
+  { key: 'invoiceStatus', label: '发票状态' },
+  { key: 'createBy', label: '创建人', visible: false },
+  { key: 'createTime', label: '创建时间' },
+  { key: 'updateBy', label: '修改人', visible: false },
+  { key: 'updateTime', label: '修改时间', visible: false },
+  { key: 'remark', label: '备注', visible: false },
+]
+
+const { columns, isVisible, resetColumns } = useColumnSetting('logistics_invoice', defaultColumns)
 
 const invoiceList = ref([])
 const orderListForMerge = ref([])
@@ -361,9 +390,13 @@ function submitMerge() {
 }
 
 function handleIssue() {
-  const batchId = ids.value[0]
-  proxy.$modal.confirm('确认要开具该发票吗？').then(function () {
-    return issueInvoice(batchId)
+  const batchIds = ids.value
+  if (!batchIds.length) return
+  const confirmMsg = batchIds.length === 1
+    ? '确认要开具该发票吗？'
+    : `确认要开具选中的 ${batchIds.length} 个发票吗？`
+  proxy.$modal.confirm(confirmMsg).then(function () {
+    return Promise.all(batchIds.map(id => issueInvoice(id)))
   }).then(() => {
     getList()
     proxy.$modal.msgSuccess("发票开具成功")
@@ -371,9 +404,13 @@ function handleIssue() {
 }
 
 function handleCancel() {
-  const batchId = ids.value[0]
-  proxy.$modal.confirm('确认要作废该发票吗？').then(function () {
-    return cancelInvoice(batchId)
+  const batchIds = ids.value
+  if (!batchIds.length) return
+  const confirmMsg = batchIds.length === 1
+    ? '确认要作废该发票吗？'
+    : `确认要作废选中的 ${batchIds.length} 个发票吗？`
+  proxy.$modal.confirm(confirmMsg).then(function () {
+    return Promise.all(batchIds.map(id => cancelInvoice(id)))
   }).then(() => {
     getList()
     proxy.$modal.msgSuccess("发票作废成功")
@@ -381,9 +418,13 @@ function handleCancel() {
 }
 
 function handleCancelMerge() {
-  const batchId = ids.value[0]
-  proxy.$modal.confirm('确认要取消该发票合并吗？取消后订单将恢复为未开票状态。').then(function () {
-    return cancelMerge(batchId)
+  const batchIds = ids.value
+  if (!batchIds.length) return
+  const confirmMsg = batchIds.length === 1
+    ? '确认要取消该发票合并吗？取消后订单将恢复为未开票状态。'
+    : `确认要取消选中的 ${batchIds.length} 个发票合并吗？取消后订单将恢复为未开票状态。`
+  proxy.$modal.confirm(confirmMsg).then(function () {
+    return Promise.all(batchIds.map(id => cancelMerge(id)))
   }).then(() => {
     getList()
     proxy.$modal.msgSuccess("取消合并成功")
@@ -397,20 +438,34 @@ function handleView(row) {
   })
 }
 
+function handleSelectionChange(selection) {
+  ids.value = selection.map(item => item.batchId)
+  single.value = selection.length !== 1
+  multiple.value = !selection.length
+}
+
 function handleDelete(row) {
-  const batchId = row.batchId
+  const batchIds = row.batchId ? [row.batchId] : ids.value
   proxy.$modal.confirm('确认要删除该发票批次吗？').then(function () {
-    return delInvoiceBatch(batchId)
+    return delInvoiceBatch(batchIds)
   }).then(() => {
     getList()
     proxy.$modal.msgSuccess("删除成功")
   }).catch(() => { })
 }
 
-function handleSelectionChange(selection) {
-  ids.value = selection.map(item => item.batchId)
-  single.value = selection.length !== 1
-  multiple.value = !selection.length
+function handleBatchDelete() {
+  const batchIds = ids.value
+  if (!batchIds.length) return
+  proxy.$modal.confirm(`确认要删除选中的 ${batchIds.length} 个发票批次吗？`).then(function () {
+    loading.value = true
+    return delInvoiceBatch(batchIds)
+  }).then(() => {
+    getList()
+    proxy.$modal.msgSuccess("删除成功")
+  }).catch(() => {}).finally(() => {
+    loading.value = false
+  })
 }
 
 getList()

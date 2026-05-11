@@ -36,9 +36,10 @@ export function updateOrder(data) {
 }
 
 // 删除订单
-export function delOrder(orderId) {
+export function delOrder(orderIds) {
+  const ids = Array.isArray(orderIds) ? orderIds.join(',') : orderIds
   return request({
-    url: '/logistics/order/' + orderId,
+    url: '/logistics/order/' + ids,
     method: 'delete'
   })
 }

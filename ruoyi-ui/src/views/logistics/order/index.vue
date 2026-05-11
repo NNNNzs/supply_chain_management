@@ -58,7 +58,7 @@
         <el-button type="primary" plain icon="DocumentAdd" :disabled="multiple" @click="handleAddReceipt" v-hasPermi="['logistics:receipt:add']" data-testid="order-add-receipt-btn">新增回单</el-button>
       </el-col>
       <right-toolbar v-model:showSearch="showSearch" @queryTable="getList">
-        <column-setting v-model:columns="columns" @reset="resetColumns" />
+        <column-setting v-model:columns="columns" :storage-key="'logistics_order'" @reset="resetColumns" @resetWidths="resetColumnWidths" />
       </right-toolbar>
     </el-row>
 
@@ -126,7 +126,7 @@
       </template>
     </el-dialog>
 
-    <el-table v-loading="loading" :data="orderList" @selection-change="handleSelectionChange" :default-sort="defaultSort" @sort-change="handleSortChange" border data-testid="order-table">
+    <el-table v-loading="loading" :data="orderList" @selection-change="handleSelectionChange" :default-sort="defaultSort" @sort-change="handleSortChange" @header-dragend="handleHeaderDragend" border data-testid="order-table">
       <el-table-column type="selection" width="55" align="center" fixed />
       <el-table-column label="订单号" align="center" prop="orderNo" width="180" fixed>
         <template #default="scope">
@@ -233,6 +233,7 @@ import ExcelImportDialog from "@/components/ExcelImportDialog"
 import ReceiptDialog from "@/components/ReceiptDialog/index.vue"
 import ColumnSetting from "@/components/ColumnSetting/index.vue"
 import { useColumnSetting } from "@/components/ColumnSetting/composable"
+import { useTableColumnWidth } from "@/components/ColumnSetting/useTableColumnWidth"
 import { useRouter } from 'vue-router'
 import { onMounted, computed } from 'vue'
 
@@ -267,6 +268,7 @@ const defaultColumns = [
 ]
 
 const { columns, isVisible, resetColumns } = useColumnSetting('logistics_order', defaultColumns)
+const { getColumnWidth, handleHeaderDragend: saveColumnWidth, resetColumnWidths } = useTableColumnWidth('logistics_order')
 
 const orderList = ref([])
 const loading = ref(true)
@@ -499,6 +501,11 @@ function handleAddReceipt() {
 // 回单操作成功回调
 function handleReceiptSuccess() {
   getList()
+}
+
+// 表头拖拽结束事件处理
+function handleHeaderDragend(params) {
+  saveColumnWidth(params)
 }
 
 onMounted(() => {
