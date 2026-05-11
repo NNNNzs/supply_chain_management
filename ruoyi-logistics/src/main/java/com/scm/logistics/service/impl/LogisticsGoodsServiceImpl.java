@@ -5,6 +5,7 @@ import java.util.Date;
 import java.util.List;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import com.scm.common.exception.ServiceException;
 import com.scm.common.utils.BaseEntityUtils;
 import com.scm.logistics.mapper.LogisticsGoodsMapper;
 import com.scm.logistics.domain.LogisticsGoods;
@@ -61,6 +62,7 @@ public class LogisticsGoodsServiceImpl implements ILogisticsGoodsService
             String timestamp = new SimpleDateFormat("yyyyMMddHHmmss").format(new Date());
             logisticsGoods.setGoodsCode("GD" + timestamp);
         }
+        checkDuplicate(logisticsGoods.getGoodsCode(), logisticsGoods.getGoodsModel(), null);
         BaseEntityUtils.fillCreateInfo(logisticsGoods);
         return logisticsGoodsMapper.insertLogisticsGoods(logisticsGoods);
     }
@@ -74,6 +76,7 @@ public class LogisticsGoodsServiceImpl implements ILogisticsGoodsService
     @Override
     public int updateLogisticsGoods(LogisticsGoods logisticsGoods)
     {
+        checkDuplicate(logisticsGoods.getGoodsCode(), logisticsGoods.getGoodsModel(), logisticsGoods.getGoodsId());
         BaseEntityUtils.fillUpdateInfo(logisticsGoods);
         return logisticsGoodsMapper.updateLogisticsGoods(logisticsGoods);
     }
@@ -100,5 +103,15 @@ public class LogisticsGoodsServiceImpl implements ILogisticsGoodsService
     public int deleteLogisticsGoodsByGoodsId(Long goodsId)
     {
         return logisticsGoodsMapper.deleteLogisticsGoodsByGoodsId(goodsId);
+    }
+
+    private void checkDuplicate(String goodsCode, String goodsModel, Long excludeGoodsId)
+    {
+        String model = goodsModel == null ? "" : goodsModel;
+        LogisticsGoods existing = logisticsGoodsMapper.selectByCodeAndModel(goodsCode, model, excludeGoodsId);
+        if (existing != null)
+        {
+            throw new ServiceException("货物编码「" + goodsCode + "」型号「" + model + "」已存在，请勿重复添加");
+        }
     }
 }

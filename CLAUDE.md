@@ -221,13 +221,14 @@ ruoyi-ui/src/
 - `sql/migrations/v3.2.1_add_developer_mode.sql` - 开发者模式参数配置
 - `sql/migrations/v3.3.0_add_pricing_mode.sql` - 包车计价模式
 - `sql/migrations/v3.3.1_add_goods_specification.sql` - 订单货物规格字段
+- `sql/migrations/v3.3.2_goods_unique_code_model.sql` - 货物唯一索引改为编码+型号联合唯一
 
 **⚠️ 生产环境数据库变更规范**：
 - 已创建 `db_version` 表记录所有迁移历史
 - 以后所有变更必须使用增量迁移脚本
 - 详细规范请参考：[数据库脚本管理](sql/README.md)
 
-**当前数据库版本**：v3.3.1（订单货物规格字段）
+**当前数据库版本**：v3.3.2（货物编码+型号联合唯一索引）
 
 ## E2E 自动化测试规范
 

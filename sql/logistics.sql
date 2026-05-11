@@ -59,7 +59,7 @@ CREATE TABLE logistics_goods (
   update_time     DATETIME                                   COMMENT '更新时间',
   remark          VARCHAR(500)    DEFAULT NULL               COMMENT '备注',
   PRIMARY KEY (goods_id),
-  UNIQUE KEY uk_goods_code (goods_code)
+  UNIQUE KEY uk_goods_code_model (goods_code, goods_model)
 ) ENGINE=INNODB AUTO_INCREMENT=1000 COMMENT = '货物信息表';
 
 -- ----------------------------

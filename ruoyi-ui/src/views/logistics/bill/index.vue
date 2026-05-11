@@ -395,7 +395,7 @@ function getBillRemainWeight(row) {
 
 function getList() {
   loading.value = true
-  const params = proxy.addDateRange(queryParams.value, dateRange.value, 'billDate')
+  const params = proxy.addDateRange(queryParams.value, dateRange.value, 'BillDate')
   listBill(params).then(response => {
     billList.value = response.rows
     total.value = response.total

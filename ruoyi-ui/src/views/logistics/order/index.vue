@@ -49,12 +49,17 @@
         <el-button type="warning" plain icon="Download" @click="handleExport" v-hasPermi="['logistics:order:export']">导出</el-button>
       </el-col>
       <el-col :span="1.5">
+        <el-button type="danger" plain icon="Delete" :disabled="multiple" @click="handleBatchDelete" v-hasPermi="['logistics:order:remove']">批量删除</el-button>
+      </el-col>
+      <el-col :span="1.5">
         <el-button type="success" plain icon="Document" :disabled="multiple" @click="handleMergeInvoice" v-hasPermi="['logistics:invoice:merge']" data-testid="order-merge-invoice-btn">合并开票</el-button>
       </el-col>
       <el-col :span="1.5">
         <el-button type="primary" plain icon="DocumentAdd" :disabled="multiple" @click="handleAddReceipt" v-hasPermi="['logistics:receipt:add']" data-testid="order-add-receipt-btn">新增回单</el-button>
       </el-col>
-      <right-toolbar v-model:showSearch="showSearch" @queryTable="getList"></right-toolbar>
+      <right-toolbar v-model:showSearch="showSearch" @queryTable="getList">
+        <column-setting v-model:columns="columns" @reset="resetColumns" />
+      </right-toolbar>
     </el-row>
 
     <!-- 合并开票对话框 -->
@@ -121,7 +126,7 @@
       </template>
     </el-dialog>
 
-    <el-table v-loading="loading" :data="orderList" @selection-change="handleSelectionChange" data-testid="order-table">
+    <el-table v-loading="loading" :data="orderList" @selection-change="handleSelectionChange" :default-sort="defaultSort" @sort-change="handleSortChange" border data-testid="order-table">
       <el-table-column type="selection" width="55" align="center" fixed />
       <el-table-column label="订单号" align="center" prop="orderNo" width="180" fixed>
         <template #default="scope">
@@ -130,42 +135,65 @@
           </el-link>
         </template>
       </el-table-column>
-      <el-table-column label="订单日期" align="center" prop="orderDate" width="110" />
-      <el-table-column label="客户" align="center" prop="customerName" width="120" :show-overflow-tooltip="true" />
-      <el-table-column label="装货地址" align="center" prop="loadingAddress" :show-overflow-tooltip="true" />
-      <el-table-column label="卸货地址" align="center" prop="unloadingAddress" :show-overflow-tooltip="true" />
-      <el-table-column label="货物" align="center" prop="goodsName" width="100" />
-      <el-table-column label="重量(吨)" align="center" prop="weight" width="90">
+      <el-table-column v-if="isVisible('orderDate')" label="订单日期" align="center" prop="orderDate" width="110" />
+      <el-table-column v-if="isVisible('customerName')" label="客户" align="center" prop="customerName" width="120" :show-overflow-tooltip="true" />
+      <el-table-column v-if="isVisible('loadingAddress')" label="装货地址" align="center" prop="loadingAddress" :show-overflow-tooltip="true" />
+      <el-table-column v-if="isVisible('unloadingAddress')" label="卸货地址" align="center" prop="unloadingAddress" :show-overflow-tooltip="true" />
+      <el-table-column v-if="isVisible('goodsName')" label="货物" align="center" prop="goodsName" width="100" />
+      <el-table-column v-if="isVisible('goodsModel')" label="型号" align="center" prop="goodsModel" width="100" />
+      <el-table-column v-if="isVisible('weight')" label="重量(吨)" align="center" prop="weight" width="90" sortable="custom" :sort-orders="['descending', 'ascending']">
         <template #default="scope">
           {{ scope.row.weight ? scope.row.weight.toFixed(3) : '0.000' }}
         </template>
       </el-table-column>
-      <el-table-column label="金额(元)" align="center" prop="totalAmount" width="100">
+      <el-table-column v-if="isVisible('actualWeight')" label="实收(吨)" align="center" prop="actualWeight" width="90" sortable="custom" :sort-orders="['descending', 'ascending']">
+        <template #default="scope">
+          {{ scope.row.actualWeight ? scope.row.actualWeight.toFixed(3) : '' }}
+        </template>
+      </el-table-column>
+      <el-table-column v-if="isVisible('unitPrice')" label="单价(元)" align="center" prop="unitPrice" width="90" sortable="custom" :sort-orders="['descending', 'ascending']">
+        <template #default="scope">
+          {{ scope.row.unitPrice ? scope.row.unitPrice.toFixed(2) : '' }}
+        </template>
+      </el-table-column>
+      <el-table-column v-if="isVisible('totalAmount')" label="金额(元)" align="center" prop="totalAmount" width="100" sortable="custom" :sort-orders="['descending', 'ascending']">
         <template #default="scope">
           {{ scope.row.totalAmount ? scope.row.totalAmount.toFixed(2) : '0.00' }}
         </template>
       </el-table-column>
-      <el-table-column label="计价" align="center" prop="pricingMode" width="80">
+      <el-table-column v-if="isVisible('pricingMode')" label="计价" align="center" prop="pricingMode" width="80">
         <template #default="scope">
           <dict-tag :options="logistics_pricing_mode" :value="scope.row.pricingMode" />
         </template>
       </el-table-column>
-      <el-table-column label="车牌号" align="center" prop="vehiclePlate" width="100" />
-      <el-table-column label="订单状态" align="center" prop="orderStatus" width="90">
+      <el-table-column v-if="isVisible('vehiclePlate')" label="车牌号" align="center" prop="vehiclePlate" width="100" />
+      <el-table-column v-if="isVisible('driverName')" label="司机" align="center" prop="driverName" width="80" />
+      <el-table-column v-if="isVisible('driverPhone')" label="司机电话" align="center" prop="driverPhone" width="120" />
+      <el-table-column v-if="isVisible('orderStatus')" label="订单状态" align="center" prop="orderStatus" width="90">
         <template #default="scope">
           <dict-tag :options="logistics_order_status" :value="scope.row.orderStatus" />
         </template>
       </el-table-column>
-      <el-table-column label="结算状态" align="center" prop="settlementStatus" width="90">
+      <el-table-column v-if="isVisible('settlementStatus')" label="结算状态" align="center" prop="settlementStatus" width="90">
         <template #default="scope">
           <dict-tag :options="logistics_settlement_status" :value="scope.row.settlementStatus" />
         </template>
       </el-table-column>
-      <el-table-column label="开票状态" align="center" prop="invoiceStatus" width="90">
+      <el-table-column v-if="isVisible('invoiceStatus')" label="开票状态" align="center" prop="invoiceStatus" width="90">
         <template #default="scope">
           <dict-tag :options="logistics_invoice_status" :value="scope.row.invoiceStatus" />
         </template>
       </el-table-column>
+      <el-table-column v-if="isVisible('receiptStatus')" label="回单状态" align="center" prop="receiptStatus" width="90">
+        <template #default="scope">
+          <dict-tag :options="logistics_receipt_status" :value="scope.row.receiptStatus" />
+        </template>
+      </el-table-column>
+      <el-table-column v-if="isVisible('createBy')" label="创建人" align="center" prop="createBy" width="80" />
+      <el-table-column v-if="isVisible('createTime')" label="创建时间" align="center" prop="createTime" width="160" />
+      <el-table-column v-if="isVisible('updateBy')" label="修改人" align="center" prop="updateBy" width="80" />
+      <el-table-column v-if="isVisible('updateTime')" label="修改时间" align="center" prop="updateTime" width="160" />
+      <el-table-column v-if="isVisible('remark')" label="备注" align="center" prop="remark" :show-overflow-tooltip="true" />
       <el-table-column label="操作" align="center" width="220" class-name="small-padding fixed-width">
         <template #default="scope">
           <el-button link type="primary" icon="Edit" @click="handleUpdate(scope.row)" v-hasPermi="['logistics:order:edit']">修改</el-button>
@@ -203,12 +231,42 @@ import { mergeInvoice } from "@/api/logistics/invoice"
 import { useDict } from '@/utils/dict'
 import ExcelImportDialog from "@/components/ExcelImportDialog"
 import ReceiptDialog from "@/components/ReceiptDialog/index.vue"
+import ColumnSetting from "@/components/ColumnSetting/index.vue"
+import { useColumnSetting } from "@/components/ColumnSetting/composable"
 import { useRouter } from 'vue-router'
 import { onMounted, computed } from 'vue'
 
 const router = useRouter()
 const { proxy } = getCurrentInstance()
-const { logistics_order_status, logistics_settlement_status, logistics_invoice_status, logistics_invoice_type, logistics_pricing_mode } = useDict('logistics_order_status', 'logistics_settlement_status', 'logistics_invoice_status', 'logistics_invoice_type', 'logistics_pricing_mode')
+const { logistics_order_status, logistics_settlement_status, logistics_invoice_status, logistics_invoice_type, logistics_pricing_mode, logistics_receipt_status } = useDict('logistics_order_status', 'logistics_settlement_status', 'logistics_invoice_status', 'logistics_invoice_type', 'logistics_pricing_mode', 'logistics_receipt_status')
+
+const defaultColumns = [
+  { key: 'orderDate', label: '订单日期' },
+  { key: 'customerName', label: '客户' },
+  { key: 'loadingAddress', label: '装货地址' },
+  { key: 'unloadingAddress', label: '卸货地址' },
+  { key: 'goodsName', label: '货物' },
+  { key: 'goodsModel', label: '型号' },
+  { key: 'weight', label: '重量(吨)' },
+  { key: 'actualWeight', label: '实收(吨)', visible: false },
+  { key: 'unitPrice', label: '单价(元)', visible: false },
+  { key: 'totalAmount', label: '金额(元)' },
+  { key: 'pricingMode', label: '计价' },
+  { key: 'vehiclePlate', label: '车牌号' },
+  { key: 'driverName', label: '司机', visible: false },
+  { key: 'driverPhone', label: '司机电话', visible: false },
+  { key: 'orderStatus', label: '订单状态' },
+  { key: 'settlementStatus', label: '结算状态' },
+  { key: 'invoiceStatus', label: '开票状态' },
+  { key: 'receiptStatus', label: '回单状态', visible: false },
+  { key: 'createBy', label: '创建人', visible: false },
+  { key: 'createTime', label: '创建时间', visible: false },
+  { key: 'updateBy', label: '修改人', visible: false },
+  { key: 'updateTime', label: '修改时间', visible: false },
+  { key: 'remark', label: '备注', visible: false },
+]
+
+const { columns, isVisible, resetColumns } = useColumnSetting('logistics_order', defaultColumns)
 
 const orderList = ref([])
 const loading = ref(true)
@@ -219,6 +277,7 @@ const multiple = ref(true)
 const total = ref(0)
 const dateRange = ref([])
 const customerOptions = ref([])
+const defaultSort = ref({ prop: 'o.orderId', order: 'descending' })
 const selectedOrders = ref([])
 const invoiceOpen = ref(false)
 const receiptDialogVisible = ref(false)
@@ -239,7 +298,9 @@ const data = reactive({
     orderNo: null,
     customerId: null,
     orderStatus: null,
-    pricingMode: null
+    pricingMode: null,
+    orderByColumn: 'o.orderId',
+    isAsc: 'descending'
   },
   invoiceForm: {
     customerId: null,
@@ -261,7 +322,7 @@ const { queryParams, invoiceForm, invoiceRules } = toRefs(data)
 
 function getList() {
   loading.value = true
-  const params = proxy.addDateRange(queryParams.value, dateRange.value, 'orderDate')
+  const params = proxy.addDateRange(queryParams.value, dateRange.value, 'OrderDate')
   listOrder(params).then(response => {
     orderList.value = response.rows
     total.value = response.total
@@ -277,6 +338,12 @@ function getCustomerList() {
 
 function handleQuery() {
   queryParams.value.pageNum = 1
+  getList()
+}
+
+function handleSortChange(column) {
+  queryParams.value.orderByColumn = column.prop ? 'o.' + column.prop : 'o.orderId'
+  queryParams.value.isAsc = column.order || 'descending'
   getList()
 }
 
@@ -306,6 +373,20 @@ function handleDelete(row) {
     getList()
     proxy.$modal.msgSuccess("删除成功")
   }).catch(() => {})
+}
+
+function handleBatchDelete() {
+  const orderIds = ids.value
+  if (!orderIds.length) return
+  proxy.$modal.confirm(`是否确认删除选中的 ${orderIds.length} 条订单数据？`).then(function() {
+    loading.value = true
+    return delOrder(orderIds)
+  }).then(() => {
+    getList()
+    proxy.$modal.msgSuccess("删除成功")
+  }).catch(() => {}).finally(() => {
+    loading.value = false
+  })
 }
 
 function handleExport() {

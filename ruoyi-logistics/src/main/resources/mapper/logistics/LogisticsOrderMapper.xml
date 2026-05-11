@@ -56,6 +56,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
                o.loading_unit_price, o.freight_cost,
                o.settlement_status, o.payment_method, o.payee, o.receipt_status, o.invoice_status,
                o.invoice_date, o.invoice_batch_no, o.order_status, o.dispatch_date, o.remark,
+               o.create_by, o.create_time, o.update_by, o.update_time,
                c.customer_name,
                d.driver_name, d.driver_type, f.fleet_name
         from logistics_order o
@@ -93,7 +94,6 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             </if>
             AND o.del_flag = '0'
         </where>
-        order by o.order_id desc
     </select>
 
     <select id="selectOrderById" parameterType="Long" resultMap="LogisticsOrderResult">

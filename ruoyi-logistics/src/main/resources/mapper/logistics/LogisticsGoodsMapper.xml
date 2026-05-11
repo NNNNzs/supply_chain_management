@@ -41,6 +41,13 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         where goods_id = #{goodsId}
     </select>
 
+    <select id="selectByCodeAndModel" resultMap="LogisticsGoodsResult">
+        <include refid="selectLogisticsGoodsVo"/>
+        where goods_code = #{goodsCode} and goods_model = #{goodsModel} and del_flag = '0'
+        <if test="excludeGoodsId != null">and goods_id != #{excludeGoodsId}</if>
+        limit 1
+    </select>
+
     <insert id="insertLogisticsGoods" parameterType="LogisticsGoods" useGeneratedKeys="true" keyProperty="goodsId">
         insert into logistics_goods
         <trim prefix="(" suffix=")" suffixOverrides=",">
